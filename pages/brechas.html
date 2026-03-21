@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brechas — Calculadora Previsional Chile</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/print.css" media="print">
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="../index.html" class="nav__logo" style="text-decoration:none;">Previsión<span>Chile</span></a>
+    <a href="../index.html"            class="nav__link">Inicio</a>
+    <a href="datos.html"               class="nav__link">Mis Datos</a>
+    <a href="proyeccion.html"          class="nav__link">Proyección</a>
+    <a href="modalidades.html"         class="nav__link">Modalidades</a>
+    <a href="brechas.html"             class="nav__link">Brechas</a>
+  </nav>
+
+  <div class="header-bar">
+    <button id="btnActualizar" class="btn-actualizar">🔄 Actualizar</button>
+    <span   id="infoAct"       class="info-act"></span>
+  </div>
+
+  <main class="container">
+
+    <!-- ── Informe header ── -->
+    <div class="informe-header">
+      <div>
+        <div class="informe-logo">Previsión<span style="color:var(--accent)">Chile</span></div>
+        <div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:4px;">Análisis de Brechas Previsionales</div>
+      </div>
+      <table class="informe-datos-cliente">
+        <tr><th>Nombre</th><td id="infoNombre"></td></tr>
+        <tr><th>RUT</th><td id="infoRUT"></td></tr>
+        <tr><th>Sexo</th><td id="infoSexo"></td></tr>
+        <tr><th>Edad</th><td id="infoEdad"></td></tr>
+        <tr><th>AFP</th><td id="infoAFP"></td></tr>
+        <tr><th>Fondo</th><td id="infoFondo"></td></tr>
+        <tr><th>Saldo total</th><td id="infoSaldo"></td></tr>
+      </table>
+      <div class="informe-fecha-eval">
+        Evaluación:<br><strong id="infoFechaEval"></strong>
+      </div>
+    </div>
+
+    <h1 class="page-title">Análisis de Brechas</h1>
+    <p class="page-subtitle">Compara tu pensión estimada con tu objetivo y descubre qué acciones tomar para cerrar la brecha.</p>
+
+    <!-- ── No data warning ── -->
+    <div id="sinDatos" class="aviso aviso--warning" style="display:none;">
+      Aún no hay datos. <a href="datos.html">Ingresa tus datos primero →</a>
+    </div>
+
+    <!-- ── Pensión objetivo ── -->
+    <div class="section" id="seccionObjetivo" style="display:none;">
+      <h2 class="section__title">Pensión Objetivo</h2>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pensionObjetivo">Pensión mensual deseada (CLP)</label>
+            <input type="number" id="pensionObjetivo" placeholder="Ej: 800000" min="0" step="10000">
+            <span class="hint">¿Cuánto necesitas mensualmente para vivir bien en tu retiro?</span>
+          </div>
+          <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+            <button type="button" id="btnCalcularBrecha" class="btn btn--primary">Calcular brecha</button>
+          </div>
+        </div>
+        <!-- Sugerencias rápidas -->
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:var(--text-xs);color:var(--color-text-muted);align-self:center;">Sugerencias:</span>
+          <button type="button" class="btn btn--ghost" style="padding:3px 10px;font-size:var(--text-xs);" data-objetivo="500000">$500.000</button>
+          <button type="button" class="btn btn--ghost" style="padding:3px 10px;font-size:var(--text-xs);" data-objetivo="800000">$800.000</button>
+          <button type="button" class="btn btn--ghost" style="padding:3px 10px;font-size:var(--text-xs);" data-objetivo="1200000">$1.200.000</button>
+          <button type="button" class="btn btn--ghost" style="padding:3px 10px;font-size:var(--text-xs);" data-objetivo="2000000">$2.000.000</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Análisis de brecha ── -->
+    <div class="section" id="seccionBrecha" style="display:none;">
+      <h2 class="section__title">Análisis de Brecha</h2>
+
+      <div class="grid-2" style="margin-bottom:20px;">
+        <div class="card">
+          <div style="font-size:var(--text-sm);color:var(--color-text-muted);">Pensión estimada (RP)</div>
+          <div style="font-size:var(--text-2xl);font-weight:700;color:var(--success);margin:8px 0;" id="brPensionRP">—</div>
+        </div>
+        <div class="card">
+          <div style="font-size:var(--text-sm);color:var(--color-text-muted);">Pensión objetivo</div>
+          <div style="font-size:var(--text-2xl);font-weight:700;color:var(--color-primary);margin:8px 0;" id="brPensionObj">—</div>
+        </div>
+      </div>
+
+      <!-- Brecha visual -->
+      <div class="card">
+        <div class="resultado__item">
+          <span class="resultado__label">Brecha mensual</span>
+          <span class="resultado__valor" id="brechaAbs">—</span>
+        </div>
+        <div class="resultado__item">
+          <span class="resultado__label">Brecha porcentual</span>
+          <span class="resultado__valor" id="brechaPct">—</span>
+        </div>
+        <div class="resultado__item">
+          <span class="resultado__label">Diagnóstico</span>
+          <span class="resultado__valor" id="diagnostico">—</span>
+        </div>
+        <div class="progress-wrap" style="margin-top:16px;">
+          <div class="progress-label">
+            <span>0%</span>
+            <span id="progLabel">—</span>
+            <span>100% objetivo</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-bar__fill" id="progFill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Cómo cerrar la brecha ── -->
+    <div class="section" id="seccionCerrar" style="display:none;">
+      <h2 class="section__title">¿Cómo Cerrar la Brecha?</h2>
+
+      <div class="form-group" style="max-width:300px;">
+        <label for="anosRestantes">Años hasta jubilación</label>
+        <input type="number" id="anosRestantes" min="1" max="40" value="10">
+      </div>
+
+      <div class="aviso aviso--info" style="margin-bottom:20px;">
+        Se calcula el aporte mensual adicional necesario para cerrar la brecha en los años indicados, bajo distintas tasas de rentabilidad.
+      </div>
+
+      <div class="tabla-wrap">
+        <table class="tabla-comparativa" id="tablaAportes">
+          <thead>
+            <tr>
+              <th>Escenario</th>
+              <th>Tasa anual</th>
+              <th>Aporte mensual necesario</th>
+              <th>Aporte anual</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoAportes">
+            <tr><td colspan="4" style="text-align:center;padding:16px;color:var(--color-text-muted);">Calcula la brecha primero</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="aviso aviso--warning" style="margin-top:16px;">
+        <strong>APV — Ahorro Previsional Voluntario:</strong> El APV es la herramienta más eficiente para cerrar brechas. Las cotizaciones APV tienen beneficios tributarios (Régimen A: hasta 15% de crédito; Régimen B: deducción de base imponible). Consulta tu AFP o banco.
+      </div>
+    </div>
+
+    <!-- ── Comparativa por AFP ── -->
+    <div class="section" id="seccionAFPs" style="display:none;">
+      <h2 class="section__title">Comparativa: Pensión por AFP</h2>
+      <p style="font-size:var(--text-sm);color:var(--color-text-muted);margin-bottom:16px;">
+        ¿Cuánto obtendrías con el mismo saldo en cada AFP? (las comisiones afectan el fondo acumulado a largo plazo)
+      </p>
+      <div class="tabla-wrap">
+        <table class="tabla-comparativa" id="tablaAFPs">
+          <thead>
+            <tr>
+              <th>AFP</th>
+              <th>Comisión anual</th>
+              <th>Pensión RP estimada</th>
+              <th>vs. tu AFP actual</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoAFPs"></tbody>
+        </table>
+      </div>
+      <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:8px;">
+        *Diferencia estimada sobre 20 años de cotización. El efecto de las comisiones es mayor con más años de cotización.
+      </p>
+    </div>
+
+    <!-- ── Acciones ── -->
+    <div class="section no-print">
+      <div class="btn-group">
+        <button type="button" id="btnPDF" class="btn btn--primary">🖨️ Exportar PDF</button>
+        <button type="button" id="btnCSV" class="btn btn--secondary">📊 Exportar CSV</button>
+        <a href="datos.html" class="btn btn--ghost">← Modificar datos</a>
+      </div>
+    </div>
+
+  </main>
+
+  <script type="module">
+    import { initBtnActualizar, mostrarDatosCliente, formatCLP, formatPct } from '../js/ui.js';
+    import { Store }           from '../js/store.js';
+    import { cargarTablas }    from '../js/mortalidad.js';
+    import { cargarAFP, getAfps, getComision } from '../js/comisiones.js';
+    import { calcularPensionRP, calcularBrecha, calcularAportacionNecesaria } from '../js/calculos.js';
+    import { exportarPDF, exportarCSV } from '../js/exportar.js';
+
+    initBtnActualizar();
+
+    const d = Store.leer();
+
+    if (!d.saldoTotal || !d.edad || !d.sexo) {
+      document.getElementById('sinDatos').style.display = '';
+    } else {
+      mostrarDatosCliente();
+      document.getElementById('seccionObjetivo').style.display = '';
+      document.getElementById('seccionAFPs').style.display     = '';
+      cargarAFPs();
+    }
+
+    let pensionEstimada = 0;
+
+    async function cargarAFPs() {
+      await cargarTablas();
+      await cargarAFP();
+      const uf   = d.uf || 39717;
+      const rp   = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf);
+      pensionEstimada = rp.pension;
+
+      const afps  = getAfps();
+      const tbody = document.getElementById('cuerpoAFPs');
+      tbody.innerHTML = '';
+
+      afps.forEach(afp => {
+        const esMiAFP     = afp.id === d.afp;
+        // Impact of commission difference on pension over 20 years (simplified)
+        const comActual   = getComision(d.afp || 'modelo');
+        const comDif      = afp.comision - comActual;
+        const impacto     = Math.round(rp.pension * (-comDif / 100) * 0.5); // approximate
+        const pensAFP     = Math.round(rp.pension - impacto);
+        const diff        = pensAFP - rp.pension;
+        const tr          = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${afp.nombre}${esMiAFP ? ' <span class="badge badge--info">Tu AFP</span>' : ''}</td>
+          <td>${afp.comision.toFixed(2)}%</td>
+          <td class="col-num ${esMiAFP ? 'col-highlight' : ''}">${formatCLP(pensAFP)}</td>
+          <td class="col-num" style="color:${diff >= 0 ? 'var(--success)' : 'var(--color-error)'}">
+            ${diff >= 0 ? '+' : ''}${formatCLP(diff)}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ── Calcular brecha ───────────────────────────────
+    document.getElementById('btnCalcularBrecha').addEventListener('click', () => calcularBrechaUI());
+
+    // Quick suggestions
+    document.querySelectorAll('[data-objetivo]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('pensionObjetivo').value = btn.dataset.objetivo;
+        calcularBrechaUI();
+      });
+    });
+
+    document.getElementById('anosRestantes').addEventListener('change', () => {
+      if (document.getElementById('brechaAbs').textContent !== '—') calcularBrechaUI();
+    });
+
+    async function calcularBrechaUI() {
+      const objetivo = parseFloat(document.getElementById('pensionObjetivo').value) || 0;
+      if (objetivo <= 0) { alert('Ingresa una pensión objetivo válida.'); return; }
+
+      await cargarTablas();
+      const uf = d.uf || 39717;
+      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf);
+      pensionEstimada = rp.pension;
+
+      const { brecha_abs, brecha_pct, suficiente } = calcularBrecha(rp.pension, objetivo);
+      const pct = Math.min(100, Math.max(0, (rp.pension / objetivo) * 100));
+
+      document.getElementById('brPensionRP').textContent  = formatCLP(rp.pension);
+      document.getElementById('brPensionObj').textContent = formatCLP(objetivo);
+      document.getElementById('brechaAbs').textContent    = suficiente ? '✅ Sin brecha' : formatCLP(brecha_abs);
+      document.getElementById('brechaPct').textContent    = suficiente ? '—' : brecha_pct.toFixed(1) + '%';
+      document.getElementById('diagnostico').textContent  = suficiente
+        ? '✅ Tu pensión estimada supera tu objetivo'
+        : `⚠️ Cubre solo el ${pct.toFixed(0)}% de tu objetivo`;
+      document.getElementById('progLabel').textContent    = pct.toFixed(0) + '%';
+
+      const fill = document.getElementById('progFill');
+      fill.style.width    = pct + '%';
+      fill.className      = 'progress-bar__fill' +
+        (pct >= 80 ? ' progress-bar__fill--success' : pct >= 50 ? ' progress-bar__fill--warning' : ' progress-bar__fill--danger');
+
+      document.getElementById('seccionBrecha').style.display = '';
+      document.getElementById('seccionCerrar').style.display = suficiente ? 'none' : '';
+
+      if (!suficiente) generarAportes(brecha_abs);
+    }
+
+    async function generarAportes(brechaAbs) {
+      await cargarTablas();
+      const anosRestantes = parseInt(document.getElementById('anosRestantes').value) || 10;
+      const tasas = [
+        { label: 'Conservador', valor: 0.03 },
+        { label: 'Moderado',    valor: 0.04 },
+        { label: 'Optimista',   valor: 0.05 },
+      ];
+      const tbody = document.getElementById('cuerpoAportes');
+      tbody.innerHTML = '';
+
+      // Need to find additional saldo to close the gap:
+      // target pension = current pension + (brechaAbs)
+      // We need extra saldo = brechaAbs * CRU
+      // That extra saldo needs to come from monthly contributions over anosRestantes years
+
+      const { getCRU } = await import('../js/mortalidad.js');
+
+      tasas.forEach(({ label, valor }) => {
+        const aporte = calcularAportacionNecesaria(
+          0, brechaAbs, d.edad, d.sexo, valor, anosRestantes
+        );
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${label}</td>
+          <td class="col-num">${(valor * 100).toFixed(0)}%</td>
+          <td class="col-num col-highlight">${formatCLP(aporte)}</td>
+          <td class="col-num">${formatCLP(aporte * 12)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ── Export ────────────────────────────────────────
+    document.getElementById('btnPDF').addEventListener('click', () => exportarPDF());
+    document.getElementById('btnCSV').addEventListener('click', () => {
+      const objetivo = parseFloat(document.getElementById('pensionObjetivo').value) || 0;
+      const filas = [
+        ['Análisis de Brechas Previsionales'],
+        ['Pensión estimada RP', formatCLP(pensionEstimada)],
+        ['Pensión objetivo', formatCLP(objetivo)],
+        ['Brecha mensual', formatCLP(Math.max(0, objetivo - pensionEstimada))],
+      ];
+      exportarCSV(filas, 'analisis-brechas');
+    });
+
+    window.addEventListener('datos-actualizados', () => {
+      Object.assign(d, Store.leer());
+      if (d.saldoTotal && d.edad && d.sexo) cargarAFPs();
+    });
+  </script>
+
+</body>
+</html>

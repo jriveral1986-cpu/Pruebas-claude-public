@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora Previsional Chile</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/print.css" media="print">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <span class="nav__logo">Previsión<span>Chile</span></span>
+    <a href="index.html"              class="nav__link active">Inicio</a>
+    <a href="pages/datos.html"        class="nav__link">Mis Datos</a>
+    <a href="pages/proyeccion.html"   class="nav__link">Proyección</a>
+    <a href="pages/modalidades.html"  class="nav__link">Modalidades</a>
+    <a href="pages/brechas.html"      class="nav__link">Brechas</a>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Calculadora Previsional Chile</h1>
+    <p>Estima tu pensión de retiro, compara modalidades y analiza brechas — usando datos oficiales de SP Chile y valores en tiempo real.</p>
+    <a href="pages/datos.html" class="btn btn--primary" style="margin: 0 auto; display:inline-flex;">
+      Comenzar evaluación
+    </a>
+  </section>
+
+  <!-- Main cards -->
+  <main class="container">
+
+    <div class="section">
+      <h2 class="section__title">¿Qué puedes calcular?</h2>
+      <div class="cards-nav">
+        <a href="pages/datos.html" class="card-nav-item">
+          <div class="card-nav-item__icon">📋</div>
+          <div class="card-nav-item__title">Mis Datos</div>
+          <div class="card-nav-item__desc">Ingresa AFP, fondo, saldo o número de cuotas, edad y sexo. El valor cuota se carga automáticamente desde SP Chile.</div>
+        </a>
+        <a href="pages/proyeccion.html" class="card-nav-item">
+          <div class="card-nav-item__icon">📈</div>
+          <div class="card-nav-item__title">Proyección</div>
+          <div class="card-nav-item__desc">Calcula tu pensión estimada (Retiro Programado y Renta Vitalicia) y proyecta el crecimiento de tu fondo.</div>
+        </a>
+        <a href="pages/modalidades.html" class="card-nav-item">
+          <div class="card-nav-item__icon">⚖️</div>
+          <div class="card-nav-item__title">Modalidades</div>
+          <div class="card-nav-item__desc">Compara Retiro Programado vs. Renta Vitalicia según tu perfil de esperanza de vida y preferencia de riesgo.</div>
+        </a>
+        <a href="pages/brechas.html" class="card-nav-item">
+          <div class="card-nav-item__icon">🎯</div>
+          <div class="card-nav-item__title">Brechas</div>
+          <div class="card-nav-item__desc">Calcula la brecha entre tu pensión estimada y la que necesitas, y descubre cuánto debes ahorrar para cerrarla.</div>
+        </a>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 class="section__title">¿Qué necesitas tener a mano?</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h4>Datos obligatorios</h4>
+          <ul style="margin-top:12px; padding-left:20px; line-height:2;">
+            <li>AFP donde tienes tu cuenta</li>
+            <li>Tipo de fondo (A, B, C, D o E)</li>
+            <li>Saldo acumulado <em>o</em> número de cuotas</li>
+            <li>Tu edad y sexo</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Datos opcionales</h4>
+          <ul style="margin-top:12px; padding-left:20px; line-height:2;">
+            <li>Nombre y RUT (para el informe)</li>
+            <li>Aporte mensual adicional</li>
+            <li>Pensión objetivo mensual</li>
+            <li>Tasa de rentabilidad esperada</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="aviso aviso--info">
+        <strong>Sobre los datos en tiempo real:</strong>
+        El valor cuota (VC) de cada AFP se obtiene directamente desde
+        <strong>SP Chile</strong> a través de un proxy Cloudflare Worker que resuelve
+        el bloqueo CORS. UF y UTM provienen de <strong>mindicador.cl</strong>.
+        Si no hay conexión, se usa una caché local con valores recientes.
+      </div>
+    </div>
+
+    <div class="section">
+      <p style="font-size:var(--text-xs);color:var(--color-text-muted);text-align:center;">
+        Esta calculadora es de uso informativo. Los valores son estimaciones basadas en
+        tablas de mortalidad RV-2020 / B-2020 y la metodología del DL 3.500.
+        Consulta a un asesor previsional certificado antes de tomar decisiones.
+      </p>
+    </div>
+
+  </main>
+
+  <script type="module">
+    import { initBtnActualizar } from './js/ui.js';
+    // No "Actualizar" button on home page — but import ensures nav is marked active
+  </script>
+
+</body>
+</html>

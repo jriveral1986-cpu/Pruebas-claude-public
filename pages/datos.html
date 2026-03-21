@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis Datos — Calculadora Previsional Chile</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/print.css" media="print">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <a href="../index.html" class="nav__logo" style="text-decoration:none;">Previsión<span>Chile</span></a>
+    <a href="../index.html"             class="nav__link">Inicio</a>
+    <a href="datos.html"                class="nav__link">Mis Datos</a>
+    <a href="proyeccion.html"           class="nav__link">Proyección</a>
+    <a href="modalidades.html"          class="nav__link">Modalidades</a>
+    <a href="brechas.html"              class="nav__link">Brechas</a>
+  </nav>
+
+  <!-- Refresh bar -->
+  <div class="header-bar">
+    <button id="btnActualizar" class="btn-actualizar">🔄 Actualizar</button>
+    <span   id="infoAct"       class="info-act"></span>
+    <span id="statusUF" style="font-size:var(--text-xs);color:var(--color-text-muted);margin-left:8px;"></span>
+  </div>
+
+  <main class="container">
+    <h1 class="page-title">Mis Datos Previsionales</h1>
+    <p class="page-subtitle">Completa el formulario para iniciar la evaluación. El valor cuota se carga automáticamente al seleccionar AFP y Fondo.</p>
+
+    <form id="formDatos" novalidate>
+
+      <!-- ── Datos personales ── -->
+      <div class="form-section">
+        <div class="form-section__title">👤 Datos Personales</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nombreCliente">Nombre completo</label>
+            <input type="text" id="nombreCliente" placeholder="Ej: Juan Pérez González" autocomplete="name">
+          </div>
+          <div class="form-group">
+            <label for="rutCliente">RUT</label>
+            <input type="text" id="rutCliente" placeholder="Ej: 12.345.678-9" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fechaNacimiento">Fecha de nacimiento</label>
+            <input type="date" id="fechaNacimiento" max="">
+          </div>
+          <div class="form-group">
+            <label for="emailCliente">Correo electrónico (opcional)</label>
+            <input type="email" id="emailCliente" placeholder="correo@ejemplo.cl" autocomplete="email">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Sexo</label>
+            <div class="radio-group" style="margin-top:8px;">
+              <label class="radio-item">
+                <input type="radio" name="sexo" value="M"> Hombre
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="sexo" value="F"> Mujer
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edadDisplay">Edad calculada</label>
+            <input type="text" id="edadDisplay" readonly placeholder="Se calcula desde la fecha de nacimiento">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Datos AFP ── -->
+      <div class="form-section">
+        <div class="form-section__title">🏦 AFP y Fondo</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="selectAFP">AFP</label>
+            <select id="selectAFP">
+              <option value="">Cargando AFPs…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="selectFondo">Fondo</label>
+            <select id="selectFondo">
+              <option value="">Selecciona Fondo…</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Valor cuota auto-fetch -->
+        <div class="form-group">
+          <label for="valorCuota">
+            Valor cuota actual
+            <span data-tip="Precio de cada cuota del fondo en CLP. Se descarga desde SP Chile automáticamente.">ℹ️</span>
+          </label>
+          <input type="number" id="valorCuota" placeholder="Se carga al seleccionar AFP y Fondo" step="0.01" readonly>
+          <span class="hint" id="statusVC">Selecciona AFP y Fondo para cargar el valor cuota.</span>
+          <span id="fuenteVC" style="margin-top:4px;display:block;"></span>
+        </div>
+      </div>
+
+      <!-- ── Saldo ── -->
+      <div class="form-section">
+        <div class="form-section__title">💰 Saldo Acumulado</div>
+        <div class="form-group">
+          <label>Método de ingreso</label>
+          <div class="radio-group" style="margin-top:8px;">
+            <label class="radio-item">
+              <input type="radio" name="metodoSaldo" value="cuotas" checked> Por número de cuotas
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="metodoSaldo" value="monto"> Por monto total (CLP)
+            </label>
+          </div>
+        </div>
+
+        <div id="panelCuotas">
+          <div class="form-group">
+            <label for="numCuotas">Número de cuotas</label>
+            <input type="number" id="numCuotas" placeholder="Ej: 1234.56789" step="0.00001" min="0">
+            <span class="hint">Busca este dato en tu cartola AFP.</span>
+          </div>
+        </div>
+
+        <div id="panelMonto" style="display:none;">
+          <div class="form-group">
+            <label for="montoTotal">Monto total (CLP)</label>
+            <input type="number" id="montoTotal" placeholder="Ej: 45000000" step="1" min="0">
+          </div>
+        </div>
+
+        <!-- Saldo calculado (display only) -->
+        <div class="form-group">
+          <label for="saldoCalculado">Saldo total estimado</label>
+          <input type="text" id="saldoCalculado" readonly placeholder="Se calcula automáticamente">
+          <span class="hint" id="statusSaldo"></span>
+        </div>
+      </div>
+
+      <!-- ── Submit ── -->
+      <div class="btn-group">
+        <button type="submit" class="btn btn--primary">Calcular proyección →</button>
+        <button type="button" id="btnLimpiar" class="btn btn--ghost">Limpiar datos</button>
+      </div>
+
+    </form>
+  </main>
+
+  <script type="module">
+    import { initBtnActualizar, initSelectAFP, initSelectFondo, mostrarFuenteBadge, formatCLP } from '../js/ui.js';
+    import { getValorCuota, getUF }  from '../js/api.js';
+    import { Store }                  from '../js/store.js';
+    import { calcularSaldoDesdeNumCuotas } from '../js/calculos.js';
+
+    // ── Init ─────────────────────────────────────────
+    initBtnActualizar();
+    initSelectAFP(document.getElementById('selectAFP'));
+    initSelectFondo(document.getElementById('selectFondo'));
+
+    // Restore stored values
+    const d = Store.leer();
+    if (d.nombreCliente)   document.getElementById('nombreCliente').value   = d.nombreCliente;
+    if (d.rutCliente)      document.getElementById('rutCliente').value      = d.rutCliente;
+    if (d.emailCliente)    document.getElementById('emailCliente').value    = d.emailCliente;
+    if (d.fechaNacimiento) document.getElementById('fechaNacimiento').value = d.fechaNacimiento;
+    if (d.sexo)            document.querySelector(`input[name="sexo"][value="${d.sexo}"]`)?.click?.();
+    if (d.numCuotas)       document.getElementById('numCuotas').value       = d.numCuotas;
+    if (d.montoTotal)      document.getElementById('montoTotal').value      = d.montoTotal;
+    if (d.metodoSaldo === 'monto') {
+      document.querySelector('input[name="metodoSaldo"][value="monto"]').checked = true;
+      document.getElementById('panelCuotas').style.display = 'none';
+      document.getElementById('panelMonto').style.display  = '';
+    }
+
+    // Set max date for fechaNacimiento
+    document.getElementById('fechaNacimiento').max = new Date().toISOString().slice(0,10);
+
+    // ── Edad desde fecha de nacimiento ───────────────
+    function calcularEdad(fechaNac) {
+      if (!fechaNac) return null;
+      const hoy = new Date();
+      const nac = new Date(fechaNac);
+      let edad  = hoy.getFullYear() - nac.getFullYear();
+      const m   = hoy.getMonth() - nac.getMonth();
+      if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+      return edad > 0 ? edad : null;
+    }
+
+    document.getElementById('fechaNacimiento').addEventListener('change', e => {
+      const edad = calcularEdad(e.target.value);
+      document.getElementById('edadDisplay').value = edad ? `${edad} años` : '';
+    });
+    // Run on load if stored
+    if (d.fechaNacimiento) {
+      const edad = calcularEdad(d.fechaNacimiento);
+      if (edad) document.getElementById('edadDisplay').value = `${edad} años`;
+    }
+
+    // ── Auto-fetch valor cuota ────────────────────────
+    async function autoFetchVC() {
+      const afp   = document.getElementById('selectAFP').value;
+      const fondo = document.getElementById('selectFondo').value;
+      if (!afp || !fondo) return;
+
+      const statusVC = document.getElementById('statusVC');
+      const inputVC  = document.getElementById('valorCuota');
+      const fuenteVC = document.getElementById('fuenteVC');
+
+      statusVC.textContent = '⏳ Buscando valor cuota en SP Chile…';
+      statusVC.className   = 'hint loading';
+      inputVC.classList.add('loading');
+
+      const dato = await getValorCuota(afp, fondo);
+      inputVC.classList.remove('loading');
+
+      if (dato?.valor) {
+        inputVC.value = dato.valor;
+        const srcLabel = dato.fuente === 'sp-chile'    ? 'SP Chile (oficial)'
+                       : dato.fuente === 'cache-local' ? 'caché local'
+                       : 'sesión';
+        statusVC.textContent = `✅ Fuente: ${srcLabel} — ${dato.fecha || ''}`;
+        statusVC.className   = 'hint success';
+        mostrarFuenteBadge(fuenteVC, dato.fuente);
+        Store.guardar({ valorCuota: dato.valor, fechaVC: dato.fecha, afp, fondo });
+        recalcularSaldo();
+      } else {
+        inputVC.value = '';
+        statusVC.textContent = '⚠️ Sin conexión — ingresa el valor cuota manualmente.';
+        statusVC.className   = 'hint warning';
+        fuenteVC.innerHTML   = '';
+      }
+    }
+
+    // Trigger auto-fetch when AFP or Fondo change
+    document.getElementById('selectAFP').addEventListener('change',   autoFetchVC);
+    document.getElementById('selectFondo').addEventListener('change', autoFetchVC);
+
+    // If already stored AFP+Fondo, auto-fetch on load
+    if (d.afp && d.fondo) {
+      // Wait for selects to be populated
+      setTimeout(autoFetchVC, 300);
+    }
+
+    // Allow manual edit of valor cuota
+    document.getElementById('valorCuota').removeAttribute('readonly');
+    document.getElementById('valorCuota').addEventListener('input', recalcularSaldo);
+
+    // ── Saldo calculation ────────────────────────────
+    function recalcularSaldo() {
+      const metodo     = document.querySelector('input[name="metodoSaldo"]:checked')?.value;
+      const vc         = parseFloat(document.getElementById('valorCuota').value) || 0;
+      const numCuotas  = parseFloat(document.getElementById('numCuotas').value)  || 0;
+      const montoTotal = parseFloat(document.getElementById('montoTotal').value) || 0;
+      const statusSaldo = document.getElementById('statusSaldo');
+      const display     = document.getElementById('saldoCalculado');
+
+      let saldo = 0;
+      if (metodo === 'cuotas' && numCuotas > 0 && vc > 0) {
+        saldo = calcularSaldoDesdeNumCuotas(numCuotas, vc);
+        display.value    = formatCLP(saldo);
+        statusSaldo.textContent = `${numCuotas.toLocaleString('es-CL')} cuotas × ${formatCLP(vc)} c/u`;
+      } else if (metodo === 'monto' && montoTotal > 0) {
+        saldo = montoTotal;
+        display.value = formatCLP(saldo);
+        statusSaldo.textContent = '';
+      } else {
+        display.value = '';
+        statusSaldo.textContent = '';
+      }
+    }
+
+    document.getElementById('numCuotas').addEventListener('input',  recalcularSaldo);
+    document.getElementById('montoTotal').addEventListener('input', recalcularSaldo);
+
+    // Toggle saldo panels
+    document.querySelectorAll('input[name="metodoSaldo"]').forEach(r => {
+      r.addEventListener('change', e => {
+        document.getElementById('panelCuotas').style.display = e.target.value === 'cuotas' ? '' : 'none';
+        document.getElementById('panelMonto').style.display  = e.target.value === 'monto'  ? '' : 'none';
+        recalcularSaldo();
+      });
+    });
+
+    // Recalc on load if stored
+    if (d.valorCuota) {
+      document.getElementById('valorCuota').value = d.valorCuota;
+      recalcularSaldo();
+    }
+
+    // ── Load UF to show tope imponible ───────────────
+    getUF().then(uf => {
+      const tope = Math.round(87.8 * uf.valor);
+      document.getElementById('statusUF').textContent =
+        `UF: ${formatCLP(uf.valor)} · Tope imponible: ${formatCLP(tope)}`;
+      Store.guardar({ uf: uf.valor, topeImponible: tope });
+    });
+
+    // ── Form submit ──────────────────────────────────
+    document.getElementById('formDatos').addEventListener('submit', e => {
+      e.preventDefault();
+
+      const afp         = document.getElementById('selectAFP').value;
+      const fondo       = document.getElementById('selectFondo').value;
+      const valorCuota  = parseFloat(document.getElementById('valorCuota').value) || 0;
+      const metodo      = document.querySelector('input[name="metodoSaldo"]:checked')?.value;
+      const numCuotas   = parseFloat(document.getElementById('numCuotas').value)  || 0;
+      const montoTotal  = parseFloat(document.getElementById('montoTotal').value) || 0;
+      const sexo        = document.querySelector('input[name="sexo"]:checked')?.value;
+      const fechaNac    = document.getElementById('fechaNacimiento').value;
+      const edad        = calcularEdad(fechaNac);
+
+      // Validation
+      const errores = [];
+      if (!afp)   errores.push('Selecciona tu AFP.');
+      if (!fondo) errores.push('Selecciona el fondo.');
+      if (metodo === 'cuotas' && numCuotas <= 0) errores.push('Ingresa el número de cuotas.');
+      if (metodo === 'cuotas' && valorCuota <= 0) errores.push('El valor cuota no está disponible. Ingrésalo manualmente.');
+      if (metodo === 'monto'  && montoTotal <= 0) errores.push('Ingresa el monto total.');
+      if (!sexo)  errores.push('Selecciona el sexo.');
+      if (!fechaNac) errores.push('Ingresa la fecha de nacimiento.');
+      if (edad && (edad < 40 || edad > 100)) errores.push('La edad debe estar entre 40 y 100 años.');
+
+      if (errores.length) {
+        alert('Por favor corrige los siguientes errores:\n\n• ' + errores.join('\n• '));
+        return;
+      }
+
+      const saldoTotal = metodo === 'cuotas'
+        ? calcularSaldoDesdeNumCuotas(numCuotas, valorCuota)
+        : montoTotal;
+
+      Store.guardar({
+        afp,
+        fondo,
+        valorCuota,
+        numCuotas:       metodo === 'cuotas' ? numCuotas : null,
+        montoTotal:      metodo === 'monto'  ? montoTotal : null,
+        metodoSaldo:     metodo,
+        saldoTotal,
+        sexo,
+        edad,
+        fechaNacimiento: fechaNac,
+        nombreCliente:   document.getElementById('nombreCliente').value.trim(),
+        rutCliente:      document.getElementById('rutCliente').value.trim(),
+        emailCliente:    document.getElementById('emailCliente').value.trim(),
+        fechaEvaluacion: new Date().toISOString(),
+      });
+
+      window.location.href = 'proyeccion.html';
+    });
+
+    // ── Limpiar ──────────────────────────────────────
+    document.getElementById('btnLimpiar').addEventListener('click', () => {
+      if (confirm('¿Borrar todos los datos guardados?')) {
+        Store.borrar();
+        window.location.reload();
+      }
+    });
+
+  </script>
+
+</body>
+</html>

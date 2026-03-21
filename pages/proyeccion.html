@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proyección — Calculadora Previsional Chile</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/print.css" media="print">
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="../index.html" class="nav__logo" style="text-decoration:none;">Previsión<span>Chile</span></a>
+    <a href="../index.html"            class="nav__link">Inicio</a>
+    <a href="datos.html"               class="nav__link">Mis Datos</a>
+    <a href="proyeccion.html"          class="nav__link">Proyección</a>
+    <a href="modalidades.html"         class="nav__link">Modalidades</a>
+    <a href="brechas.html"             class="nav__link">Brechas</a>
+  </nav>
+
+  <div class="header-bar">
+    <button id="btnActualizar" class="btn-actualizar">🔄 Actualizar</button>
+    <span   id="infoAct"       class="info-act"></span>
+  </div>
+
+  <main class="container">
+
+    <!-- ── Informe header ── -->
+    <div class="informe-header">
+      <div>
+        <div class="informe-logo">Previsión<span style="color:var(--accent)">Chile</span></div>
+        <div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:4px;">Informe de Proyección Previsional</div>
+      </div>
+      <table class="informe-datos-cliente">
+        <tr><th>Nombre</th><td id="infoNombre"></td></tr>
+        <tr><th>RUT</th><td id="infoRUT"></td></tr>
+        <tr><th>Sexo</th><td id="infoSexo"></td></tr>
+        <tr><th>Edad</th><td id="infoEdad"></td></tr>
+        <tr><th>AFP</th><td id="infoAFP"></td></tr>
+        <tr><th>Fondo</th><td id="infoFondo"></td></tr>
+        <tr><th>Saldo total</th><td id="infoSaldo"></td></tr>
+      </table>
+      <div class="informe-fecha-eval">
+        Evaluación:<br><strong id="infoFechaEval"></strong>
+      </div>
+    </div>
+
+    <!-- ── Pensión estimada ── -->
+    <div class="section">
+      <h2 class="section__title">Pensión Estimada</h2>
+      <div id="sinDatos" class="aviso aviso--warning" style="display:none;">
+        Aún no hay datos. <a href="datos.html">Ingresa tus datos primero →</a>
+      </div>
+      <div id="panelResultados" style="display:none;">
+        <div class="grid-2">
+          <!-- Retiro Programado -->
+          <div class="card card--highlight">
+            <h3 style="margin-bottom:16px;">Retiro Programado</h3>
+            <div class="resultado">
+              <div class="resultado__item">
+                <span class="resultado__label">Pensión mensual estimada</span>
+                <span class="resultado__valor resultado__valor--highlight" id="rpPension">—</span>
+              </div>
+              <div class="resultado__item">
+                <span class="resultado__label">Equivalente en UF</span>
+                <span class="resultado__valor" id="rpPensionUF">—</span>
+              </div>
+              <div class="resultado__item">
+                <span class="resultado__label">Años estimados del fondo</span>
+                <span class="resultado__valor" id="rpAnos">—</span>
+              </div>
+            </div>
+            <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:12px;">
+              Basado en tabla B-2020, tasa técnica 3% real anual.
+              El fondo permanece heredable.
+            </p>
+          </div>
+          <!-- Renta Vitalicia -->
+          <div class="card">
+            <h3 style="margin-bottom:16px;">Renta Vitalicia</h3>
+            <div class="resultado">
+              <div class="resultado__item">
+                <span class="resultado__label">Pensión mensual estimada</span>
+                <span class="resultado__valor resultado__valor--highlight" id="rvPension">—</span>
+              </div>
+              <div class="resultado__item">
+                <span class="resultado__label">Equivalente en UF</span>
+                <span class="resultado__valor" id="rvPensionUF">—</span>
+              </div>
+              <div class="resultado__item">
+                <span class="resultado__label">Tipo de garantía</span>
+                <span class="resultado__valor resultado__valor--muted">Vitalicia</span>
+              </div>
+            </div>
+            <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:12px;">
+              Basado en tabla RV-2020. La compañía de seguros asume el riesgo de longevidad.
+              El saldo ya no es heredable.
+            </p>
+          </div>
+        </div>
+
+        <!-- Indicadores económicos usados -->
+        <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;">
+          <span id="badgeVC"  class="badge badge--info"></span>
+          <span id="badgeUF"  class="badge badge--info"></span>
+          <span id="badgeUTM" class="badge badge--info"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Proyección de saldo ── -->
+    <div class="section" id="seccionProyeccion" style="display:none;">
+      <h2 class="section__title">Proyección de Saldo</h2>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="anosProyeccion">Años de proyección</label>
+            <select id="anosProyeccion">
+              <option value="5">5 años</option>
+              <option value="10" selected>10 años</option>
+              <option value="15">15 años</option>
+              <option value="20">20 años</option>
+              <option value="30">30 años</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="aporteMensual">Aporte mensual adicional (CLP)</label>
+            <input type="number" id="aporteMensual" placeholder="0" min="0" step="1000" value="0">
+          </div>
+          <div class="form-group">
+            <label for="tasaAnual">Tasa de rentabilidad anual</label>
+            <select id="tasaAnual">
+              <option value="0.03">3%</option>
+              <option value="0.04" selected>4%</option>
+              <option value="0.05">5%</option>
+              <option value="0.06">6%</option>
+            </select>
+          </div>
+        </div>
+        <button type="button" id="btnProyectar" class="btn btn--secondary">Proyectar</button>
+      </div>
+
+      <div class="tabla-wrap">
+        <table class="tabla-comparativa" id="tablaProyeccion">
+          <thead>
+            <tr>
+              <th>Año</th>
+              <th>Saldo proyectado</th>
+              <th>Pensión RP estimada</th>
+              <th>Pensión RV estimada</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoProyeccion">
+            <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--color-text-muted);">Haz clic en "Proyectar"</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Acciones ── -->
+    <div class="section no-print" id="seccionAcciones" style="display:none;">
+      <div class="btn-group">
+        <button type="button" id="btnPDF" class="btn btn--primary">🖨️ Exportar PDF</button>
+        <button type="button" id="btnCSV" class="btn btn--secondary">📊 Exportar CSV</button>
+        <a href="modalidades.html" class="btn btn--ghost">⚖️ Ver modalidades →</a>
+        <a href="brechas.html"     class="btn btn--ghost">🎯 Analizar brechas →</a>
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="section">
+      <p style="font-size:var(--text-xs);color:var(--color-text-muted);">
+        Los montos son estimaciones con fines informativos. Metodología: tablas RV-2020 / B-2020 (SP Chile), tasa técnica 3% real anual, DL 3.500. Consulta a un asesor previsional certificado.
+      </p>
+    </div>
+
+  </main>
+
+  <script type="module">
+    import { initBtnActualizar, mostrarDatosCliente, formatCLP, formatUF } from '../js/ui.js';
+    import { Store }           from '../js/store.js';
+    import { cargarTablas }    from '../js/mortalidad.js';
+    import { calcularPensionRP, calcularPensionRV, proyectarSaldo } from '../js/calculos.js';
+    import { exportarPDF, exportarCSV } from '../js/exportar.js';
+
+    initBtnActualizar();
+
+    const d = Store.leer();
+
+    if (!d.saldoTotal || !d.edad || !d.sexo) {
+      document.getElementById('sinDatos').style.display     = '';
+      document.getElementById('panelResultados').style.display = 'none';
+    } else {
+      mostrarDatosCliente();
+      document.getElementById('panelResultados').style.display  = '';
+      document.getElementById('seccionProyeccion').style.display = '';
+      document.getElementById('seccionAcciones').style.display   = '';
+      calcular();
+    }
+
+    async function calcular() {
+      await cargarTablas();
+      const uf = d.uf || 39717;
+
+      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf);
+      const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf);
+
+      document.getElementById('rpPension').textContent   = formatCLP(rp.pension);
+      document.getElementById('rpPensionUF').textContent = formatUF(rp.pensionUF);
+      document.getElementById('rpAnos').textContent      = rp.anosEstimados ? `${rp.anosEstimados} años` : '—';
+      document.getElementById('rvPension').textContent   = formatCLP(rv.pension);
+      document.getElementById('rvPensionUF').textContent = formatUF(rv.pensionUF);
+
+      // Save results for otras páginas
+      Store.guardar({ pensionRP: rp.pension, pensionRV: rv.pension });
+
+      // Badges
+      if (d.valorCuota)
+        document.getElementById('badgeVC').textContent  = `VC: ${formatCLP(d.valorCuota)} (${d.fechaVC || ''})`;
+      if (d.uf)
+        document.getElementById('badgeUF').textContent  = `UF: ${formatCLP(d.uf)}`;
+      if (d.utm)
+        document.getElementById('badgeUTM').textContent = `UTM: ${formatCLP(d.utm)}`;
+    }
+
+    // ── Proyección ────────────────────────────────────
+    async function proyectar() {
+      await cargarTablas();
+      const anos        = parseInt(document.getElementById('anosProyeccion').value);
+      const aporte      = parseFloat(document.getElementById('aporteMensual').value) || 0;
+      const tasa        = parseFloat(document.getElementById('tasaAnual').value);
+      const uf          = d.uf || 39717;
+      const rows        = proyectarSaldo(d.saldoTotal, aporte, tasa, anos);
+      const tbody       = document.getElementById('cuerpoProyeccion');
+      tbody.innerHTML   = '';
+      rows.forEach(r => {
+        const rp  = calcularPensionRP(r.saldo, d.edad + r.ano, d.sexo, uf);
+        const rv  = calcularPensionRV(r.saldo, d.edad + r.ano, d.sexo, uf);
+        const tr  = document.createElement('tr');
+        tr.innerHTML = `
+          <td>Año ${r.ano}</td>
+          <td class="col-num">${formatCLP(r.saldo)}</td>
+          <td class="col-num col-highlight">${formatCLP(rp.pension)}</td>
+          <td class="col-num">${formatCLP(rv.pension)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('btnProyectar').addEventListener('click', proyectar);
+
+    // ── Export ────────────────────────────────────────
+    document.getElementById('btnPDF').addEventListener('click', () => exportarPDF());
+    document.getElementById('btnCSV').addEventListener('click', () => {
+      const headers = ['Año', 'Saldo proyectado', 'Pensión RP', 'Pensión RV'];
+      const filas   = [headers];
+      document.querySelectorAll('#cuerpoProyeccion tr').forEach(tr => {
+        filas.push([...tr.querySelectorAll('td')].map(td => td.textContent));
+      });
+      exportarCSV(filas, 'proyeccion-previsional');
+    });
+
+    // ── Re-render on live update ──────────────────────
+    window.addEventListener('datos-actualizados', () => {
+      Object.assign(d, Store.leer());
+      calcular();
+    });
+  </script>
+
+</body>
+</html>

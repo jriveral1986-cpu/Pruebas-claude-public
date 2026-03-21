@@ -1,0 +1,49 @@
+{
+  "_fecha": "2026-03-19",
+  "_fuente": "SP Chile — cache fallback",
+  "A": {
+    "capital":   { "valor": 86069.50,  "fecha": "2026-03-19" },
+    "cuprum":    { "valor": 107234.82, "fecha": "2026-03-19" },
+    "habitat":   { "valor": 97451.63,  "fecha": "2026-03-19" },
+    "modelo":    { "valor": 63812.44,  "fecha": "2026-03-19" },
+    "planvital": { "valor": 79234.51,  "fecha": "2026-03-19" },
+    "provida":   { "valor": 91872.34,  "fecha": "2026-03-19" },
+    "uno":       { "valor": 56234.17,  "fecha": "2026-03-19" }
+  },
+  "B": {
+    "capital":   { "valor": 74423.43, "fecha": "2026-03-19" },
+    "cuprum":    { "valor": 93451.82, "fecha": "2026-03-19" },
+    "habitat":   { "valor": 84123.55, "fecha": "2026-03-19" },
+    "modelo":    { "valor": 55234.18, "fecha": "2026-03-19" },
+    "planvital": { "valor": 68451.27, "fecha": "2026-03-19" },
+    "provida":   { "valor": 79834.61, "fecha": "2026-03-19" },
+    "uno":       { "valor": 48123.44, "fecha": "2026-03-19" }
+  },
+  "C": {
+    "capital":   { "valor": 71238.33, "fecha": "2026-03-19" },
+    "cuprum":    { "valor": 89234.71, "fecha": "2026-03-19" },
+    "habitat":   { "valor": 80451.28, "fecha": "2026-03-19" },
+    "modelo":    { "valor": 52812.34, "fecha": "2026-03-19" },
+    "planvital": { "valor": 65234.55, "fecha": "2026-03-19" },
+    "provida":   { "valor": 76123.42, "fecha": "2026-03-19" },
+    "uno":       { "valor": 45812.61, "fecha": "2026-03-19" }
+  },
+  "D": {
+    "capital":   { "valor": 55588.61, "fecha": "2026-03-19" },
+    "cuprum":    { "valor": 69451.38, "fecha": "2026-03-19" },
+    "habitat":   { "valor": 62812.45, "fecha": "2026-03-19" },
+    "modelo":    { "valor": 41234.18, "fecha": "2026-03-19" },
+    "planvital": { "valor": 50812.34, "fecha": "2026-03-19" },
+    "provida":   { "valor": 59451.27, "fecha": "2026-03-19" },
+    "uno":       { "valor": 35812.55, "fecha": "2026-03-19" }
+  },
+  "E": {
+    "capital":   { "valor": 67719.47, "fecha": "2026-03-19" },
+    "cuprum":    { "valor": 84451.62, "fecha": "2026-03-19" },
+    "habitat":   { "valor": 76234.38, "fecha": "2026-03-19" },
+    "modelo":    { "valor": 50123.44, "fecha": "2026-03-19" },
+    "planvital": { "valor": 61812.27, "fecha": "2026-03-19" },
+    "provida":   { "valor": 72451.51, "fecha": "2026-03-19" },
+    "uno":       { "valor": 43234.62, "fecha": "2026-03-19" }
+  }
+}
