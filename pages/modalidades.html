@@ -160,7 +160,7 @@
     <div class="section" id="seccionRPDetalle" style="display:none;">
       <h2 class="section__title">Retiro Programado — Evolución del Fondo</h2>
       <div class="aviso aviso--info">
-        Estimación del saldo restante año a año, asumiendo la pensión RP como retiro mensual y rentabilidad del 3% real anual.
+        La pensión se <strong>recalcula cada año</strong> sobre el saldo restante y la edad actualizada — igual que en el cálculo real de la SP Chile. Tasa técnica 3,31% (Circular SP N°2407). Si tienes grupo familiar, la columna "Retiro anual" muestra en gris el equivalente sin familia para comparar.
       </div>
       <div class="tabla-wrap" style="margin-top:16px;">
         <table class="tabla-comparativa" id="tablaRPDetalle">
@@ -169,7 +169,7 @@
               <th>Año</th>
               <th>Edad</th>
               <th>Saldo inicio año</th>
-              <th>Retiro anual</th>
+              <th>Retiro anual (pensión × 12)</th>
               <th>Saldo fin año</th>
             </tr>
           </thead>
@@ -242,7 +242,7 @@
     import { initBtnActualizar, mostrarDatosCliente, formatCLP, formatUF } from '../js/ui.js';
     import { Store }        from '../js/store.js';
     import { cargarTablas } from '../js/mortalidad.js';
-    import { calcularPensionRP, calcularPensionRV, calcularPensionSobrevivencia, recomendarModalidadFamiliar } from '../js/calculos.js';
+    import { calcularPensionRP, calcularPensionRV, calcularPensionSobrevivencia, recomendarModalidadFamiliar, TASA_RP } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
     import { cargarAFP, getComision } from '../js/comisiones.js';
 
@@ -301,7 +301,7 @@
       document.getElementById('rvTablaValor').textContent = `${formatCLP(rv.pension)} (líq. ${formatCLP(rv.pensionLiquida)})`;
 
       actualizarLongevidad();
-      generarRPDetalle(rp.pension);
+      generarRPDetalle(comisionDec, familia);
       renderSobrevivencia(rp.pension, rv.pension);
     }
 
@@ -435,29 +435,43 @@
     document.getElementById('edadEsperada').addEventListener('input', actualizarLongevidad);
 
     // ── RP detalle año a año ──────────────────────────
-    function generarRPDetalle(pension) {
-      const tbody  = document.getElementById('cuerpoRPDetalle');
+    // Modelo real: la pensión se recalcula cada año sobre el saldo restante y la edad actual.
+    // Esto es la esencia del "Retiro Programado": pension_año = saldo_inicio / CNU(edad_año)
+    function generarRPDetalle(comisionDec, familia) {
+      const tbody   = document.getElementById('cuerpoRPDetalle');
       tbody.innerHTML = '';
-      let saldo    = d.saldoTotal;
-      const tasa   = Math.pow(1.03, 1/12) - 1; // 3% real mensual
-      const retiro = pension;
-      for (let a = 1; a <= 30 && saldo > 0; a++) {
+      let saldo     = d.saldoTotal;
+      const uf      = d.uf || 39717;
+      // Tasa mensual compuesta equivalente a TASA_RP anual (3,31%)
+      const tasaMensual = Math.pow(1 + TASA_RP * 12, 1/12) - 1;
+
+      for (let a = 1; a <= 35 && saldo > 0; a++) {
+        const edadActual  = d.edad + (a - 1);
+        // Recalcular pensión al inicio de cada año con saldo y edad actuales
+        const rpAño       = calcularPensionRP(saldo, edadActual, d.sexo, uf, comisionDec, familia);
+        const retiro      = rpAño.pension;          // pensión bruta del año
         const saldoInicio = saldo;
-        // Apply 12 months of growth and withdrawals
+
         for (let m = 0; m < 12; m++) {
-          saldo = saldo * (1 + tasa) - retiro;
+          saldo = saldo * (1 + tasaMensual) - retiro;
           if (saldo < 0) { saldo = 0; break; }
         }
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
+
+        const agotado  = saldo <= 0;
+        const bajo     = !agotado && saldo < saldoInicio * 0.15;
+        const tr       = document.createElement('tr');
+        tr.innerHTML   = `
           <td>Año ${a}</td>
-          <td>${d.edad + a} años</td>
+          <td>${edadActual + 1} años</td>
           <td class="col-num">${formatCLP(saldoInicio)}</td>
-          <td class="col-num">${formatCLP(retiro * 12)}</td>
-          <td class="col-num ${saldo < saldoInicio * 0.2 ? 'col-highlight' : ''}">${saldo > 0 ? formatCLP(saldo) : '$0 (agotado)'}</td>
+          <td class="col-num">${formatCLP(retiro * 12)}
+            ${rpAño.impactoFamilia > 0
+              ? `<span style="font-size:0.75em;color:var(--color-text-muted);"> (sin familia: ${formatCLP(rpAño.pensionSinFamilia * 12)})</span>`
+              : ''}</td>
+          <td class="col-num ${bajo || agotado ? 'col-highlight' : ''}">${agotado ? '$0 (agotado)' : formatCLP(saldo)}</td>
         `;
         tbody.appendChild(tr);
-        if (saldo <= 0) break;
+        if (agotado) break;
       }
     }
 
