@@ -155,6 +155,131 @@
         </div>
       </div>
 
+      <!-- ── Situación laboral y renta ── -->
+      <div class="form-section">
+        <div class="form-section__title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          Situación Laboral y Renta
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="estadoLaboral">Estado laboral</label>
+            <select id="estadoLaboral">
+              <option value="dependiente">Trabajador dependiente</option>
+              <option value="independiente">Trabajador independiente</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edadJubilacion">Edad de jubilación planificada</label>
+            <input type="number" id="edadJubilacion" value="65" min="55" max="80">
+            <span class="hint">Legal: 65 hombres / 60 mujeres. Puede adelantarse.</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="rentaImponible">
+              Renta imponible mensual (CLP)
+              <span data-tip="Base de cálculo de cotizaciones. Máximo 87,8 UF (tope imponible)." aria-label="Información">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </span>
+            </label>
+            <input type="number" id="rentaImponible" placeholder="Ej: 1.200.000" min="0" step="10000">
+            <span class="hint" id="hintRenta">Usada para calcular tasa de reemplazo y cotización futura.</span>
+          </div>
+          <div class="form-group">
+            <label for="lagunas">Lagunas previsionales (%)</label>
+            <input type="number" id="lagunas" value="0" min="0" max="80" step="5">
+            <span class="hint">% de meses sin cotización. 0 si cotizas todos los meses.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── APV y Ahorro Voluntario ── -->
+      <div class="form-section">
+        <div class="form-section__title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          APV y Ahorro Voluntario
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="apvMensual">APV mensual (CLP)</label>
+            <input type="number" id="apvMensual" value="0" min="0" step="10000" placeholder="0">
+            <span class="hint">0 si no tienes APV activo.</span>
+          </div>
+          <div class="form-group">
+            <label for="regimenAPV">Régimen APV</label>
+            <select id="regimenAPV">
+              <option value="B" selected>Régimen B — Rebaja tributaria</option>
+              <option value="A">Régimen A — Bono 15% del Estado</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="saldoAPV">Saldo APV acumulado (CLP)</label>
+            <input type="number" id="saldoAPV" value="0" min="0" step="100000" placeholder="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Familia y Beneficiarios ── -->
+      <div class="form-section">
+        <div class="form-section__title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Familia y Beneficiarios
+        </div>
+        <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:16px;line-height:1.6;">
+          Esta información permite calcular la <strong>pensión de sobrevivencia</strong> (DL 3.500 art. 58) que generarías para tus beneficiarios y determinar qué modalidad te conviene más.
+        </p>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="estadoCivil">Estado civil</label>
+            <select id="estadoCivil" id="estadoCivil">
+              <option value="soltero">Soltero/a</option>
+              <option value="casado">Casado/a</option>
+              <option value="conviviente">Conviviente civil</option>
+              <option value="divorciado">Divorciado/a</option>
+              <option value="viudo">Viudo/a</option>
+            </select>
+          </div>
+          <div class="form-group" id="grupoEdadConyuge" style="display:none;">
+            <label for="edadConyuge">Edad del cónyuge / conviviente</label>
+            <input type="number" id="edadConyuge" value="40" min="18" max="85">
+            <span class="hint">Afecta el período de pago de la pensión de sobrevivencia.</span>
+          </div>
+          <div class="form-group" id="grupoSexoConyuge" style="display:none;">
+            <label for="sexoConyuge">Sexo del cónyuge / conviviente</label>
+            <select id="sexoConyuge">
+              <option value="F">Femenino</option>
+              <option value="M">Masculino</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="numHijos">
+              Hijos con derecho a pensión
+              <span data-tip="Menores de 18 años, o hasta 24 si son estudiantes." aria-label="Información">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </span>
+            </label>
+            <input type="number" id="numHijos" value="0" min="0" max="20">
+            <span class="hint">Menores de 18 (o 24 si estudian) — 15% c/u de la pensión de referencia.</span>
+          </div>
+          <div class="form-group">
+            <label for="numHijosInvalidos">
+              Hijos con invalidez permanente
+              <span data-tip="Sin límite de edad — pensión de sobrevivencia de por vida." aria-label="Información">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </span>
+            </label>
+            <input type="number" id="numHijosInvalidos" value="0" min="0" max="20">
+            <span class="hint">Sin límite de edad — 15% c/u, de por vida (art. 58 DL 3.500).</span>
+          </div>
+        </div>
+        <div class="aviso aviso--info" style="margin-top:8px;">
+          <strong>¿Por qué importa?</strong> Si tienes cónyuge y/o hijos, la Renta Vitalicia con período garantizado suele ser más conveniente porque asegura pensión a tus beneficiarios de por vida. Los hijos con invalidez permanente hacen que la RV sea la modalidad recomendada.
+        </div>
+      </div>
+
       <!-- ── Submit ── -->
       <div class="btn-group">
         <button type="submit" class="btn btn--primary">Calcular proyección →</button>
@@ -189,6 +314,20 @@
       document.getElementById('panelCuotas').style.display = 'none';
       document.getElementById('panelMonto').style.display  = '';
     }
+    // Nuevos campos
+    if (d.edadJubilacion)   document.getElementById('edadJubilacion').value   = d.edadJubilacion;
+    if (d.rentaImponible)   document.getElementById('rentaImponible').value   = d.rentaImponible;
+    if (d.lagunas != null)  document.getElementById('lagunas').value          = d.lagunas;
+    if (d.estadoLaboral)    document.getElementById('estadoLaboral').value    = d.estadoLaboral;
+    if (d.apvMensual != null) document.getElementById('apvMensual').value     = d.apvMensual;
+    if (d.regimenAPV)       document.getElementById('regimenAPV').value       = d.regimenAPV;
+    if (d.saldoAPV != null) document.getElementById('saldoAPV').value         = d.saldoAPV;
+    if (d.estadoCivil)      document.getElementById('estadoCivil').value      = d.estadoCivil;
+    if (d.edadConyuge)      document.getElementById('edadConyuge').value      = d.edadConyuge;
+    if (d.sexoConyuge)      document.getElementById('sexoConyuge').value      = d.sexoConyuge;
+    if (d.numHijos != null) document.getElementById('numHijos').value         = d.numHijos;
+    if (d.numHijosInvalidos != null) document.getElementById('numHijosInvalidos').value = d.numHijosInvalidos;
+    toggleCamposConyuge();
 
     // Set max date for fechaNacimiento
     document.getElementById('fechaNacimiento').max = new Date().toISOString().slice(0,10);
@@ -305,6 +444,30 @@
       recalcularSaldo();
     }
 
+    // ── Familia: toggle cónyuge ───────────────────────
+    function toggleCamposConyuge() {
+      const ec = document.getElementById('estadoCivil').value;
+      const tienePareja = ec === 'casado' || ec === 'conviviente';
+      document.getElementById('grupoEdadConyuge').style.display  = tienePareja ? '' : 'none';
+      document.getElementById('grupoSexoConyuge').style.display  = tienePareja ? '' : 'none';
+    }
+    document.getElementById('estadoCivil').addEventListener('change', toggleCamposConyuge);
+
+    // ── Validar renta vs tope imponible ──────────────
+    document.getElementById('rentaImponible').addEventListener('input', function() {
+      const hint = document.getElementById('hintRenta');
+      const uf   = parseFloat(Store.leer().uf) || 39717;
+      const tope = Math.round(87.8 * uf);
+      const val  = parseFloat(this.value) || 0;
+      if (val > tope) {
+        hint.textContent = `⚠️ Supera el tope imponible de ${formatCLP(tope)}. Se usará el tope en los cálculos.`;
+        hint.style.color = 'var(--color-warning, #d4820a)';
+      } else {
+        hint.textContent = 'Usada para calcular tasa de reemplazo y cotización futura.';
+        hint.style.color = '';
+      }
+    });
+
     // ── Load UF to show tope imponible ───────────────
     getUF().then(uf => {
       const tope = Math.round(87.8 * uf.valor);
@@ -347,21 +510,43 @@
         ? calcularSaldoDesdeNumCuotas(numCuotas, valorCuota)
         : montoTotal;
 
+      const uf          = parseFloat(Store.leer().uf) || 39717;
+      const tope        = Math.round(87.8 * uf);
+      const rentaBruta  = parseFloat(document.getElementById('rentaImponible').value) || 0;
+      const estadoCivil = document.getElementById('estadoCivil').value;
+      const tienePareja = estadoCivil === 'casado' || estadoCivil === 'conviviente';
+
       Store.guardar({
         afp,
         fondo,
         valorCuota,
-        numCuotas:       metodo === 'cuotas' ? numCuotas : null,
-        montoTotal:      metodo === 'monto'  ? montoTotal : null,
-        metodoSaldo:     metodo,
+        numCuotas:        metodo === 'cuotas' ? numCuotas : null,
+        montoTotal:       metodo === 'monto'  ? montoTotal : null,
+        metodoSaldo:      metodo,
         saldoTotal,
         sexo,
         edad,
-        fechaNacimiento: fechaNac,
-        nombreCliente:   document.getElementById('nombreCliente').value.trim(),
-        rutCliente:      document.getElementById('rutCliente').value.trim(),
-        emailCliente:    document.getElementById('emailCliente').value.trim(),
-        fechaEvaluacion: new Date().toISOString(),
+        fechaNacimiento:  fechaNac,
+        nombreCliente:    document.getElementById('nombreCliente').value.trim(),
+        rutCliente:       document.getElementById('rutCliente').value.trim(),
+        emailCliente:     document.getElementById('emailCliente').value.trim(),
+        fechaEvaluacion:  new Date().toISOString(),
+        // Nuevos campos
+        edadJubilacion:   parseInt(document.getElementById('edadJubilacion').value) || 65,
+        estadoLaboral:    document.getElementById('estadoLaboral').value,
+        rentaImponible:   Math.min(rentaBruta, tope),
+        rentaBruta,
+        superaTope:       rentaBruta > tope,
+        lagunas:          parseFloat(document.getElementById('lagunas').value) || 0,
+        apvMensual:       parseFloat(document.getElementById('apvMensual').value) || 0,
+        regimenAPV:       document.getElementById('regimenAPV').value,
+        saldoAPV:         parseFloat(document.getElementById('saldoAPV').value) || 0,
+        estadoCivil,
+        tienePareja,
+        edadConyuge:      tienePareja ? (parseInt(document.getElementById('edadConyuge').value) || 40) : null,
+        sexoConyuge:      tienePareja ? document.getElementById('sexoConyuge').value : null,
+        numHijos:         parseInt(document.getElementById('numHijos').value) || 0,
+        numHijosInvalidos: parseInt(document.getElementById('numHijosInvalidos').value) || 0,
       });
 
       window.location.href = 'proyeccion.html';

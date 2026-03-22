@@ -112,25 +112,30 @@ Fuente: `js/calculos.js:calcularSaldoDesdeNumCuotas`, `pages/datos.html`
 ## 7. Pensión Estimada — Retiro Programado (RP)
 
 **Tabla de mortalidad:** B-2020 (Retiro Programado)
-**Tasa técnica:** 3% real anual
+**Tasa técnica:** 3,31% real anual (Circular SP N°2407, enero 2026) → `TASA_RP = 0.0331 / 12` mensual
 
 **Fórmula:**
 ```
-pensión_RP = saldo_total / CRU_B2020(sexo, edad)
+pensión_RP_bruta = saldo_total / CRU_B2020(sexo, edad)
 ```
 
-Donde `CRU` (Capital Requerido Unitario) es el valor presente de una renta vitalicia de $1/mes a la edad dada, calculado con la tabla B-2020 a tasa de descuento 3% real anual.
+Donde `CRU` (Capital Requerido Unitario) es el valor presente de una renta vitalicia de $1/mes a la edad dada, calculado con la tabla B-2020 a tasa 3,31% real anual.
 
-**Años estimados del fondo** (a cuántos años alcanza el fondo con la pensión RP):
+**Años estimados del fondo:**
 ```
 n = -ln(1 - saldo × r / pensión) / ln(1 + r)   [en meses → dividir por 12]
-r = (1.03)^(1/12) - 1   (tasa mensual equivalente al 3% anual)
+r = (1.0331)^(1/12) - 1
 ```
-Si `saldo × r / pensión ≥ 1`, el fondo es efectivamente ilimitado (se retorna 35 años).
+Si `saldo × r / pensión ≥ 1` → se retorna 35 años.
 
 **Equivalente en UF:**
 ```
 pensión_UF = pensión_CLP / UF
+```
+
+**Resultado enriquecido** (`calcularPensionRP` retorna):
+```
+{ pension, pensionUF, pensionLiquida, desglose, pgu, pensionTotal, anosEstimados }
 ```
 
 Fuente: `js/calculos.js:calcularPensionRP`
@@ -209,13 +214,13 @@ Fuente: `js/calculos.js:proyectarSaldo`
 
 ## 12. Análisis de Brecha
 
-Compara la pensión estimada con la pensión objetivo del usuario.
+Compara la pensión estimada **total (líquida + PGU)** con la pensión objetivo del usuario.
 
 ```
-brecha_absoluta = pensión_objetivo - pensión_estimada_RP
+brecha_absoluta = pensión_objetivo - pensionTotal_RP
 brecha_porcentual = (brecha_absoluta / pensión_objetivo) × 100
 suficiente = brecha_absoluta ≤ 0
-cobertura_pct = min(100, pensión_estimada_RP / pensión_objetivo × 100)
+cobertura_pct = min(100, pensionTotal_RP / pensión_objetivo × 100)
 ```
 
 **Semáforo visual (barra de progreso):**
@@ -339,14 +344,208 @@ Todos los datos del usuario se persisten en `localStorage` bajo la clave `pensio
 | `uf` | UF al momento del cálculo |
 | `utm` | UTM al momento del cálculo |
 | `topeImponible` | 87.8 × UF |
-| `pensionRP` | Pensión Retiro Programado estimada |
-| `pensionRV` | Pensión Renta Vitalicia estimada |
+| `pensionRP` | Pensión RP bruta estimada |
+| `pensionRPLiquida` | Pensión RP líquida (después de descuentos) |
+| `pensionRPTotal` | Pensión RP total (líquida + PGU) |
+| `pguRP` | Monto PGU sobre pensión RP |
+| `pensionRV` | Pensión RV bruta estimada |
+| `pensionRVLiquida` | Pensión RV líquida |
+| `pensionRVTotal` | Pensión RV total (líquida + PGU) |
+| `pguRV` | Monto PGU sobre pensión RV |
+| `comisionDec` | Comisión AFP en decimal (ej: 0.0058) |
 | `pensionObjetivo` | Pensión meta ingresada por el usuario |
+| `rentaImponible` | Renta imponible mensual del afiliado |
+| `lagunas` | % meses sin cotización |
+| `apvMensual` | Aporte APV mensual |
+| `regimenAPV` | Régimen APV (A/B) |
+| `saldoAPV` | Saldo APV acumulado |
+| `tienePareja` | Tiene cónyuge o conviviente civil |
+| `numHijos` | Número de hijos beneficiarios |
+| `numHijosInvalidos` | Número de hijos con invalidez permanente |
 
 Fuente: `js/store.js`
 
 ---
 
-## 19. Advertencia Legal
+## 19. Descuentos Legales sobre la Pensión
+
+La pensión bruta se convierte en pensión líquida aplicando tres descuentos en cascada:
+
+```
+1. Descuento comisión AFP = pensión_bruta × comisión_AFP_decimal   [solo RP; RV = 0]
+2. Base imp. = pensión_bruta - descuento_comisión
+3. Descuento salud = round(base_imp × 0.07)                        [7% cotización salud obligatoria]
+4. Descuento impuesto = calcularImpuesto(base_imp)                 [Impuesto 2ª categoría]
+5. Total descuentos = descuento_comisión + descuento_salud + descuento_impuesto
+6. Pensión líquida = pensión_bruta - total_descuentos
+```
+
+Fuente: `js/calculos.js:calcularPensionLiquida`
+
+---
+
+## 20. Impuesto de Segunda Categoría (2026)
+
+Calculado sobre la base imponible mensual (pensión bruta menos comisión AFP).
+UTM vigente marzo 2026: **$69.889 CLP** (`calculos.js:UTM`).
+
+| Tramo (UTM/mes) | Tasa | Rebaja (en UTM/12) |
+|---|---|---|
+| ≤ 13,5 UTM | 0% | $0 |
+| ≤ 30 UTM | 4% | $0 |
+| ≤ 50 UTM | 8% | 2.772 |
+| ≤ 70 UTM | 13,5% | 5.126 |
+| ≤ 90 UTM | 23% | 11.771 |
+| ≤ 120 UTM | 30,4% | 18.427 |
+| ≤ 150 UTM | 35,5% | 24.537 |
+| > 150 UTM | 40% | 31.287 |
+
+**Fórmula:** `impuesto = base_imp × tasa - (rebaja × UTM / 12)`, mínimo $0.
+
+Fuente: `js/calculos.js:calcularImpuesto`, `TRAMOS_IMP`
+
+---
+
+## 21. PGU — Pensión Garantizada Universal
+
+Ley 21.419 + Reforma 21.735 (febrero 2026). Se suma a la pensión líquida autofinanciada.
+
+| Parámetro | Valor |
+|---|---|
+| Monto base (< 82 años) | $231.732 CLP/mes |
+| Monto máximo (≥ 82 años) | $250.275 CLP/mes |
+| Umbral pensión completa | pensión base ≤ $789.139 → PGU completa |
+| Umbral sin PGU | pensión base ≥ $1.252.602 → PGU = $0 |
+
+**Fórmula de PGU proporcional** (entre ambos umbrales):
+```
+proporción = (umbralTope - pensión_base) / (umbralTope - umbralCompleto)
+PGU = round(montoMax × proporción)
+```
+
+La pensión base para calcular PGU es la **pensión líquida** (después de descuentos).
+
+Fuente: `js/calculos.js:calcularPGU`, `PGU` constant
+
+---
+
+## 22. Pensión de Sobrevivencia (DL 3.500, art. 58)
+
+Al fallecer el pensionado, los beneficiarios tienen derecho a una pensión de sobrevivencia calculada como porcentaje de la **pensión de referencia** (pensión bruta RP o RV).
+
+| Beneficiario | Porcentaje |
+|---|---|
+| Cónyuge / conviviente civil | 60% |
+| Cada hijo < 18 años (o < 24 si estudia) | 15% |
+| Cada hijo con invalidez permanente (sin límite de edad) | 15% de por vida |
+
+**Tope:** La suma total no puede superar el 100% de la pensión de referencia. Si se supera, se aplica **prorrateo proporcional**:
+```
+factor_prorrateo = 1.0 / pct_total   (cuando pct_total > 1)
+```
+
+**Fórmula:**
+```
+montoCónyuge = round(pensión_ref × 0.60 × factor_prorrateo)
+montoHijo    = round(pensión_ref × 0.15 × factor_prorrateo)   [por hijo]
+totalSobrevivencia = round(pensión_ref × min(pct_total, 1.0))
+```
+
+Fuente: `js/calculos.js:calcularPensionSobrevivencia`
+
+---
+
+## 23. Recomendación de Modalidad según Situación Familiar
+
+| Situación | Recomendación |
+|---|---|
+| Hijos con invalidez permanente | **RV fuertemente recomendada** (pensión de sobrevivencia de por vida) |
+| Cónyuge + hijos sin invalidez | **RV recomendada** (protege a beneficiarios) |
+| Soltero/a sin hijos ni conviviente | **RP puede convenir** (saldo heredable, pensión inicial mayor) |
+| Resto (cónyuge sin hijos, etc.) | **Mixta / SCOMP** — evaluar Renta Temporal + RV Diferida |
+
+Fuente: `js/calculos.js:recomendarModalidadFamiliar`, `pages/modalidades.html:renderSobrevivencia`
+
+---
+
+## 24. Score Previsional (0–100)
+
+Puntaje que resume la situación previsional del usuario. Se calcula en `calculos.js:calcularScore`.
+
+| Factor | Puntos máx | Criterio |
+|---|---|---|
+| Tasa de reemplazo | 40 | `min(40, (TR/70) × 40)` donde TR = pensión_RP / renta_imponible × 100 |
+| APV activo | 20 | 20 pts si apvMensual > 0; 10 pts si solo tiene saldo APV |
+| Sin lagunas | 20 | `(1 - min(1, lagunas)) × 20` donde lagunas es fracción (0–1) |
+| Saldo vs edad | 20 | `min(20, (saldoActual / saldoIdeal) × 20)` |
+
+```
+saldo_ideal = renta_imponible × 12 × max(1, edad - 22) × 0.5
+```
+
+**Interpretación:**
+- 0–39: Alerta (rojo)
+- 40–69: En progreso (amarillo)
+- 70–100: Buen camino (verde)
+
+Fuente: `js/calculos.js:calcularScore`, `pages/brechas.html:renderScore`
+
+---
+
+## 25. APV — Ahorro Previsional Voluntario
+
+| Régimen | Beneficio | Máximo |
+|---|---|---|
+| A | Estado bonifica **15%** del aporte | hasta 6 UTM/año (~$419.334 CLP/año en 2026) |
+| B | Deduce el aporte de la **base imponible** del impuesto | según tramo de impuesto del afiliado |
+
+- El APV se descuenta antes del cálculo de impuesto 2ª categoría (Régimen B).
+- El bono Régimen A se deposita en la cuenta al momento del retiro (no durante la acumulación).
+- Aporte sugerido en la interfaz: 5% de la renta imponible.
+
+Fuente: `pages/datos.html` (campos `apvMensual`, `regimenAPV`, `saldoAPV`), `pages/brechas.html:renderPlanAccion`
+
+---
+
+## 26. Lagunas Previsionales
+
+Porcentaje de meses en que el afiliado no cotizó. Reduce el score y activa advertencias en el plan de acción.
+
+| Nivel | Alerta |
+|---|---|
+| 0% | Sin advertencia |
+| 1%–19% | Informativo |
+| ≥ 20% | Advertencia de impacto significativo en pensión |
+
+Fuente: `pages/datos.html` (campo `lagunas`), `js/calculos.js:calcularScore`, `pages/brechas.html:renderPlanAccion`
+
+---
+
+## 27. Campos Adicionales de Datos del Afiliado
+
+Incorporados en `pages/datos.html` para cálculos de score, plan de acción y pensión de sobrevivencia:
+
+| Campo | Descripción |
+|---|---|
+| `estadoLaboral` | Dependiente / Independiente / Jubilado |
+| `edadJubilacion` | Edad objetivo de jubilación (default: 65 hombres / 60 mujeres) |
+| `rentaImponible` | Renta imponible mensual (CLP) — validada contra tope 87.8×UF |
+| `rentaBruta` | Renta bruta referencial |
+| `lagunas` | % de meses sin cotización (0–100) |
+| `apvMensual` | Aporte APV mensual (CLP) |
+| `regimenAPV` | Régimen APV: A o B |
+| `saldoAPV` | Saldo APV acumulado (CLP) |
+| `estadoCivil` | soltero / casado / conviviente / divorciado / viudo |
+| `tienePareja` | true si casado o conviviente civil |
+| `edadConyuge` | Edad del cónyuge (visible solo si tienePareja) |
+| `sexoConyuge` | Sexo del cónyuge (M/F) |
+| `numHijos` | Número de hijos menores de edad o estudiantes |
+| `numHijosInvalidos` | Número de hijos con invalidez permanente |
+
+Fuente: `pages/datos.html`, `js/store.js`
+
+---
+
+## 28. Advertencia Legal
 
 > Esta calculadora es de uso **informativo**. Los valores son estimaciones basadas en tablas de mortalidad RV-2020 / B-2020 y la metodología del **DL 3.500**. Consulta a un asesor previsional certificado (CFP o asesor autorizado por SP Chile) antes de tomar decisiones de jubilación.

@@ -178,6 +178,28 @@
       </div>
     </div>
 
+    <!-- ── Pensión de Sobrevivencia ── -->
+    <div class="section" id="seccionSobrevivencia" style="display:none;">
+      <h2 class="section__title">Pensión de Sobrevivencia para tu Familia</h2>
+      <p style="font-size:var(--text-sm);color:var(--color-text-muted);margin-bottom:16px;">
+        Al fallecer el pensionado, los beneficiarios tienen derecho a una pensión de sobrevivencia según el <strong>art. 58 DL 3.500</strong>: cónyuge/conviviente civil (60%), cada hijo (15%), hijo con invalidez permanente (15% de por vida). Total máximo: 100% de la pensión de referencia.
+      </p>
+
+      <div class="grid-2" style="margin-bottom:20px;">
+        <div class="card card--highlight">
+          <h4>Sobrevivencia sobre RP</h4>
+          <div id="sobrevivenciaRP">—</div>
+        </div>
+        <div class="card">
+          <h4>Sobrevivencia sobre RV</h4>
+          <div id="sobrevivenciaRV">—</div>
+        </div>
+      </div>
+
+      <!-- Recomendación familiar -->
+      <div id="recomendacionFamiliar" class="card"></div>
+    </div>
+
     <!-- ── Marco legal ── -->
     <div class="section">
       <h2 class="section__title">Marco Legal</h2>
@@ -191,7 +213,7 @@
         </ul>
         <p style="margin-top:12px;font-size:var(--text-sm);color:var(--color-text-muted);">
           También puedes cotizar en el <strong>Ahorro Previsional Voluntario (APV)</strong> para aumentar tu pensión futura.
-          El monto de la Pensión Básica Solidaria (PBS) y la Pensión Garantizada Universal (PGU) pueden complementar tu pensión.
+          La <strong>Pensión Garantizada Universal (PGU)</strong> complementa la pensión autofinanciada según tramos de la Ley 21.419.
         </p>
       </div>
     </div>
@@ -220,8 +242,9 @@
     import { initBtnActualizar, mostrarDatosCliente, formatCLP, formatUF } from '../js/ui.js';
     import { Store }        from '../js/store.js';
     import { cargarTablas } from '../js/mortalidad.js';
-    import { calcularPensionRP, calcularPensionRV } from '../js/calculos.js';
+    import { calcularPensionRP, calcularPensionRV, calcularPensionSobrevivencia, recomendarModalidadFamiliar } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
+    import { cargarAFP, getComision } from '../js/comisiones.js';
 
     initBtnActualizar();
 
@@ -231,9 +254,10 @@
       document.getElementById('sinDatos').style.display = '';
     } else {
       mostrarDatosCliente();
-      document.getElementById('seccionPensiones').style.display  = '';
-      document.getElementById('seccionLongevidad').style.display = '';
-      document.getElementById('seccionRPDetalle').style.display  = '';
+      document.getElementById('seccionPensiones').style.display    = '';
+      document.getElementById('seccionLongevidad').style.display   = '';
+      document.getElementById('seccionRPDetalle').style.display    = '';
+      document.getElementById('seccionSobrevivencia').style.display = '';
       init();
     }
 
@@ -241,22 +265,127 @@
 
     async function init() {
       await cargarTablas();
-      const uf = d.uf || 39717;
+      await cargarAFP();
+      const uf          = d.uf || 39717;
+      const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
 
-      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf);
+      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec);
       const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf);
       rpPension = rp.pension;
       rvPension = rv.pension;
 
-      document.getElementById('rpPensionDisplay').textContent = formatCLP(rpPension);
-      document.getElementById('rvPensionDisplay').textContent = formatCLP(rvPension);
-      document.getElementById('rpUFDisplay').textContent      = formatUF(rp.pensionUF);
-      document.getElementById('rvUFDisplay').textContent      = formatUF(rv.pensionUF);
-      document.getElementById('rpTablaValor').textContent     = formatCLP(rpPension);
-      document.getElementById('rvTablaValor').textContent     = formatCLP(rvPension);
+      // Mostrar pensión bruta + líquida
+      document.getElementById('rpPensionDisplay').innerHTML =
+        `${formatCLP(rp.pension)} <span style="font-size:var(--text-sm);color:var(--color-text-muted);">bruta</span><br>
+         <span style="font-size:var(--text-lg);color:var(--success);">${formatCLP(rp.pensionLiquida)}</span>
+         <span style="font-size:var(--text-xs);color:var(--color-text-muted);"> líquida</span>
+         ${rp.pgu > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--success);">+${formatCLP(rp.pgu)} PGU = ${formatCLP(rp.pensionTotal)} total</span>` : ''}`;
+      document.getElementById('rvPensionDisplay').innerHTML =
+        `${formatCLP(rv.pension)} <span style="font-size:var(--text-sm);color:var(--color-text-muted);">bruta</span><br>
+         <span style="font-size:var(--text-lg);color:var(--color-primary);">${formatCLP(rv.pensionLiquida)}</span>
+         <span style="font-size:var(--text-xs);color:var(--color-text-muted);"> líquida</span>
+         ${rv.pgu > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--success);">+${formatCLP(rv.pgu)} PGU = ${formatCLP(rv.pensionTotal)} total</span>` : ''}`;
+      document.getElementById('rpUFDisplay').textContent  = formatUF(rp.pensionUF);
+      document.getElementById('rvUFDisplay').textContent  = formatUF(rv.pensionUF);
+      document.getElementById('rpTablaValor').textContent = `${formatCLP(rp.pension)} (líq. ${formatCLP(rp.pensionLiquida)})`;
+      document.getElementById('rvTablaValor').textContent = `${formatCLP(rv.pension)} (líq. ${formatCLP(rv.pensionLiquida)})`;
 
       actualizarLongevidad();
       generarRPDetalle(rp.pension);
+      renderSobrevivencia(rp.pension, rv.pension);
+    }
+
+    // ── Pensión de Sobrevivencia ──────────────────────
+    function renderSobrevivencia(pensionRP, pensionRV) {
+      const familia = {
+        tienePareja:       d.tienePareja || false,
+        numHijos:          d.numHijos || 0,
+        numHijosInvalidos: d.numHijosInvalidos || 0,
+      };
+
+      const sobRP = calcularPensionSobrevivencia(pensionRP, familia);
+      const sobRV = calcularPensionSobrevivencia(pensionRV, familia);
+
+      function renderDetalle(sob, id) {
+        const el = document.getElementById(id);
+        if (!sob.tieneBeneficiarios) {
+          el.innerHTML = `<p style="color:var(--color-text-muted);font-size:var(--text-sm);">Sin beneficiarios registrados. Completa el estado civil e hijos en <a href="datos.html">Mis Datos</a>.</p>`;
+          return;
+        }
+        const filas = [];
+        if (sob.tienePareja) {
+          filas.push(`<tr><td>Cónyuge / conviviente civil</td><td>60%${sob.huboProrrataeo ? '*' : ''}</td><td class="col-num col-highlight">${formatCLP(sob.montoConyuge)}/mes</td></tr>`);
+        }
+        for (let i = 0; i < sob.numHijos; i++) {
+          filas.push(`<tr><td>Hijo ${i+1} (menor de edad / estudiante)</td><td>15%${sob.huboProrrataeo ? '*' : ''}</td><td class="col-num">${formatCLP(sob.montoHijo)}/mes</td></tr>`);
+        }
+        for (let i = 0; i < sob.numHijosInvalidos; i++) {
+          filas.push(`<tr><td>Hijo ${i+1} con invalidez permanente <span style="color:var(--color-error);font-size:0.75em;">(de por vida)</span></td><td>15%${sob.huboProrrataeo ? '*' : ''}</td><td class="col-num">${formatCLP(sob.montoHijoInvalido)}/mes</td></tr>`);
+        }
+        el.innerHTML = `
+          <table class="tabla-comparativa" style="font-size:var(--text-sm);">
+            <thead><tr><th>Beneficiario</th><th>%</th><th>Pensión mensual</th></tr></thead>
+            <tbody>${filas.join('')}</tbody>
+            <tfoot><tr style="font-weight:700;background:var(--color-bg-alt,#f8f9fa);">
+              <td colspan="2">Total sobrevivencia (${sob.pctTotal.toFixed(0)}%)</td>
+              <td class="col-num col-highlight">${formatCLP(sob.totalSobrevivencia)}/mes</td>
+            </tr></tfoot>
+          </table>
+          ${sob.huboProrrataeo ? `<p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:8px;">* Porcentajes prorrateados: la suma supera el 100%, se distribuye proporcionalmente según DL 3.500.</p>` : ''}
+        `;
+      }
+
+      renderDetalle(sobRP, 'sobrevivenciaRP');
+      renderDetalle(sobRV, 'sobrevivenciaRV');
+
+      // Recomendación familiar
+      const rec = document.getElementById('recomendacionFamiliar');
+      const recom = recomendarModalidadFamiliar(familia);
+      const tieneHijosInv = familia.numHijosInvalidos > 0;
+      const tienePareja   = familia.tienePareja;
+      const tieneHijos    = familia.numHijos > 0;
+
+      let html = '';
+      if (!sobRP.tieneBeneficiarios) {
+        html = `
+          <div class="aviso aviso--info">
+            <strong>Sin datos familiares.</strong> Ingresa tu estado civil e hijos en <a href="datos.html">Mis Datos</a> para obtener una recomendación personalizada basada en tu situación familiar.
+          </div>`;
+      } else if (tieneHijosInv) {
+        html = `
+          <div class="aviso aviso--warning">
+            <strong>Hijos con invalidez permanente — Renta Vitalicia fuertemente recomendada</strong><br>
+            Los hijos con invalidez permanente tienen derecho a pensión de sobrevivencia <strong>de por vida</strong>, sin límite de edad.
+            Con el Retiro Programado, el fondo se agota con el tiempo y la pensión decrece.
+            La <strong>Renta Vitalicia</strong> garantiza el pago de por vida tanto para ti como para tus beneficiarios inválidos,
+            independiente de cuánto vivan. <strong>Se recomienda encarecidamente consultar la RV en el SCOMP con período garantizado.</strong>
+          </div>`;
+      } else if (recom === 'rv') {
+        html = `
+          <div class="aviso aviso--info">
+            <strong>Renta Vitalicia recomendada por tu situación familiar</strong><br>
+            Tienes ${tienePareja ? 'cónyuge/conviviente' : ''}${tienePareja && tieneHijos ? ' e ' : ''}${tieneHijos ? `${familia.numHijos} hijo(s)` : ''}.
+            La RV garantiza pensión de por vida para ti y tus beneficiarios, con período garantizado negociable.
+            Con el RP, si vives muchos años el fondo puede agotarse y tus beneficiarios podrían quedarse sin pensión.
+          </div>`;
+      } else if (recom === 'rp') {
+        html = `
+          <div class="aviso aviso--success">
+            <strong>Retiro Programado podría ser conveniente</strong><br>
+            Eres soltero/a sin hijos ni conviviente. El RP mantiene el saldo heredable para otros beneficiarios (padres, hermanos)
+            y generalmente ofrece una pensión inicial mayor. Si vives más de lo proyectado, el fondo puede agotarse,
+            pero la PGU actúa como red de seguridad.
+          </div>`;
+      } else {
+        html = `
+          <div class="aviso aviso--info">
+            <strong>Evalúa la modalidad mixta: Renta Temporal + Renta Vitalicia Diferida</strong><br>
+            Con ${tienePareja ? 'cónyuge' : ''}${tieneHijos ? ` y ${familia.numHijos} hijo(s)` : ''},
+            una opción intermedia es la modalidad mixta: renta temporal alta los primeros años más una RV garantizada de por vida.
+            Consulta cotizaciones en el <strong>SCOMP (scomp.cl)</strong> para comparar todas las opciones.
+          </div>`;
+      }
+      rec.innerHTML = `<h4 style="margin-bottom:12px;">Recomendación según tu situación familiar</h4>${html}`;
     }
 
     // ── Simulador longevidad ──────────────────────────

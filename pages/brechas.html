@@ -55,6 +55,34 @@
       Aún no hay datos. <a href="datos.html">Ingresa tus datos primero →</a>
     </div>
 
+    <!-- ── Score previsional ── -->
+    <div class="section" id="seccionScore" style="display:none;">
+      <h2 class="section__title">Score Previsional</h2>
+      <div class="card" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <div id="scoreBadge" style="width:96px;height:96px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;font-size:var(--text-2xl);border:6px solid var(--success);">
+          <span id="scoreValor">—</span>
+          <span style="font-size:var(--text-xs);font-weight:400;">/100</span>
+        </div>
+        <div style="flex:1;min-width:200px;">
+          <div id="scoreLabel" style="font-size:var(--text-lg);font-weight:700;margin-bottom:6px;">—</div>
+          <div id="scoreDetalle" style="font-size:var(--text-sm);color:var(--color-text-muted);"></div>
+        </div>
+        <div style="width:100%;max-width:480px;">
+          <div class="progress-wrap">
+            <div class="progress-label">
+              <span>0</span><span></span><span>100</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-bar__fill" id="scoreProgFill" style="width:0%;"></div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:var(--text-xs);color:var(--color-text-muted);margin-top:4px;">
+            <span>Alerta</span><span>En progreso</span><span>Buen camino</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Pensión objetivo ── -->
     <div class="section" id="seccionObjetivo" style="display:none;">
       <h2 class="section__title">Pensión Objetivo</h2>
@@ -88,6 +116,7 @@
         <div class="card">
           <div style="font-size:var(--text-sm);color:var(--color-text-muted);">Pensión estimada (RP)</div>
           <div style="font-size:var(--text-2xl);font-weight:700;color:var(--success);margin:8px 0;" id="brPensionRP">—</div>
+          <div style="font-size:var(--text-xs);color:var(--color-text-muted);" id="brPensionRPDetalle"></div>
         </div>
         <div class="card">
           <div style="font-size:var(--text-sm);color:var(--color-text-muted);">Pensión objetivo</div>
@@ -156,6 +185,12 @@
       </div>
     </div>
 
+    <!-- ── Plan de Acción ── -->
+    <div class="section" id="seccionPlan" style="display:none;">
+      <h2 class="section__title">Plan de Acción Personalizado</h2>
+      <div id="planAccionContainer"></div>
+    </div>
+
     <!-- ── Comparativa por AFP ── -->
     <div class="section" id="seccionAFPs" style="display:none;">
       <h2 class="section__title">Comparativa: Pensión por AFP</h2>
@@ -205,7 +240,9 @@
     import { Store }           from '../js/store.js';
     import { cargarTablas }    from '../js/mortalidad.js';
     import { cargarAFP, getAfps, getComision } from '../js/comisiones.js';
-    import { calcularPensionRP, calcularBrecha, calcularAportacionNecesaria } from '../js/calculos.js';
+    import {
+      calcularPensionRP, calcularBrecha, calcularAportacionNecesaria, calcularScore,
+    } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
 
     initBtnActualizar();
@@ -216,19 +253,26 @@
       document.getElementById('sinDatos').style.display = '';
     } else {
       mostrarDatosCliente();
+      document.getElementById('seccionScore').style.display   = '';
       document.getElementById('seccionObjetivo').style.display = '';
       document.getElementById('seccionAFPs').style.display     = '';
       cargarAFPs();
     }
 
     let pensionEstimada = 0;
+    let rpResult = null;
 
     async function cargarAFPs() {
       await cargarTablas();
       await cargarAFP();
-      const uf   = d.uf || 39717;
-      const rp   = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf);
-      pensionEstimada = rp.pension;
+      const uf          = d.uf || 39717;
+      const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
+      const rp          = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec);
+      rpResult          = rp;
+      pensionEstimada   = rp.pensionTotal; // líquida + PGU
+
+      // Render score
+      renderScore(rp);
 
       const afps  = getAfps();
       const tbody = document.getElementById('cuerpoAFPs');
@@ -236,10 +280,9 @@
 
       afps.forEach(afp => {
         const esMiAFP     = afp.id === d.afp;
-        // Impact of commission difference on pension over 20 years (simplified)
         const comActual   = getComision(d.afp || 'modelo');
         const comDif      = afp.comision - comActual;
-        const impacto     = Math.round(rp.pension * (-comDif / 100) * 0.5); // approximate
+        const impacto     = Math.round(rp.pension * (-comDif / 100) * 0.5);
         const pensAFP     = Math.round(rp.pension - impacto);
         const diff        = pensAFP - rp.pension;
         const tr          = document.createElement('tr');
@@ -255,10 +298,52 @@
       });
     }
 
+    function renderScore(rp) {
+      const score = calcularScore({
+        pensionRP:       rp.pension,
+        rentaImponible:  d.rentaImponible || 0,
+        apvMensual:      d.apvMensual     || 0,
+        saldoAPV:        d.saldoAPV       || 0,
+        lagunas:         (d.lagunas || 0) / 100,
+        edad:            d.edad           || 40,
+        saldoActual:     d.saldoTotal     || 0,
+      });
+
+      document.getElementById('scoreValor').textContent = score;
+      const fill   = document.getElementById('scoreProgFill');
+      const badge  = document.getElementById('scoreBadge');
+      const label  = document.getElementById('scoreLabel');
+      const detail = document.getElementById('scoreDetalle');
+
+      fill.style.width = score + '%';
+
+      let color, texto, desc;
+      if (score < 40) {
+        color = 'var(--color-error)';
+        texto = 'Situación de alerta';
+        desc  = 'Tu nivel de ahorro previsional requiere atención urgente. Revisa las recomendaciones a continuación.';
+      } else if (score < 70) {
+        color = 'var(--color-warning, #f59e0b)';
+        texto = 'En progreso';
+        desc  = 'Estás avanzando, pero hay margen significativo de mejora para asegurar una pensión adecuada.';
+      } else {
+        color = 'var(--success)';
+        texto = 'Buen camino';
+        desc  = 'Tu situación previsional es sólida. Continúa cotizando regularmente y considera el APV para optimizar.';
+      }
+
+      badge.style.borderColor = color;
+      badge.style.color       = color;
+      fill.className          = 'progress-bar__fill';
+      fill.style.background   = color;
+      label.textContent       = texto;
+      label.style.color       = color;
+      detail.textContent      = desc;
+    }
+
     // ── Calcular brecha ───────────────────────────────
     document.getElementById('btnCalcularBrecha').addEventListener('click', () => calcularBrechaUI());
 
-    // Quick suggestions
     document.querySelectorAll('[data-objetivo]').forEach(btn => {
       btn.addEventListener('click', () => {
         document.getElementById('pensionObjetivo').value = btn.dataset.objetivo;
@@ -275,14 +360,18 @@
       if (objetivo <= 0) { alert('Ingresa una pensión objetivo válida.'); return; }
 
       await cargarTablas();
-      const uf = d.uf || 39717;
-      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf);
-      pensionEstimada = rp.pension;
+      const uf          = d.uf || 39717;
+      const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
+      const rp          = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec);
+      rpResult          = rp;
+      pensionEstimada   = rp.pensionTotal;
 
-      const { brecha_abs, brecha_pct, suficiente } = calcularBrecha(rp.pension, objetivo);
-      const pct = Math.min(100, Math.max(0, (rp.pension / objetivo) * 100));
+      const { brecha_abs, brecha_pct, suficiente } = calcularBrecha(rp.pensionTotal, objetivo);
+      const pct = Math.min(100, Math.max(0, (rp.pensionTotal / objetivo) * 100));
 
-      document.getElementById('brPensionRP').textContent  = formatCLP(rp.pension);
+      document.getElementById('brPensionRP').textContent  = formatCLP(rp.pensionTotal);
+      document.getElementById('brPensionRPDetalle').innerHTML =
+        `Bruta: ${formatCLP(rp.pension)} · Líquida: ${formatCLP(rp.pensionLiquida)}${rp.pgu > 0 ? ` · PGU: +${formatCLP(rp.pgu)}` : ''}`;
       document.getElementById('brPensionObj').textContent = formatCLP(objetivo);
       document.getElementById('brechaAbs').textContent    = suficiente ? 'Sin brecha' : formatCLP(brecha_abs);
       document.getElementById('brechaPct').textContent    = suficiente ? '—' : brecha_pct.toFixed(1) + '%';
@@ -292,12 +381,16 @@
       document.getElementById('progLabel').textContent    = pct.toFixed(0) + '%';
 
       const fill = document.getElementById('progFill');
-      fill.style.width    = pct + '%';
-      fill.className      = 'progress-bar__fill' +
+      fill.style.width  = pct + '%';
+      fill.className    = 'progress-bar__fill' +
         (pct >= 80 ? ' progress-bar__fill--success' : pct >= 50 ? ' progress-bar__fill--warning' : ' progress-bar__fill--danger');
 
       document.getElementById('seccionBrecha').style.display = '';
       document.getElementById('seccionCerrar').style.display = suficiente ? 'none' : '';
+
+      // Plan de acción siempre visible una vez calculado
+      renderPlanAccion(rp, objetivo, suficiente, brecha_abs);
+      document.getElementById('seccionPlan').style.display = '';
 
       if (!suficiente) generarAportes(brecha_abs);
     }
@@ -312,13 +405,6 @@
       ];
       const tbody = document.getElementById('cuerpoAportes');
       tbody.innerHTML = '';
-
-      // Need to find additional saldo to close the gap:
-      // target pension = current pension + (brechaAbs)
-      // We need extra saldo = brechaAbs * CRU
-      // That extra saldo needs to come from monthly contributions over anosRestantes years
-
-      const { getCRU } = await import('../js/mortalidad.js');
 
       tasas.forEach(({ label, valor }) => {
         const aporte = calcularAportacionNecesaria(
@@ -335,13 +421,132 @@
       });
     }
 
+    // ── Plan de Acción Personalizado ─────────────────
+    function renderPlanAccion(rp, objetivo, suficiente, brechaAbs) {
+      const lagunas          = d.lagunas || 0;
+      const apvMensual       = d.apvMensual || 0;
+      const saldoAPV         = d.saldoAPV || 0;
+      const rentaImponible   = d.rentaImponible || 0;
+      const regimenAPV       = d.regimenAPV || 'A';
+      const tienePareja      = d.tienePareja || false;
+      const numHijos         = d.numHijos || 0;
+      const numHijosInv      = d.numHijosInvalidos || 0;
+      const tasaReemplazo    = rentaImponible > 0 ? (rp.pensionTotal / rentaImponible * 100) : 0;
+
+      const items = [];
+
+      // 1. Hijos con invalidez → RV
+      if (numHijosInv > 0) {
+        items.push({
+          tipo: 'danger',
+          titulo: 'Prioritario: Considera la Renta Vitalicia',
+          texto: `Tienes ${numHijosInv} hijo(s) con invalidez permanente. Tienen derecho a pensión de sobrevivencia de <strong>por vida</strong> (15% cada uno). Con Retiro Programado, el fondo puede agotarse. La <strong>Renta Vitalicia</strong> garantiza pagos indefinidos. Solicita cotización en el <strong>SCOMP (scomp.cl)</strong>.`,
+        });
+      }
+
+      // 2. Lagunas previsionales
+      if (lagunas > 20) {
+        items.push({
+          tipo: 'warning',
+          titulo: `Reduce tus lagunas previsionales (${lagunas.toFixed(0)}%)`,
+          texto: `Tienes un ${lagunas.toFixed(0)}% de meses sin cotización. Cada mes sin cotizar reduce directamente tu pensión futura. Si eres trabajador independiente, recuerda que desde 2024 la cotización es obligatoria. Revisa si puedes <strong>rellenar períodos no cotizados</strong> mediante cotizaciones voluntarias.`,
+        });
+      } else if (lagunas > 0) {
+        items.push({
+          tipo: 'info',
+          titulo: `Lagunas previsionales: ${lagunas.toFixed(0)}%`,
+          texto: `Tienes un ${lagunas.toFixed(0)}% de meses sin cotización. Mantener cotizaciones regulares mejorará tu pensión final.`,
+        });
+      }
+
+      // 3. APV recomendado
+      if (apvMensual === 0 && saldoAPV === 0) {
+        const apvSugerido = rentaImponible > 0 ? Math.round(rentaImponible * 0.05) : 50000;
+        items.push({
+          tipo: 'warning',
+          titulo: 'Comienza a ahorrar con APV',
+          texto: `No tienes Ahorro Previsional Voluntario (APV). Es la herramienta más eficiente para mejorar tu pensión:<br>
+          <ul style="padding-left:18px;margin-top:6px;">
+            <li><strong>Régimen A:</strong> El Estado bonifica hasta el <strong>15% de tus aportes</strong> (máx. 6 UTM/año).</li>
+            <li><strong>Régimen B:</strong> Deduces el APV de tu base imponible, reduciendo el impuesto que pagas hoy.</li>
+          </ul>
+          ${apvSugerido > 0 ? `Aporte sugerido (5% de tu renta): <strong>${formatCLP(apvSugerido)}/mes</strong>.` : ''}
+          Disponible en tu AFP, banco o administradora.`,
+        });
+      } else if (apvMensual > 0) {
+        items.push({
+          tipo: 'success',
+          titulo: `Tienes APV activo: ${formatCLP(apvMensual)}/mes (Régimen ${regimenAPV})`,
+          texto: regimenAPV === 'A'
+            ? `Régimen A: el Estado bonifica hasta el 15% de tu aporte. Asegúrate de mantener el aporte hasta el retiro para conservar el beneficio.`
+            : `Régimen B: estás reduciendo tu base imponible de impuestos. Excelente para rentas altas que buscan eficiencia tributaria.`,
+        });
+      }
+
+      // 4. Tasa de reemplazo
+      if (rentaImponible > 0 && tasaReemplazo < 50) {
+        items.push({
+          tipo: 'warning',
+          titulo: `Tasa de reemplazo baja: ${tasaReemplazo.toFixed(0)}%`,
+          texto: `Tu pensión estimada representa solo el ${tasaReemplazo.toFixed(0)}% de tu renta imponible. La meta recomendada es <strong>70–80%</strong>. Considera aumentar aportes voluntarios o APV para acercarte a esa meta.`,
+        });
+      } else if (rentaImponible > 0 && tasaReemplazo >= 70) {
+        items.push({
+          tipo: 'success',
+          titulo: `Buena tasa de reemplazo: ${tasaReemplazo.toFixed(0)}%`,
+          texto: `Tu pensión estimada cubre el ${tasaReemplazo.toFixed(0)}% de tu renta actual, cerca de la meta recomendada del 70–80%.`,
+        });
+      }
+
+      // 5. Situación familiar → modalidad
+      if (tienePareja && numHijos > 0 && numHijosInv === 0) {
+        items.push({
+          tipo: 'info',
+          titulo: 'Protege a tu familia: evalúa RV con período garantizado',
+          texto: `Tienes cónyuge${numHijos > 0 ? ` y ${numHijos} hijo(s)` : ''}. Una <strong>Renta Vitalicia con período garantizado</strong> asegura que tus beneficiarios reciban pensión incluso si falleces en los primeros años. Solicita cotización en el SCOMP.`,
+        });
+      } else if (!tienePareja && numHijos === 0 && numHijosInv === 0) {
+        items.push({
+          tipo: 'info',
+          titulo: 'Sin beneficiarios: el RP preserva tu herencia',
+          texto: `Al no tener cónyuge ni hijos, el Retiro Programado te permite dejar el saldo restante del fondo como herencia. El fondo es parte de tu patrimonio hasta que se agote.`,
+        });
+      }
+
+      // 6. Brecha: aporte adicional
+      if (!suficiente && brechaAbs > 0) {
+        const anosRest = parseInt(document.getElementById('anosRestantes').value) || 10;
+        const aporte4  = calcularAportacionNecesaria(0, brechaAbs, d.edad, d.sexo, 0.04, anosRest);
+        items.push({
+          tipo: 'info',
+          titulo: `Cierra la brecha con un aporte adicional`,
+          texto: `Para alcanzar tu pensión objetivo necesitarías aportar aproximadamente <strong>${formatCLP(aporte4)}/mes</strong> adicionales (tasa 4% real, ${anosRest} años). El APV es el vehículo más eficiente para este ahorro. Revisa la tabla de escenarios más arriba.`,
+        });
+      }
+
+      // Render
+      const container = document.getElementById('planAccionContainer');
+      if (items.length === 0) {
+        container.innerHTML = `<div class="aviso aviso--success">Tu situación previsional no presenta alertas significativas. Continúa cotizando regularmente.</div>`;
+        return;
+      }
+
+      const tipoClase = { danger: 'aviso--warning', warning: 'aviso--warning', info: 'aviso--info', success: 'aviso--success' };
+      container.innerHTML = items.map((item, i) => `
+        <div class="aviso ${tipoClase[item.tipo]}" style="margin-bottom:12px;">
+          <strong>${i + 1}. ${item.titulo}</strong><br>
+          <span style="font-size:var(--text-sm);">${item.texto}</span>
+        </div>
+      `).join('');
+    }
+
     // ── Export ────────────────────────────────────────
     document.getElementById('btnPDF').addEventListener('click', () => exportarPDF());
     document.getElementById('btnCSV').addEventListener('click', () => {
       const objetivo = parseFloat(document.getElementById('pensionObjetivo').value) || 0;
       const filas = [
         ['Análisis de Brechas Previsionales'],
-        ['Pensión estimada RP', formatCLP(pensionEstimada)],
+        ['Pensión estimada RP (total c/PGU)', formatCLP(pensionEstimada)],
         ['Pensión objetivo', formatCLP(objetivo)],
         ['Brecha mensual', formatCLP(Math.max(0, objetivo - pensionEstimada))],
       ];
