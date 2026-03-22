@@ -226,13 +226,21 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Familia y Beneficiarios
         </div>
-        <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:16px;line-height:1.6;">
-          Esta información permite calcular la <strong>pensión de sobrevivencia</strong> (DL 3.500 art. 58) que generarías para tus beneficiarios y determinar qué modalidad te conviene más.
-        </p>
+
+        <!-- Explicación del impacto CNU -->
+        <div class="aviso aviso--warning" style="margin-bottom:16px;">
+          <strong>Tener familia reduce directamente tu pensión de Retiro Programado.</strong><br>
+          <span style="font-size:var(--text-xs);line-height:1.7;">
+            La pensión RP se calcula dividiendo tu saldo por el <strong>CNU (Capital Necesario Unitario)</strong> del grupo familiar. A más integrantes (cónyuge, hijos), mayor es el CNU y por tanto <em>menor es tu pensión mensual</em>. La diferencia puede ser del 15% al 25% menos respecto a una persona sin beneficiarios.
+            <br><strong>Fórmula:</strong> Pensión = Saldo ÷ CNU_total &nbsp;|&nbsp;
+            CNU_total = CNU<sub>afiliado</sub> + CNU<sub>cónyuge</sub> + Σ CNU<sub>hijo</sub>
+          </span>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label for="estadoCivil">Estado civil</label>
-            <select id="estadoCivil" id="estadoCivil">
+            <select id="estadoCivil">
               <option value="soltero">Soltero/a</option>
               <option value="casado">Casado/a</option>
               <option value="conviviente">Conviviente civil</option>
@@ -243,7 +251,7 @@
           <div class="form-group" id="grupoEdadConyuge" style="display:none;">
             <label for="edadConyuge">Edad del cónyuge / conviviente</label>
             <input type="number" id="edadConyuge" value="40" min="18" max="85">
-            <span class="hint">Afecta el período de pago de la pensión de sobrevivencia.</span>
+            <span class="hint">Afecta el CNU y la pensión de sobrevivencia.</span>
           </div>
           <div class="form-group" id="grupoSexoConyuge" style="display:none;">
             <label for="sexoConyuge">Sexo del cónyuge / conviviente</label>
@@ -253,31 +261,53 @@
             </select>
           </div>
         </div>
+
         <div class="form-row">
           <div class="form-group">
-            <label for="numHijos">
-              Hijos con derecho a pensión
-              <span data-tip="Menores de 18 años, o hasta 24 si son estudiantes." aria-label="Información">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              </span>
-            </label>
-            <input type="number" id="numHijos" value="0" min="0" max="20">
-            <span class="hint">Menores de 18 (o 24 si estudian) — 15% c/u de la pensión de referencia.</span>
+            <label for="numHijosMenores">Hijos menores de 18 años</label>
+            <input type="number" id="numHijosMenores" value="0" min="0" max="20">
+            <span class="hint">Pensión sobrevivencia: 15% c/u hasta los 18 años.</span>
           </div>
+          <div class="form-group">
+            <label for="numHijosEstudiantes">Hijos estudiantes (18–24 años)</label>
+            <input type="number" id="numHijosEstudiantes" value="0" min="0" max="20">
+            <span class="hint">Pensión sobrevivencia: 15% c/u hasta los 24 años.</span>
+          </div>
+        </div>
+        <div class="form-row">
           <div class="form-group">
             <label for="numHijosInvalidos">
               Hijos con invalidez permanente
-              <span data-tip="Sin límite de edad — pensión de sobrevivencia de por vida." aria-label="Información">
+              <span aria-label="Sin límite de edad — pensión de sobrevivencia de por vida.">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               </span>
             </label>
             <input type="number" id="numHijosInvalidos" value="0" min="0" max="20">
-            <span class="hint">Sin límite de edad — 15% c/u, de por vida (art. 58 DL 3.500).</span>
+            <span class="hint">15% c/u de <strong>por vida</strong> — invalidan al afiliado a migrar a RP libremente (art. 58 DL 3.500).</span>
           </div>
         </div>
-        <div class="aviso aviso--info" style="margin-top:8px;">
-          <strong>¿Por qué importa?</strong> Si tienes cónyuge y/o hijos, la Renta Vitalicia con período garantizado suele ser más conveniente porque asegura pensión a tus beneficiarios de por vida. Los hijos con invalidez permanente hacen que la RV sea la modalidad recomendada.
-        </div>
+
+        <!-- Tabla de porcentajes de sobrevivencia -->
+        <details style="margin-top:12px;">
+          <summary style="font-size:var(--text-xs);color:var(--color-primary-lt);cursor:pointer;user-select:none;">
+            Ver tabla de porcentajes de pensión de sobrevivencia (DL 3.500 art. 58)
+          </summary>
+          <div class="tabla-wrap" style="margin-top:8px;">
+            <table class="tabla-comparativa" style="font-size:var(--text-xs);">
+              <thead><tr><th>Beneficiario</th><th>Porcentaje</th></tr></thead>
+              <tbody>
+                <tr><td>Cónyuge/conviviente civil <strong>sin</strong> hijos comunes</td><td>60%</td></tr>
+                <tr><td>Cónyuge/conviviente civil <strong>con</strong> hijos comunes</td><td>50% (sube a 60% cuando los hijos pierden el derecho)</td></tr>
+                <tr><td>Cada hijo &lt; 18 años o estudiante &lt; 24</td><td>15%</td></tr>
+                <tr><td>Hijo inválido total (cualquier edad)</td><td>15% de por vida</td></tr>
+                <tr><td>Padres del afiliado (solo si no hay otros beneficiarios)</td><td>50%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:6px;">
+            La suma de porcentajes no puede superar el 100%. Si se supera, se prorratean proporcionalmente.
+          </p>
+        </details>
       </div>
 
       <!-- ── Submit ── -->
@@ -325,8 +355,9 @@
     if (d.estadoCivil)      document.getElementById('estadoCivil').value      = d.estadoCivil;
     if (d.edadConyuge)      document.getElementById('edadConyuge').value      = d.edadConyuge;
     if (d.sexoConyuge)      document.getElementById('sexoConyuge').value      = d.sexoConyuge;
-    if (d.numHijos != null) document.getElementById('numHijos').value         = d.numHijos;
-    if (d.numHijosInvalidos != null) document.getElementById('numHijosInvalidos').value = d.numHijosInvalidos;
+    if (d.numHijosMenores     != null) document.getElementById('numHijosMenores').value     = d.numHijosMenores;
+    if (d.numHijosEstudiantes != null) document.getElementById('numHijosEstudiantes').value = d.numHijosEstudiantes;
+    if (d.numHijosInvalidos   != null) document.getElementById('numHijosInvalidos').value   = d.numHijosInvalidos;
     toggleCamposConyuge();
 
     // Set max date for fechaNacimiento
@@ -543,10 +574,14 @@
         saldoAPV:         parseFloat(document.getElementById('saldoAPV').value) || 0,
         estadoCivil,
         tienePareja,
-        edadConyuge:      tienePareja ? (parseInt(document.getElementById('edadConyuge').value) || 40) : null,
-        sexoConyuge:      tienePareja ? document.getElementById('sexoConyuge').value : null,
-        numHijos:         parseInt(document.getElementById('numHijos').value) || 0,
-        numHijosInvalidos: parseInt(document.getElementById('numHijosInvalidos').value) || 0,
+        edadConyuge:          tienePareja ? (parseInt(document.getElementById('edadConyuge').value) || 40) : null,
+        sexoConyuge:          tienePareja ? document.getElementById('sexoConyuge').value : null,
+        numHijosMenores:      parseInt(document.getElementById('numHijosMenores').value) || 0,
+        numHijosEstudiantes:  parseInt(document.getElementById('numHijosEstudiantes').value) || 0,
+        numHijosInvalidos:    parseInt(document.getElementById('numHijosInvalidos').value) || 0,
+        // campo unificado para compatibilidad con código existente
+        numHijos: (parseInt(document.getElementById('numHijosMenores').value) || 0)
+                + (parseInt(document.getElementById('numHijosEstudiantes').value) || 0),
       });
 
       window.location.href = 'proyeccion.html';

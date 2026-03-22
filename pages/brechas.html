@@ -262,12 +262,23 @@
     let pensionEstimada = 0;
     let rpResult = null;
 
+    function getFamilia() {
+      return {
+        tienePareja:         d.tienePareja         || false,
+        edadConyuge:         d.edadConyuge         || 40,
+        sexoConyuge:         d.sexoConyuge         || 'F',
+        numHijosMenores:     d.numHijosMenores     || 0,
+        numHijosEstudiantes: d.numHijosEstudiantes || 0,
+        numHijosInvalidos:   d.numHijosInvalidos   || 0,
+      };
+    }
+
     async function cargarAFPs() {
       await cargarTablas();
       await cargarAFP();
       const uf          = d.uf || 39717;
       const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
-      const rp          = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec);
+      const rp          = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, getFamilia());
       rpResult          = rp;
       pensionEstimada   = rp.pensionTotal; // líquida + PGU
 
@@ -362,7 +373,7 @@
       await cargarTablas();
       const uf          = d.uf || 39717;
       const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
-      const rp          = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec);
+      const rp          = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, getFamilia());
       rpResult          = rp;
       pensionEstimada   = rp.pensionTotal;
 
@@ -429,8 +440,10 @@
       const rentaImponible   = d.rentaImponible || 0;
       const regimenAPV       = d.regimenAPV || 'A';
       const tienePareja      = d.tienePareja || false;
-      const numHijos         = d.numHijos || 0;
+      const numHijosMenores  = d.numHijosMenores || 0;
+      const numHijosEst      = d.numHijosEstudiantes || 0;
       const numHijosInv      = d.numHijosInvalidos || 0;
+      const numHijos         = numHijosMenores + numHijosEst;
       const tasaReemplazo    = rentaImponible > 0 ? (rp.pensionTotal / rentaImponible * 100) : 0;
 
       const items = [];
@@ -513,7 +526,17 @@
         });
       }
 
-      // 6. Brecha: aporte adicional
+      // 6. Impacto del CNU familiar en la pensión RP
+      if (rp.cnuDetalle && rp.cnuDetalle.tieneImpacto) {
+        const pct = ((rp.impactoFamilia / rp.pensionSinFamilia) * 100).toFixed(1);
+        items.push({
+          tipo: 'info',
+          titulo: `Tu grupo familiar reduce tu pensión RP en un ${pct}%`,
+          texto: `Sin beneficiarios tu pensión bruta sería <strong>${formatCLP(rp.pensionSinFamilia)}</strong>. Con tu grupo familiar (CNU total), es <strong>${formatCLP(rp.pension)}</strong> — una diferencia de <strong>${formatCLP(rp.impactoFamilia)}</strong> menos al mes. Esto se debe a que la pensión RP debe cubrir también a cónyuge e hijos según el <strong>Capital Necesario Unitario (CNU)</strong> del DL 3.500. Este es un dato que el simulador de la Superintendencia de Pensiones también calcula.`,
+        });
+      }
+
+      // 7. Brecha: aporte adicional
       if (!suficiente && brechaAbs > 0) {
         const anosRest = parseInt(document.getElementById('anosRestantes').value) || 10;
         const aporte4  = calcularAportacionNecesaria(0, brechaAbs, d.edad, d.sexo, 0.04, anosRest);

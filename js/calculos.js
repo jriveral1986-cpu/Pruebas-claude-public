@@ -4,7 +4,7 @@
  * All monetary values in CLP.
  */
 
-import { getCRU, esperanzaVida } from './mortalidad.js';
+import { getCRU, getCRUCalculado, esperanzaVida } from './mortalidad.js';
 
 // ============================================================
 // CONSTANTES VIGENTES — SP Chile, marzo 2026
@@ -117,25 +117,42 @@ export function calcularPGU(pensionBase, edad = 65) {
  * @returns {object} detalle de la pensión de sobrevivencia
  */
 export function calcularPensionSobrevivencia(pensionRef, familia) {
-  const { tienePareja = false, numHijos = 0, numHijosInvalidos = 0 } = familia;
+  const {
+    tienePareja         = false,
+    numHijosMenores     = 0,
+    numHijosEstudiantes = 0,
+    numHijosInvalidos   = 0,
+    // backwards compat: si llega numHijos (campo antiguo), lo sumamos a menores
+    numHijos            = 0,
+  } = familia;
 
-  const PCT_CONYUGE = 0.60;
-  const PCT_HIJO    = 0.15;
-
-  const totalBeneficiarios = (tienePareja ? 1 : 0) + numHijos + numHijosInvalidos;
+  const totalHijosTemporales = numHijosMenores + numHijosEstudiantes + numHijos;
+  const totalHijosComunes    = totalHijosTemporales + numHijosInvalidos;
+  const totalBeneficiarios   = (tienePareja ? 1 : 0) + totalHijosComunes;
 
   if (!pensionRef || totalBeneficiarios === 0) {
     return {
-      pensionRef, tienePareja, numHijos, numHijosInvalidos,
-      montoConyuge: 0, montoHijo: 0, montoHijoInvalido: 0,
+      pensionRef, tienePareja,
+      numHijosMenores, numHijosEstudiantes, numHijosInvalidos,
+      montoConyuge: 0, montoHijoTemporal: 0, montoHijoInvalido: 0,
       totalSobrevivencia: 0, pctTotal: 0,
       huboProrrataeo: false, factorProrrateo: 1,
       tieneBeneficiarios: false,
+      pctConyuge: 0,
     };
   }
 
-  const pctConyuge = tienePareja ? PCT_CONYUGE : 0;
-  let pctTotal = pctConyuge + (numHijos + numHijosInvalidos) * PCT_HIJO;
+  // Cónyuge con hijos comunes → 50%; sin hijos comunes → 60% (DL 3.500 art. 58)
+  const pctConyuge = tienePareja
+    ? (totalHijosComunes > 0 ? 0.50 : 0.60)
+    : 0;
+
+  const pctHijoTemp = 0.15;
+  const pctHijoInv  = 0.15; // inválido total; parcial sería 0.11 (no se distingue aquí)
+
+  let pctTotal = pctConyuge
+    + totalHijosTemporales * pctHijoTemp
+    + numHijosInvalidos    * pctHijoInv;
 
   // Tope 100%
   let factorProrrateo = 1;
@@ -144,18 +161,21 @@ export function calcularPensionSobrevivencia(pensionRef, familia) {
     pctTotal = 1.0;
   }
 
-  const montoConyuge      = tienePareja ? Math.round(pensionRef * PCT_CONYUGE * factorProrrateo) : 0;
-  const montoHijo         = numHijos > 0 ? Math.round(pensionRef * PCT_HIJO * factorProrrateo) : 0;
-  const montoHijoInvalido = numHijosInvalidos > 0 ? Math.round(pensionRef * PCT_HIJO * factorProrrateo) : 0;
+  const montoConyuge       = tienePareja          ? Math.round(pensionRef * pctConyuge    * factorProrrateo) : 0;
+  const montoHijoTemporal  = totalHijosTemporales > 0 ? Math.round(pensionRef * pctHijoTemp * factorProrrateo) : 0;
+  const montoHijoInvalido  = numHijosInvalidos    > 0 ? Math.round(pensionRef * pctHijoInv  * factorProrrateo) : 0;
   const totalSobrevivencia = Math.round(pensionRef * pctTotal);
 
   return {
     pensionRef,
     tienePareja,
-    numHijos,
+    numHijosMenores,
+    numHijosEstudiantes,
     numHijosInvalidos,
+    totalHijosTemporales,
+    pctConyuge,
     montoConyuge,
-    montoHijo,
+    montoHijoTemporal,
     montoHijoInvalido,
     totalSobrevivencia,
     pctTotal: pctTotal * 100,
@@ -170,12 +190,95 @@ export function calcularPensionSobrevivencia(pensionRef, familia) {
  * @returns {'rv'|'rp'|'mixta'} recomendación
  */
 export function recomendarModalidadFamiliar(familia) {
-  const { tienePareja, numHijos, numHijosInvalidos } = familia;
+  const {
+    tienePareja = false,
+    numHijosMenores = 0, numHijosEstudiantes = 0,
+    numHijosInvalidos = 0, numHijos = 0,
+  } = familia;
+  const totalHijos = numHijosMenores + numHijosEstudiantes + numHijosInvalidos + numHijos;
   if (numHijosInvalidos > 0) return 'rv';
-  if (tienePareja && numHijos > 0) return 'rv';
-  if (!tienePareja && numHijos === 0 && numHijosInvalidos === 0) return 'rp';
+  if (tienePareja && totalHijos > 0) return 'rv';
+  if (!tienePareja && totalHijos === 0) return 'rp';
   if (tienePareja) return 'mixta';
   return 'mixta';
+}
+
+// ============================================================
+// CNU — CAPITAL NECESARIO UNITARIO (grupo familiar)
+// ============================================================
+
+/**
+ * Anualidad limitada: valor presente de $1/mes durante n meses a tasa TASA_RP.
+ * Usada para calcular el CNU de hijos con derecho temporal.
+ */
+function calcularAnualidadLimitada(meses) {
+  if (TASA_RP === 0 || meses <= 0) return meses;
+  return (1 - Math.pow(1 + TASA_RP, -meses)) / TASA_RP;
+}
+
+/**
+ * CNU total del grupo familiar (afiliado + beneficiarios).
+ *
+ * La pensión de RP = saldo / CNU_total. A más beneficiarios → CNU mayor → pensión menor.
+ *
+ * Porcentajes de pensión de sobrevivencia (DL 3.500 art. 58):
+ *  - Cónyuge/conviviente sin hijos comunes: 60%
+ *  - Cónyuge/conviviente con hijos comunes: 50% (sube a 60% cuando los hijos pierden el derecho)
+ *  - Hijo < 18 o estudiante < 24: 15%
+ *  - Hijo inválido total (cualquier edad): 15% de por vida
+ *
+ * @param {number} edad - edad del afiliado
+ * @param {string} sexo - 'M' | 'F'
+ * @param {object} familia
+ * @param {boolean} familia.tienePareja
+ * @param {number}  familia.edadConyuge
+ * @param {string}  familia.sexoConyuge - 'M' | 'F'
+ * @param {number}  familia.numHijosMenores   - hijos < 18 años
+ * @param {number}  familia.numHijosEstudiantes - hijos 18–24 estudiantes
+ * @param {number}  familia.numHijosInvalidos  - hijos inválidos (de por vida)
+ * @param {number}  factorTabla - 1.0 para RP (B-2020), 1.08 para RV (aproxima RV-2020)
+ * @returns {{ cnuTotal, cnuAfiliado, cnuConyuge, cnuHijos, factorFamilia, tieneImpacto }}
+ */
+export function calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0) {
+  const {
+    tienePareja         = false,
+    edadConyuge         = 40,
+    sexoConyuge         = 'F',
+    numHijosMenores     = 0,
+    numHijosEstudiantes = 0,
+    numHijosInvalidos   = 0,
+  } = familia || {};
+
+  // factorTabla: 1.0 = B-2020 (RP), 1.08 = aproximación RV-2020 (RV)
+  const cnuAfiliado = getCRU(sexo, edad) * factorTabla;
+
+  const totalHijosComunes = numHijosMenores + numHijosEstudiantes + numHijosInvalidos;
+  const pctConyuge = tienePareja ? (totalHijosComunes > 0 ? 0.50 : 0.60) : 0;
+
+  // CNU cónyuge/conviviente — también con factorTabla
+  let cnuConyuge = 0;
+  if (tienePareja) {
+    const cruConyCorrecto = edadConyuge >= 50
+      ? getCRU(sexoConyuge, edadConyuge)
+      : getCRUCalculado(sexoConyuge, edadConyuge, TASA_RP);
+    cnuConyuge = pctConyuge * cruConyCorrecto * factorTabla;
+  }
+
+  // CNU hijos: anualidades limitadas (promedio restante) — también con factorTabla
+  const cruMenor      = numHijosMenores     > 0 ? calcularAnualidadLimitada(9  * 12) * factorTabla : 0;
+  const cruEstudiante = numHijosEstudiantes > 0 ? calcularAnualidadLimitada(3  * 12) * factorTabla : 0;
+  const cruInvalido   = numHijosInvalidos   > 0 ? getCRUCalculado('F', 25, TASA_RP) * factorTabla : 0;
+
+  const cnuHijos =
+    numHijosMenores     * 0.15 * cruMenor      +
+    numHijosEstudiantes * 0.15 * cruEstudiante +
+    numHijosInvalidos   * 0.15 * cruInvalido;
+
+  const cnuTotal       = cnuAfiliado + cnuConyuge + cnuHijos;
+  const tieneImpacto   = cnuTotal > cnuAfiliado;
+  const factorFamilia  = cnuAfiliado > 0 ? cnuTotal / cnuAfiliado : 1;
+
+  return { cnuTotal, cnuAfiliado, cnuConyuge, cnuHijos, factorFamilia, tieneImpacto };
 }
 
 // ============================================================
@@ -197,16 +300,34 @@ export function calcularSaldoDesdeNumCuotas(numCuotas, valorCuota) {
  * @param {string} sexo  'M' | 'F'
  * @param {number} uf
  * @param {number} comisionAfpDecimal - tasa comisión AFP en decimal (ej 0.0127)
- * @returns {{ pension, pensionUF, pensionLiquida, desglose, pgu, pensionTotal, anosEstimados }}
+ * @param {object|null} familia - grupo familiar para cálculo de CNU (opcional)
+ * @returns {{ pension, pensionUF, pensionLiquida, desglose, pgu, pensionTotal, anosEstimados,
+ *             pensionSinFamilia, impactoFamilia, cnuDetalle }}
  */
-export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0) {
-  const cru       = getCRU(sexo, edad);
+export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0, familia = null) {
+  // CNU total (afiliado solo o con grupo familiar)
+  let cnuDetalle = null;
+  let cnu;
+  if (familia && (familia.tienePareja || familia.numHijosMenores > 0 ||
+      familia.numHijosEstudiantes > 0 || familia.numHijosInvalidos > 0)) {
+    cnuDetalle = calcularCNUFamiliar(edad, sexo, familia);
+    cnu = cnuDetalle.cnuTotal;
+  } else {
+    cnu = getCRU(sexo, edad);
+  }
+
   const tasaMens  = TASA_RP;
-  // Formula anualidad: saldo × r / (1 - (1+r)^-n)  con n = meses de expectativa
-  const mesesEspe = Math.max(12, (esperanzaVida(null, edad) - edad) * 12);
-  const pension   = cru > 0
-    ? saldo / cru
+  // Bug fix: esperanzaVida necesita nombre de tabla, no null
+  const tablaRP   = sexo === 'M' ? 'b2020_hombre' : 'b2020_mujer';
+  const mesesEspe = Math.max(12, (esperanzaVida(tablaRP, edad) - edad) * 12);
+  const pension   = cnu > 0
+    ? saldo / cnu
     : (tasaMens > 0 ? saldo * tasaMens / (1 - Math.pow(1 + tasaMens, -mesesEspe)) : 0);
+
+  // Pensión sin familia (solo CRU del afiliado) para mostrar el impacto
+  const cruSolo = getCRU(sexo, edad);
+  const pensionSinFamilia = cruSolo > 0 ? saldo / cruSolo : pension;
+  const impactoFamilia = pensionSinFamilia - pension; // cuánto menos recibe por tener familia
 
   const pensionUF = uf > 0 ? pension / uf : 0;
 
@@ -216,10 +337,13 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0)
   const pensionTotal = desglose.liquida + pgu;
 
   // Años estimados del fondo
-  const r = Math.pow(1.0331, 1/12) - 1;
+  // Bug fix 1: usar tasa compuesta consistente (no mezclar con TASA_RP simple)
+  // Bug fix 2: usar pensionSinFamilia para calcular duración — el fondo dura igual
+  //            independiente del CNU familiar; lo que cambia es cuánto recibe c/u.
+  const r = Math.pow(1 + TASA_RP * 12, 1/12) - 1; // tasa mensual compuesta equivalente
   let anosEstimados = 0;
-  if (pension > 0) {
-    const x = (saldo * r) / pension;
+  if (pensionSinFamilia > 0) {
+    const x = (saldo * r) / pensionSinFamilia;
     if (x < 1) {
       anosEstimados = Math.round((-Math.log(1 - x) / Math.log(1 + r)) / 12);
     } else {
@@ -227,7 +351,10 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0)
     }
   }
 
-  return { pension, pensionUF, pensionLiquida: desglose.liquida, desglose, pgu, pensionTotal, anosEstimados };
+  return {
+    pension, pensionUF, pensionLiquida: desglose.liquida, desglose, pgu, pensionTotal,
+    anosEstimados, pensionSinFamilia, impactoFamilia, cnuDetalle,
+  };
 }
 
 // ============================================================
@@ -236,16 +363,36 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0)
 
 /**
  * Renta Vitalicia — sin comisión AFP, RV usa tablas más longevas (factor 1.08×).
+ * Con familia, la aseguradora también calcula reserva técnica para cónyuge e hijos.
  * @param {number} saldo
  * @param {number} edad
  * @param {string} sexo
  * @param {number} uf
- * @returns {{ pension, pensionUF, pensionLiquida, desglose, pgu, pensionTotal }}
+ * @param {object|null} familia - grupo familiar (opcional)
+ * @returns {{ pension, pensionUF, pensionLiquida, desglose, pgu, pensionTotal,
+ *             pensionSinFamilia, impactoFamilia, cnuDetalle }}
  */
-export function calcularPensionRV(saldo, edad, sexo, uf) {
-  const cruBase = getCRU(sexo, edad);
-  const cru     = cruBase * 1.08;
-  const pension = cru > 0 ? saldo / cru : 0;
+export function calcularPensionRV(saldo, edad, sexo, uf, familia = null) {
+  const FACTOR_RV = 1.08; // RV-2020 es más conservadora que B-2020
+
+  let cnuDetalle = null;
+  let cnu;
+  if (familia && (familia.tienePareja || familia.numHijosMenores > 0 ||
+      familia.numHijosEstudiantes > 0 || familia.numHijosInvalidos > 0)) {
+    cnuDetalle = calcularCNUFamiliar(edad, sexo, familia, FACTOR_RV);
+    cnu = cnuDetalle.cnuTotal;
+  } else {
+    cnu = getCRU(sexo, edad) * FACTOR_RV;
+  }
+
+  const pension = cnu > 0 ? saldo / cnu : 0;
+
+  // Pensión sin familia para comparación
+  const pensionSinFamilia = getCRU(sexo, edad) * FACTOR_RV > 0
+    ? saldo / (getCRU(sexo, edad) * FACTOR_RV)
+    : pension;
+  const impactoFamilia = pensionSinFamilia - pension;
+
   const pensionUF = uf > 0 ? pension / uf : 0;
 
   // RV: sin comisión AFP
@@ -253,7 +400,10 @@ export function calcularPensionRV(saldo, edad, sexo, uf) {
   const pgu      = calcularPGU(desglose.liquida, edad);
   const pensionTotal = desglose.liquida + pgu;
 
-  return { pension, pensionUF, pensionLiquida: desglose.liquida, desglose, pgu, pensionTotal };
+  return {
+    pension, pensionUF, pensionLiquida: desglose.liquida, desglose, pgu, pensionTotal,
+    pensionSinFamilia, impactoFamilia, cnuDetalle,
+  };
 }
 
 // ============================================================

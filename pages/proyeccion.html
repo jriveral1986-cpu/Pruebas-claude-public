@@ -101,7 +101,8 @@
                 <span class="resultado__valor" id="rpAnos">—</span>
               </div>
             </div>
-            <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:12px;">
+            <div id="rpImpactoFamilia" style="display:none;margin-top:12px;"></div>
+            <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:8px;">
               Tasa técnica 3,31% (Circular SP N°2407, ene 2026). Tablas B-2020.
               El fondo permanece heredable.
             </p>
@@ -151,7 +152,8 @@
                 <span class="resultado__valor resultado__valor--muted">Vitalicia (de por vida)</span>
               </div>
             </div>
-            <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:12px;">
+            <div id="rvImpactoFamilia" style="display:none;margin-top:12px;"></div>
+            <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:8px;">
               Tablas RV-2020. La compañía de seguros asume el riesgo de longevidad.
               El saldo ya no es heredable (salvo período garantizado).
             </p>
@@ -276,9 +278,17 @@
       const uf  = d.uf || 39717;
       const comisionPct = getComision(d.afp || '') || 1.27;
       const comisionDec = comisionPct / 100;
+      const familia = {
+        tienePareja:         d.tienePareja         || false,
+        edadConyuge:         d.edadConyuge         || 40,
+        sexoConyuge:         d.sexoConyuge         || 'F',
+        numHijosMenores:     d.numHijosMenores     || 0,
+        numHijosEstudiantes: d.numHijosEstudiantes || 0,
+        numHijosInvalidos:   d.numHijosInvalidos   || 0,
+      };
 
-      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec);
-      const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf);
+      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, familia);
+      const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf, familia);
 
       // RP
       document.getElementById('rpPension').textContent      = formatCLP(rp.pension);
@@ -309,6 +319,38 @@
       document.getElementById('rvPGU').textContent          = `+${formatCLP(rv.pgu)}`;
       document.getElementById('rvTotal').textContent        = formatCLP(rv.pensionTotal);
       document.getElementById('rvPensionUF').textContent    = formatUF(rv.pensionUF);
+
+      // Impacto del grupo familiar — RV
+      const impactoDivRV = document.getElementById('rvImpactoFamilia');
+      if (rv.cnuDetalle && rv.cnuDetalle.tieneImpacto) {
+        const pctRV = ((rv.impactoFamilia / rv.pensionSinFamilia) * 100).toFixed(1);
+        impactoDivRV.style.display = '';
+        impactoDivRV.innerHTML = `
+          <div class="aviso aviso--warning" style="font-size:var(--text-xs);">
+            <strong>Impacto grupo familiar:</strong>
+            sin beneficiarios serías <strong>${formatCLP(rv.pensionSinFamilia)}</strong> bruta.
+            Tu grupo familiar reduce la oferta RV en <strong>${formatCLP(rv.impactoFamilia)}</strong>
+            (${pctRV}% menos) — la aseguradora incluye la reserva técnica para cónyuge e hijos.
+          </div>`;
+      } else {
+        impactoDivRV.style.display = 'none';
+      }
+
+      // Impacto del grupo familiar — RP
+      const impactoDiv = document.getElementById('rpImpactoFamilia');
+      if (rp.cnuDetalle && rp.cnuDetalle.tieneImpacto) {
+        const pct = ((rp.impactoFamilia / rp.pensionSinFamilia) * 100).toFixed(1);
+        impactoDiv.style.display = '';
+        impactoDiv.innerHTML = `
+          <div class="aviso aviso--warning" style="font-size:var(--text-xs);">
+            <strong>Impacto grupo familiar:</strong>
+            sin beneficiarios serías <strong>${formatCLP(rp.pensionSinFamilia)}</strong> bruta.
+            Tu grupo familiar reduce la pensión en <strong>${formatCLP(rp.impactoFamilia)}</strong>
+            (${pct}% menos) — efecto del CNU familiar (DL 3.500).
+          </div>`;
+      } else {
+        impactoDiv.style.display = 'none';
+      }
 
       // Guardar para otras páginas
       Store.guardar({

@@ -268,9 +268,17 @@
       await cargarAFP();
       const uf          = d.uf || 39717;
       const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
+      const familia = {
+        tienePareja:         d.tienePareja         || false,
+        edadConyuge:         d.edadConyuge         || 40,
+        sexoConyuge:         d.sexoConyuge         || 'F',
+        numHijosMenores:     d.numHijosMenores     || 0,
+        numHijosEstudiantes: d.numHijosEstudiantes || 0,
+        numHijosInvalidos:   d.numHijosInvalidos   || 0,
+      };
 
-      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec);
-      const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf);
+      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, familia);
+      const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf, familia);
       rpPension = rp.pension;
       rvPension = rv.pension;
 
@@ -279,12 +287,14 @@
         `${formatCLP(rp.pension)} <span style="font-size:var(--text-sm);color:var(--color-text-muted);">bruta</span><br>
          <span style="font-size:var(--text-lg);color:var(--success);">${formatCLP(rp.pensionLiquida)}</span>
          <span style="font-size:var(--text-xs);color:var(--color-text-muted);"> líquida</span>
-         ${rp.pgu > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--success);">+${formatCLP(rp.pgu)} PGU = ${formatCLP(rp.pensionTotal)} total</span>` : ''}`;
+         ${rp.pgu > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--success);">+${formatCLP(rp.pgu)} PGU = ${formatCLP(rp.pensionTotal)} total</span>` : ''}
+         ${rp.cnuDetalle?.tieneImpacto ? `<br><span style="font-size:var(--text-xs);color:var(--color-warning,#b45309);">↓ ${formatCLP(rp.impactoFamilia)} por grupo familiar (${((rp.impactoFamilia/rp.pensionSinFamilia)*100).toFixed(1)}%)</span>` : ''}`;
       document.getElementById('rvPensionDisplay').innerHTML =
         `${formatCLP(rv.pension)} <span style="font-size:var(--text-sm);color:var(--color-text-muted);">bruta</span><br>
          <span style="font-size:var(--text-lg);color:var(--color-primary);">${formatCLP(rv.pensionLiquida)}</span>
          <span style="font-size:var(--text-xs);color:var(--color-text-muted);"> líquida</span>
-         ${rv.pgu > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--success);">+${formatCLP(rv.pgu)} PGU = ${formatCLP(rv.pensionTotal)} total</span>` : ''}`;
+         ${rv.pgu > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--success);">+${formatCLP(rv.pgu)} PGU = ${formatCLP(rv.pensionTotal)} total</span>` : ''}
+         ${rv.cnuDetalle?.tieneImpacto ? `<br><span style="font-size:var(--text-xs);color:var(--color-warning,#b45309);">↓ ${formatCLP(rv.impactoFamilia)} por grupo familiar (${((rv.impactoFamilia/rv.pensionSinFamilia)*100).toFixed(1)}%)</span>` : ''}`;
       document.getElementById('rpUFDisplay').textContent  = formatUF(rp.pensionUF);
       document.getElementById('rvUFDisplay').textContent  = formatUF(rv.pensionUF);
       document.getElementById('rpTablaValor').textContent = `${formatCLP(rp.pension)} (líq. ${formatCLP(rp.pensionLiquida)})`;
@@ -298,9 +308,10 @@
     // ── Pensión de Sobrevivencia ──────────────────────
     function renderSobrevivencia(pensionRP, pensionRV) {
       const familia = {
-        tienePareja:       d.tienePareja || false,
-        numHijos:          d.numHijos || 0,
-        numHijosInvalidos: d.numHijosInvalidos || 0,
+        tienePareja:         d.tienePareja         || false,
+        numHijosMenores:     d.numHijosMenores     || 0,
+        numHijosEstudiantes: d.numHijosEstudiantes || 0,
+        numHijosInvalidos:   d.numHijosInvalidos   || 0,
       };
 
       const sobRP = calcularPensionSobrevivencia(pensionRP, familia);
@@ -314,10 +325,17 @@
         }
         const filas = [];
         if (sob.tienePareja) {
-          filas.push(`<tr><td>Cónyuge / conviviente civil</td><td>60%${sob.huboProrrataeo ? '*' : ''}</td><td class="col-num col-highlight">${formatCLP(sob.montoConyuge)}/mes</td></tr>`);
+          const pctConyText = (sob.pctConyuge * 100).toFixed(0) + '%';
+          const notaHijos   = sob.pctConyuge === 0.50
+            ? ' <span style="font-size:0.75em;color:var(--color-text-muted);">(con hijos comunes; sube a 60% cuando ellos pierdan el derecho)</span>'
+            : '';
+          filas.push(`<tr><td>Cónyuge / conviviente civil${notaHijos}</td><td>${pctConyText}${sob.huboProrrataeo ? '*' : ''}</td><td class="col-num col-highlight">${formatCLP(sob.montoConyuge)}/mes</td></tr>`);
         }
-        for (let i = 0; i < sob.numHijos; i++) {
-          filas.push(`<tr><td>Hijo ${i+1} (menor de edad / estudiante)</td><td>15%${sob.huboProrrataeo ? '*' : ''}</td><td class="col-num">${formatCLP(sob.montoHijo)}/mes</td></tr>`);
+        for (let i = 0; i < sob.numHijosMenores; i++) {
+          filas.push(`<tr><td>Hijo ${i+1} (menor de 18 años)</td><td>15%${sob.huboProrrataeo ? '*' : ''}</td><td class="col-num">${formatCLP(sob.montoHijoTemporal)}/mes</td></tr>`);
+        }
+        for (let i = 0; i < sob.numHijosEstudiantes; i++) {
+          filas.push(`<tr><td>Hijo estudiante ${i+1} (18–24 años)</td><td>15%${sob.huboProrrataeo ? '*' : ''}</td><td class="col-num">${formatCLP(sob.montoHijoTemporal)}/mes</td></tr>`);
         }
         for (let i = 0; i < sob.numHijosInvalidos; i++) {
           filas.push(`<tr><td>Hijo ${i+1} con invalidez permanente <span style="color:var(--color-error);font-size:0.75em;">(de por vida)</span></td><td>15%${sob.huboProrrataeo ? '*' : ''}</td><td class="col-num">${formatCLP(sob.montoHijoInvalido)}/mes</td></tr>`);
@@ -341,9 +359,10 @@
       // Recomendación familiar
       const rec = document.getElementById('recomendacionFamiliar');
       const recom = recomendarModalidadFamiliar(familia);
-      const tieneHijosInv = familia.numHijosInvalidos > 0;
+      const tieneHijosInv = familia.numHijosInvalidos   > 0;
       const tienePareja   = familia.tienePareja;
-      const tieneHijos    = familia.numHijos > 0;
+      const tieneHijos    = (familia.numHijosMenores + familia.numHijosEstudiantes) > 0;
+      const totalHijos    = familia.numHijosMenores + familia.numHijosEstudiantes;
 
       let html = '';
       if (!sobRP.tieneBeneficiarios) {
@@ -364,7 +383,7 @@
         html = `
           <div class="aviso aviso--info">
             <strong>Renta Vitalicia recomendada por tu situación familiar</strong><br>
-            Tienes ${tienePareja ? 'cónyuge/conviviente' : ''}${tienePareja && tieneHijos ? ' e ' : ''}${tieneHijos ? `${familia.numHijos} hijo(s)` : ''}.
+            Tienes ${tienePareja ? 'cónyuge/conviviente' : ''}${tienePareja && tieneHijos ? ' e ' : ''}${tieneHijos ? `${totalHijos} hijo(s)` : ''}.
             La RV garantiza pensión de por vida para ti y tus beneficiarios, con período garantizado negociable.
             Con el RP, si vives muchos años el fondo puede agotarse y tus beneficiarios podrían quedarse sin pensión.
           </div>`;
