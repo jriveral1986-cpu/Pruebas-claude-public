@@ -133,7 +133,7 @@ export function initBtnActualizar() {
   if (!btn) return;
 
   btn.addEventListener('click', async () => {
-    btn.textContent = '⏳ Actualizando...';
+    btn.textContent = 'Actualizando...';
     btn.className   = 'btn-actualizar cargando';
     try {
       const res  = await actualizarTodo();
@@ -152,7 +152,7 @@ export function initBtnActualizar() {
         }
       }
 
-      btn.textContent = '✅ Actualizado';
+      btn.textContent = 'Actualizado';
       btn.className   = 'btn-actualizar exito';
       const hora = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
       if (info) info.textContent = `${hora} · UF ${formatCLP(res.uf.valor)}`;
@@ -161,15 +161,15 @@ export function initBtnActualizar() {
       if (Store.tieneResultados()) window.dispatchEvent(new CustomEvent('datos-actualizados'));
 
       setTimeout(() => {
-        btn.textContent = '🔄 Actualizar';
+        btn.textContent = 'Actualizar';
         btn.className   = 'btn-actualizar';
       }, 4000);
     } catch {
-      btn.textContent = '❌ Sin conexión';
+      btn.textContent = 'Sin conexión';
       btn.className   = 'btn-actualizar error';
       if (info) info.textContent = '';
       setTimeout(() => {
-        btn.textContent = '🔄 Actualizar';
+        btn.textContent = 'Actualizar';
         btn.className   = 'btn-actualizar';
       }, 4000);
     }
@@ -195,6 +195,7 @@ export function marcarNavActiva() {
     const href = link.getAttribute('href') || '';
     if (path.endsWith(href) || (href !== '/' && href !== '' && path.includes(href))) {
       link.classList.add('active');
+      link.setAttribute('aria-current', 'page');
     }
   });
 }

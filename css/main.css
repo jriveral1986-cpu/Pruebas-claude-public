@@ -2,6 +2,9 @@
    Calculadora Previsional Chile — main.css
    =================================================== */
 
+/* ── Google Fonts (IBM Plex Sans — all pages) ───────── */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
 /* ── Reset ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -34,7 +37,7 @@ img { max-width: 100%; display: block; }
   --warning:        #b45309;
   --color-warning:  #b45309;
   --color-error:    #c0392b;
-  --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-mono: 'Consolas', 'Liberation Mono', monospace;
   --text-xs:   0.75rem;
   --text-sm:   0.875rem;
@@ -103,16 +106,24 @@ small { font-size: var(--text-sm); color: var(--color-text-muted); }
   font-weight: 700;
   font-size: var(--text-lg);
   color: #fff;
-  padding: 12px 0;
+  padding: 10px 0;
   margin-right: 16px;
   letter-spacing: -0.3px;
   white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
+.nav__logo:hover { text-decoration: none; color: #fff; }
 .nav__logo span { color: var(--accent); }
 .nav__link {
   color: rgba(255,255,255,0.75);
   font-size: var(--text-sm);
-  padding: 8px 12px;
+  padding: 10px 12px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   border-radius: var(--radius-sm);
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
@@ -224,6 +235,7 @@ small { font-size: var(--text-sm); color: var(--color-text-muted); }
   align-items: center;
   gap: 6px;
   padding: 10px 22px;
+  min-height: 44px;
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   font-weight: 600;
@@ -415,6 +427,32 @@ small { font-size: var(--text-sm); color: var(--color-text-muted); }
 .card-nav-item__title { font-size: var(--text-lg); font-weight: 700; color: var(--color-primary); }
 .card-nav-item__desc  { font-size: var(--text-sm); color: var(--color-text-muted); }
 
+/* ── Focus visible (accessibility) ─────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-primary-lt);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+/* Remove default outline only when focus-visible replaces it */
+:focus:not(:focus-visible) { outline: none; }
+
+/* ── Skip link ──────────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 12px;
+  z-index: 1000;
+  background: var(--color-primary);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s;
+}
+.skip-link:focus { top: 12px; }
+
 /* ── Spinner ────────────────────────────────────────── */
 .spinner {
   display: inline-block;
@@ -455,6 +493,15 @@ small { font-size: var(--text-sm); color: var(--color-text-muted); }
   max-width: 240px;
   z-index: 10;
   pointer-events: none;
+}
+
+/* ── Reduced motion ─────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .progress-bar__fill { transition: none; }
 }
 
 /* ── Responsive ─────────────────────────────────────── */

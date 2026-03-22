@@ -4,100 +4,621 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calculadora Previsional Chile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/print.css" media="print">
+  <style>
+    /* ── Homepage overrides (IBM Plex Sans + design system) ── */
+    :root {
+      --font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+      --color-primary:    #1E3A5F;
+      --color-primary-lt: #2563EB;
+      --color-accent:     #F97316;
+      --accent:           #F97316;
+      --color-bg:         #F8FAFC;
+      --color-surface:    #ffffff;
+      --color-border:     #E2E8F0;
+      --color-text:       #1E293B;
+      --color-text-muted: #64748B;
+      --navy:             #1E3A5F;
+      --shadow-card:      0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(30,58,95,.08);
+      --shadow-card-hover:0 8px 32px rgba(37,99,235,.14), 0 2px 8px rgba(0,0,0,.06);
+      --radius-xl: 16px;
+      --transition: 200ms cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ── Nav enhanced ── */
+    .nav {
+      background: var(--navy);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      padding: 0 24px;
+      min-height: 60px;
+      gap: 2px;
+    }
+    .nav__logo {
+      font-size: 1.0625rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-right: 24px;
+    }
+    .nav__logo span { color: var(--accent); }
+    .nav__link {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 6px;
+      letter-spacing: 0.01em;
+    }
+
+    /* ── Hero redesign ── */
+    .hero {
+      background: linear-gradient(145deg, #0F2340 0%, #1a3869 55%, #1e4fa0 100%);
+      color: #fff;
+      padding: 72px 24px 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 60% at 70% 50%, rgba(37,99,235,.22) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 20% 80%, rgba(249,115,22,.10) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero__inner { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; }
+    .hero__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 99px;
+      padding: 4px 14px 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      color: rgba(255,255,255,.9);
+      margin-bottom: 24px;
+      text-transform: uppercase;
+    }
+    .hero__badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 0 2px rgba(74,222,128,.3);
+      flex-shrink: 0;
+    }
+    .hero h1 {
+      color: #fff;
+      font-size: clamp(1.875rem, 5vw, 2.75rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      color: #93C5FD;
+    }
+    .hero p {
+      color: rgba(255,255,255,.75);
+      font-size: 1.0625rem;
+      line-height: 1.65;
+      max-width: 560px;
+      margin: 0 auto 32px;
+    }
+    .hero__cta-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .btn--hero {
+      background: #2563EB;
+      color: #fff;
+      border: 2px solid transparent;
+      padding: 12px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(37,99,235,.4);
+      transition: all var(--transition);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn--hero:hover {
+      background: #1D4ED8;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(37,99,235,.5);
+      text-decoration: none;
+      color: #fff;
+    }
+    .btn--hero-ghost {
+      background: transparent;
+      color: rgba(255,255,255,.85);
+      border: 1.5px solid rgba(255,255,255,.25);
+      padding: 12px 24px;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      border-radius: 10px;
+      transition: all var(--transition);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn--hero-ghost:hover {
+      background: rgba(255,255,255,.1);
+      border-color: rgba(255,255,255,.4);
+      color: #fff;
+      text-decoration: none;
+    }
+    .hero__stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .hero__stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .hero__stat-value {
+      font-size: 1.375rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.03em;
+    }
+    .hero__stat-label {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,.55);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 500;
+    }
+    .hero__stat-divider {
+      width: 1px;
+      height: 32px;
+      background: rgba(255,255,255,.15);
+      align-self: center;
+    }
+
+    /* ── Section titles ── */
+    .section__title {
+      font-size: 1.375rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      margin-bottom: 20px;
+      padding-bottom: 0;
+      border-bottom: none;
+      letter-spacing: -0.02em;
+    }
+    .section__subtitle {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      margin-top: -12px;
+      margin-bottom: 20px;
+    }
+
+    /* ── Feature cards redesign ── */
+    .cards-nav {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 0;
+    }
+    .card-nav-item {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: 28px 24px;
+      text-align: left;
+      text-decoration: none;
+      transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: var(--shadow-card);
+      cursor: pointer;
+    }
+    .card-nav-item:hover {
+      box-shadow: var(--shadow-card-hover);
+      transform: translateY(-3px);
+      border-color: rgba(37,99,235,.25);
+      text-decoration: none;
+    }
+    .card-nav-item__icon-wrap {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .card-nav-item__icon-wrap--blue   { background: #EFF6FF; color: #2563EB; }
+    .card-nav-item__icon-wrap--green  { background: #F0FDF4; color: #16A34A; }
+    .card-nav-item__icon-wrap--orange { background: #FFF7ED; color: #EA580C; }
+    .card-nav-item__icon-wrap--purple { background: #F5F3FF; color: #7C3AED; }
+    .card-nav-item__title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      letter-spacing: -0.01em;
+    }
+    .card-nav-item__desc {
+      font-size: 0.8125rem;
+      color: var(--color-text-muted);
+      line-height: 1.6;
+    }
+    .card-nav-item__arrow {
+      margin-top: auto;
+      color: var(--color-primary-lt);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity var(--transition), gap var(--transition);
+    }
+    .card-nav-item:hover .card-nav-item__arrow { opacity: 1; gap: 8px; }
+
+    /* ── Requirements section ── */
+    .req-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .req-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: 28px 24px;
+      box-shadow: var(--shadow-card);
+    }
+    .req-card__header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .req-card__icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .req-card__icon--required { background: #EFF6FF; color: #2563EB; }
+    .req-card__icon--optional { background: #F0FDF4; color: #16A34A; }
+    .req-card__title { font-size: 0.9375rem; font-weight: 700; color: var(--color-primary); }
+    .req-card__tag {
+      margin-left: auto;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .req-card__tag--required { background: #DBEAFE; color: #1D4ED8; }
+    .req-card__tag--optional { background: #DCFCE7; color: #15803D; }
+    .req-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+    .req-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.875rem;
+      color: var(--color-text);
+      line-height: 1.5;
+    }
+    .req-list__check {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .req-list__check--required { background: #DBEAFE; color: #2563EB; }
+    .req-list__check--optional { background: #DCFCE7; color: #16A34A; }
+
+    /* ── Info banner ── */
+    .info-banner {
+      background: linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%);
+      border: 1px solid #BFDBFE;
+      border-radius: var(--radius-xl);
+      padding: 20px 24px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .info-banner__icon {
+      width: 36px; height: 36px;
+      background: #2563EB;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #fff;
+    }
+    .info-banner__title {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: #1E3A5F;
+      margin-bottom: 4px;
+    }
+    .info-banner__text {
+      font-size: 0.8125rem;
+      color: #334155;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    /* ── Disclaimer ── */
+    .disclaimer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      padding: 4px 0 8px;
+      line-height: 1.7;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .disclaimer a { color: var(--color-primary-lt); }
+
+    /* ── Container spacing ── */
+    .home-main { max-width: 960px; margin: 0 auto; padding: 40px 24px 48px; }
+    .home-section { margin-bottom: 36px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .cards-nav, .req-cards { grid-template-columns: 1fr; }
+      .hero { padding: 48px 16px 56px; }
+      .hero__stats { gap: 20px; }
+      .hero__stat-divider { display: none; }
+      .home-main { padding: 24px 16px 32px; }
+      .info-banner { flex-direction: column; gap: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .card-nav-item, .btn--hero, .btn--hero-ghost { transition: none; }
+      .card-nav-item:hover { transform: none; }
+      .btn--hero:hover { transform: none; }
+    }
+  </style>
 </head>
 <body>
 
+  <a href="#main-content" class="skip-link">Ir al contenido principal</a>
+
   <!-- Navigation -->
-  <nav class="nav">
-    <span class="nav__logo">Previsión<span>Chile</span></span>
-    <a href="index.html"              class="nav__link active">Inicio</a>
-    <a href="pages/datos.html"        class="nav__link">Mis Datos</a>
-    <a href="pages/proyeccion.html"   class="nav__link">Proyección</a>
-    <a href="pages/modalidades.html"  class="nav__link">Modalidades</a>
-    <a href="pages/brechas.html"      class="nav__link">Brechas</a>
+  <nav class="nav" aria-label="Navegación principal">
+    <a href="index.html" class="nav__logo" aria-label="PrevisiónChile, ir al inicio">Previsión<span>Chile</span></a>
+    <a href="index.html"             class="nav__link active" aria-current="page">Inicio</a>
+    <a href="pages/datos.html"       class="nav__link">Mis Datos</a>
+    <a href="pages/proyeccion.html"  class="nav__link">Proyección</a>
+    <a href="pages/modalidades.html" class="nav__link">Modalidades</a>
+    <a href="pages/brechas.html"     class="nav__link">Brechas</a>
   </nav>
 
   <!-- Hero -->
-  <section class="hero">
-    <h1>Calculadora Previsional Chile</h1>
-    <p>Estima tu pensión de retiro, compara modalidades y analiza brechas — usando datos oficiales de SP Chile y valores en tiempo real.</p>
-    <a href="pages/datos.html" class="btn btn--primary" style="margin: 0 auto; display:inline-flex;">
-      Comenzar evaluación
-    </a>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero__inner">
+      <div class="hero__badge">
+        <span class="hero__badge-dot" aria-hidden="true"></span>
+        Datos en tiempo real · SP Chile
+      </div>
+      <h1 id="hero-title">
+        Tu <em>pensión estimada</em>,<br>con datos reales
+      </h1>
+      <p>Calcula tu retiro, compara modalidades y detecta brechas usando valores cuota actualizados directamente desde la Superintendencia de Pensiones.</p>
+      <div class="hero__cta-row">
+        <a href="pages/datos.html" class="btn--hero">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+          Comenzar evaluación
+        </a>
+        <a href="pages/proyeccion.html" class="btn--hero-ghost">
+          Ver proyección
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      </div>
+      <div class="hero__stats" role="list" aria-label="Características clave">
+        <div class="hero__stat" role="listitem">
+          <span class="hero__stat-value">7</span>
+          <span class="hero__stat-label">AFP soportadas</span>
+        </div>
+        <div class="hero__stat-divider" aria-hidden="true"></div>
+        <div class="hero__stat" role="listitem">
+          <span class="hero__stat-value">RV-2020</span>
+          <span class="hero__stat-label">Tablas mortalidad</span>
+        </div>
+        <div class="hero__stat-divider" aria-hidden="true"></div>
+        <div class="hero__stat" role="listitem">
+          <span class="hero__stat-value">DL 3.500</span>
+          <span class="hero__stat-label">Metodología oficial</span>
+        </div>
+        <div class="hero__stat-divider" aria-hidden="true"></div>
+        <div class="hero__stat" role="listitem">
+          <span class="hero__stat-value">UF + UTM</span>
+          <span class="hero__stat-label">Indicadores diarios</span>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <!-- Main cards -->
-  <main class="container">
+  <!-- Main content -->
+  <main class="home-main" id="main-content">
 
-    <div class="section">
-      <h2 class="section__title">¿Qué puedes calcular?</h2>
-      <div class="cards-nav">
-        <a href="pages/datos.html" class="card-nav-item">
-          <div class="card-nav-item__icon">📋</div>
+    <!-- Feature cards -->
+    <section class="home-section" aria-labelledby="features-title">
+      <h2 class="section__title" id="features-title">¿Qué puedes calcular?</h2>
+      <p class="section__subtitle">Cuatro módulos integrados que trabajan con los mismos datos de tu cuenta AFP.</p>
+      <div class="cards-nav" role="list">
+
+        <a href="pages/datos.html" class="card-nav-item" role="listitem" aria-label="Mis Datos: ingresar datos de tu cuenta AFP">
+          <div class="card-nav-item__icon-wrap card-nav-item__icon-wrap--blue" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
           <div class="card-nav-item__title">Mis Datos</div>
           <div class="card-nav-item__desc">Ingresa AFP, fondo, saldo o número de cuotas, edad y sexo. El valor cuota se carga automáticamente desde SP Chile.</div>
+          <div class="card-nav-item__arrow" aria-hidden="true">
+            Ingresar datos
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
         </a>
-        <a href="pages/proyeccion.html" class="card-nav-item">
-          <div class="card-nav-item__icon">📈</div>
+
+        <a href="pages/proyeccion.html" class="card-nav-item" role="listitem" aria-label="Proyección: calcular pensión estimada">
+          <div class="card-nav-item__icon-wrap card-nav-item__icon-wrap--green" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          </div>
           <div class="card-nav-item__title">Proyección</div>
-          <div class="card-nav-item__desc">Calcula tu pensión estimada (Retiro Programado y Renta Vitalicia) y proyecta el crecimiento de tu fondo.</div>
+          <div class="card-nav-item__desc">Calcula tu pensión estimada (Retiro Programado y Renta Vitalicia) y proyecta el crecimiento de tu fondo hasta el retiro.</div>
+          <div class="card-nav-item__arrow" aria-hidden="true">
+            Ver proyección
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
         </a>
-        <a href="pages/modalidades.html" class="card-nav-item">
-          <div class="card-nav-item__icon">⚖️</div>
+
+        <a href="pages/modalidades.html" class="card-nav-item" role="listitem" aria-label="Modalidades: comparar Retiro Programado vs Renta Vitalicia">
+          <div class="card-nav-item__icon-wrap card-nav-item__icon-wrap--orange" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+          </div>
           <div class="card-nav-item__title">Modalidades</div>
           <div class="card-nav-item__desc">Compara Retiro Programado vs. Renta Vitalicia según tu perfil de esperanza de vida y preferencia de riesgo.</div>
+          <div class="card-nav-item__arrow" aria-hidden="true">
+            Comparar
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
         </a>
-        <a href="pages/brechas.html" class="card-nav-item">
-          <div class="card-nav-item__icon">🎯</div>
+
+        <a href="pages/brechas.html" class="card-nav-item" role="listitem" aria-label="Brechas: calcular diferencia entre pensión estimada y necesaria">
+          <div class="card-nav-item__icon-wrap card-nav-item__icon-wrap--purple" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
           <div class="card-nav-item__title">Brechas</div>
-          <div class="card-nav-item__desc">Calcula la brecha entre tu pensión estimada y la que necesitas, y descubre cuánto debes ahorrar para cerrarla.</div>
+          <div class="card-nav-item__desc">Calcula la brecha entre tu pensión estimada y la que necesitas. Descubre cuánto debes ahorrar para cerrarla.</div>
+          <div class="card-nav-item__arrow" aria-hidden="true">
+            Analizar brecha
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
         </a>
-      </div>
-    </div>
 
-    <div class="section">
-      <h2 class="section__title">¿Qué necesitas tener a mano?</h2>
-      <div class="grid-2">
-        <div class="card">
-          <h4>Datos obligatorios</h4>
-          <ul style="margin-top:12px; padding-left:20px; line-height:2;">
-            <li>AFP donde tienes tu cuenta</li>
-            <li>Tipo de fondo (A, B, C, D o E)</li>
-            <li>Saldo acumulado <em>o</em> número de cuotas</li>
-            <li>Tu edad y sexo</li>
+      </div>
+    </section>
+
+    <!-- Requirements -->
+    <section class="home-section" aria-labelledby="req-title">
+      <h2 class="section__title" id="req-title">¿Qué necesitas tener a mano?</h2>
+      <div class="req-cards">
+
+        <div class="req-card">
+          <div class="req-card__header">
+            <div class="req-card__icon req-card__icon--required" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <span class="req-card__title">Datos obligatorios</span>
+            <span class="req-card__tag req-card__tag--required">Requerido</span>
+          </div>
+          <ul class="req-list" aria-label="Datos obligatorios">
+            <li>
+              <span class="req-list__check req-list__check--required" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              AFP donde tienes tu cuenta
+            </li>
+            <li>
+              <span class="req-list__check req-list__check--required" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              Tipo de fondo (A, B, C, D o E)
+            </li>
+            <li>
+              <span class="req-list__check req-list__check--required" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              Saldo acumulado <em>o</em> número de cuotas
+            </li>
+            <li>
+              <span class="req-list__check req-list__check--required" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              Tu edad y sexo
+            </li>
           </ul>
         </div>
-        <div class="card">
-          <h4>Datos opcionales</h4>
-          <ul style="margin-top:12px; padding-left:20px; line-height:2;">
-            <li>Nombre y RUT (para el informe)</li>
-            <li>Aporte mensual adicional</li>
-            <li>Pensión objetivo mensual</li>
-            <li>Tasa de rentabilidad esperada</li>
+
+        <div class="req-card">
+          <div class="req-card__header">
+            <div class="req-card__icon req-card__icon--optional" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </div>
+            <span class="req-card__title">Datos opcionales</span>
+            <span class="req-card__tag req-card__tag--optional">Opcional</span>
+          </div>
+          <ul class="req-list" aria-label="Datos opcionales">
+            <li>
+              <span class="req-list__check req-list__check--optional" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </span>
+              Nombre y RUT (para el informe)
+            </li>
+            <li>
+              <span class="req-list__check req-list__check--optional" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </span>
+              Aporte mensual adicional
+            </li>
+            <li>
+              <span class="req-list__check req-list__check--optional" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </span>
+              Pensión objetivo mensual
+            </li>
+            <li>
+              <span class="req-list__check req-list__check--optional" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </span>
+              Tasa de rentabilidad esperada
+            </li>
           </ul>
         </div>
-      </div>
-    </div>
 
-    <div class="section">
-      <div class="aviso aviso--info">
-        <strong>Sobre los datos en tiempo real:</strong>
-        El valor cuota (VC) de cada AFP se obtiene directamente desde
-        <strong>SP Chile</strong> a través de un proxy Cloudflare Worker que resuelve
-        el bloqueo CORS. UF y UTM provienen de <strong>mindicador.cl</strong>.
-        Si no hay conexión, se usa una caché local con valores recientes.
       </div>
-    </div>
+    </section>
 
-    <div class="section">
-      <p style="font-size:var(--text-xs);color:var(--color-text-muted);text-align:center;">
-        Esta calculadora es de uso informativo. Los valores son estimaciones basadas en
-        tablas de mortalidad RV-2020 / B-2020 y la metodología del DL 3.500.
-        Consulta a un asesor previsional certificado antes de tomar decisiones.
-      </p>
-    </div>
+    <!-- Data sources info -->
+    <section class="home-section" aria-labelledby="fuentes-title">
+      <div class="info-banner" role="note">
+        <div class="info-banner__icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <div>
+          <p class="info-banner__title" id="fuentes-title">Sobre los datos en tiempo real</p>
+          <p class="info-banner__text">
+            El valor cuota (VC) de cada AFP se obtiene directamente desde <strong>SP Chile</strong> a través de un proxy Cloudflare Worker que resuelve el bloqueo CORS. UF y UTM provienen de <strong>mindicador.cl</strong>. Si no hay conexión, se usa una caché local con valores recientes.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Legal disclaimer -->
+    <p class="disclaimer" role="note">
+      Esta calculadora es de uso informativo. Los valores son estimaciones basadas en
+      tablas de mortalidad RV-2020 / B-2020 y la metodología del DL&nbsp;3.500.
+      Consulta a un asesor previsional certificado antes de tomar decisiones financieras.
+    </p>
 
   </main>
 

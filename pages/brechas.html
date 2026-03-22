@@ -9,8 +9,10 @@
 </head>
 <body>
 
-  <nav class="nav">
-    <a href="../index.html" class="nav__logo" style="text-decoration:none;">Previsión<span>Chile</span></a>
+  <a href="#main-content" class="skip-link">Ir al contenido principal</a>
+
+  <nav class="nav" aria-label="Navegación principal">
+    <a href="../index.html" class="nav__logo">Previsión<span>Chile</span></a>
     <a href="../index.html"            class="nav__link">Inicio</a>
     <a href="datos.html"               class="nav__link">Mis Datos</a>
     <a href="proyeccion.html"          class="nav__link">Proyección</a>
@@ -19,11 +21,11 @@
   </nav>
 
   <div class="header-bar">
-    <button id="btnActualizar" class="btn-actualizar">🔄 Actualizar</button>
+    <button id="btnActualizar" class="btn-actualizar" aria-label="Actualizar indicadores económicos">Actualizar</button>
     <span   id="infoAct"       class="info-act"></span>
   </div>
 
-  <main class="container">
+  <main class="container" id="main-content">
 
     <!-- ── Informe header ── -->
     <div class="informe-header">
@@ -181,9 +183,18 @@
     <!-- ── Acciones ── -->
     <div class="section no-print">
       <div class="btn-group">
-        <button type="button" id="btnPDF" class="btn btn--primary">🖨️ Exportar PDF</button>
-        <button type="button" id="btnCSV" class="btn btn--secondary">📊 Exportar CSV</button>
-        <a href="datos.html" class="btn btn--ghost">← Modificar datos</a>
+        <button type="button" id="btnPDF" class="btn btn--primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Exportar PDF
+        </button>
+        <button type="button" id="btnCSV" class="btn btn--secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Exportar CSV
+        </button>
+        <a href="datos.html" class="btn btn--ghost">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          Modificar datos
+        </a>
       </div>
     </div>
 
@@ -273,11 +284,11 @@
 
       document.getElementById('brPensionRP').textContent  = formatCLP(rp.pension);
       document.getElementById('brPensionObj').textContent = formatCLP(objetivo);
-      document.getElementById('brechaAbs').textContent    = suficiente ? '✅ Sin brecha' : formatCLP(brecha_abs);
+      document.getElementById('brechaAbs').textContent    = suficiente ? 'Sin brecha' : formatCLP(brecha_abs);
       document.getElementById('brechaPct').textContent    = suficiente ? '—' : brecha_pct.toFixed(1) + '%';
       document.getElementById('diagnostico').textContent  = suficiente
-        ? '✅ Tu pensión estimada supera tu objetivo'
-        : `⚠️ Cubre solo el ${pct.toFixed(0)}% de tu objetivo`;
+        ? 'Tu pensión estimada supera tu objetivo'
+        : `Cubre solo el ${pct.toFixed(0)}% de tu objetivo`;
       document.getElementById('progLabel').textContent    = pct.toFixed(0) + '%';
 
       const fill = document.getElementById('progFill');

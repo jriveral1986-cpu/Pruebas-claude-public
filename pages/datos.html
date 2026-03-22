@@ -9,9 +9,11 @@
 </head>
 <body>
 
+  <a href="#main-content" class="skip-link">Ir al contenido principal</a>
+
   <!-- Navigation -->
-  <nav class="nav">
-    <a href="../index.html" class="nav__logo" style="text-decoration:none;">Previsión<span>Chile</span></a>
+  <nav class="nav" aria-label="Navegación principal">
+    <a href="../index.html" class="nav__logo">Previsión<span>Chile</span></a>
     <a href="../index.html"             class="nav__link">Inicio</a>
     <a href="datos.html"                class="nav__link">Mis Datos</a>
     <a href="proyeccion.html"           class="nav__link">Proyección</a>
@@ -21,12 +23,12 @@
 
   <!-- Refresh bar -->
   <div class="header-bar">
-    <button id="btnActualizar" class="btn-actualizar">🔄 Actualizar</button>
+    <button id="btnActualizar" class="btn-actualizar" aria-label="Actualizar indicadores económicos">Actualizar</button>
     <span   id="infoAct"       class="info-act"></span>
     <span id="statusUF" style="font-size:var(--text-xs);color:var(--color-text-muted);margin-left:8px;"></span>
   </div>
 
-  <main class="container">
+  <main class="container" id="main-content">
     <h1 class="page-title">Mis Datos Previsionales</h1>
     <p class="page-subtitle">Completa el formulario para iniciar la evaluación. El valor cuota se carga automáticamente al seleccionar AFP y Fondo.</p>
 
@@ -34,7 +36,10 @@
 
       <!-- ── Datos personales ── -->
       <div class="form-section">
-        <div class="form-section__title">👤 Datos Personales</div>
+        <div class="form-section__title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Datos Personales
+        </div>
         <div class="form-row">
           <div class="form-group">
             <label for="nombreCliente">Nombre completo</label>
@@ -76,7 +81,10 @@
 
       <!-- ── Datos AFP ── -->
       <div class="form-section">
-        <div class="form-section__title">🏦 AFP y Fondo</div>
+        <div class="form-section__title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          AFP y Fondo
+        </div>
         <div class="form-row">
           <div class="form-group">
             <label for="selectAFP">AFP</label>
@@ -96,7 +104,9 @@
         <div class="form-group">
           <label for="valorCuota">
             Valor cuota actual
-            <span data-tip="Precio de cada cuota del fondo en CLP. Se descarga desde SP Chile automáticamente.">ℹ️</span>
+            <span data-tip="Precio de cada cuota del fondo en CLP. Se descarga desde SP Chile automáticamente." aria-label="Información">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </span>
           </label>
           <input type="number" id="valorCuota" placeholder="Se carga al seleccionar AFP y Fondo" step="0.01" readonly>
           <span class="hint" id="statusVC">Selecciona AFP y Fondo para cargar el valor cuota.</span>
@@ -106,7 +116,10 @@
 
       <!-- ── Saldo ── -->
       <div class="form-section">
-        <div class="form-section__title">💰 Saldo Acumulado</div>
+        <div class="form-section__title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Saldo Acumulado
+        </div>
         <div class="form-group">
           <label>Método de ingreso</label>
           <div class="radio-group" style="margin-top:8px;">
@@ -211,7 +224,7 @@
       const inputVC  = document.getElementById('valorCuota');
       const fuenteVC = document.getElementById('fuenteVC');
 
-      statusVC.textContent = '⏳ Buscando valor cuota en SP Chile…';
+      statusVC.textContent = 'Buscando valor cuota en SP Chile…';
       statusVC.className   = 'hint loading';
       inputVC.classList.add('loading');
 
@@ -223,14 +236,14 @@
         const srcLabel = dato.fuente === 'sp-chile'    ? 'SP Chile (oficial)'
                        : dato.fuente === 'cache-local' ? 'caché local'
                        : 'sesión';
-        statusVC.textContent = `✅ Fuente: ${srcLabel} — ${dato.fecha || ''}`;
+        statusVC.textContent = `Fuente: ${srcLabel} — ${dato.fecha || ''}`;
         statusVC.className   = 'hint success';
         mostrarFuenteBadge(fuenteVC, dato.fuente);
         Store.guardar({ valorCuota: dato.valor, fechaVC: dato.fecha, afp, fondo });
         recalcularSaldo();
       } else {
         inputVC.value = '';
-        statusVC.textContent = '⚠️ Sin conexión — ingresa el valor cuota manualmente.';
+        statusVC.textContent = 'Sin conexión — ingresa el valor cuota manualmente.';
         statusVC.className   = 'hint warning';
         fuenteVC.innerHTML   = '';
       }
