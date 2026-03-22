@@ -42,6 +42,7 @@ Las comisiones son sobre la remuneración imponible (% anual). Se descuentan men
 | Cuprum | 1.44% |
 | Provida | 1.45% |
 
+
 **Fórmula descuento mensual:**
 ```
 descuento_mensual = salario × (comisión / 100) / 12
