@@ -112,21 +112,35 @@ Fuente: `js/calculos.js:calcularSaldoDesdeNumCuotas`, `pages/datos.html`
 ## 7. Pensión Estimada — Retiro Programado (RP)
 
 **Tabla de mortalidad:** B-2020 (Retiro Programado)
-**Tasa técnica:** 3,31% real anual (Circular SP N°2407, enero 2026) → `TASA_RP = 0.0331 / 12` mensual
+**Tasa técnica:** 3,31% real anual (Circular SP N°2407, enero 2026) → `TASA_RP = 0.0331 / 12` mensual simple
 
-**Fórmula:**
+**Firma de la función:**
+```js
+calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0, familia = null)
 ```
-pensión_RP_bruta = saldo_total / CRU_B2020(sexo, edad)
+
+**Fórmula base (sin grupo familiar):**
+```
+cnuAfiliado = getCRU(sexo, edad)           // tabla B-2020 pre-calculada
+pensión_RP_bruta = saldo_total / cnuAfiliado
+```
+
+**Fórmula con grupo familiar:**
+```
+cnuTotal = calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0).cnuTotal
+pensión_RP_bruta = saldo_total / cnuTotal
+pensionSinFamilia = saldo_total / cnuAfiliado   // referencia comparativa
 ```
 
 Donde `CRU` (Capital Requerido Unitario) es el valor presente de una renta vitalicia de $1/mes a la edad dada, calculado con la tabla B-2020 a tasa 3,31% real anual.
 
 **Años estimados del fondo:**
 ```
-n = -ln(1 - saldo × r / pensión) / ln(1 + r)   [en meses → dividir por 12]
-r = (1.0331)^(1/12) - 1
+r = (1 + TASA_RP × 12)^(1/12) - 1             // tasa mensual compuesta
+n = -ln(1 - saldo × r / pensionSinFamilia) / ln(1 + r)   [en meses → dividir por 12]
 ```
-Si `saldo × r / pensión ≥ 1` → se retorna 35 años.
+Se usa `pensionSinFamilia` para evitar que el CNU familiar provoque `saldo × r / pension ≥ 1`.
+Si el argumento del logaritmo ≤ 0 → se retorna 35 años.
 
 **Equivalente en UF:**
 ```
@@ -134,8 +148,19 @@ pensión_UF = pensión_CLP / UF
 ```
 
 **Resultado enriquecido** (`calcularPensionRP` retorna):
-```
-{ pension, pensionUF, pensionLiquida, desglose, pgu, pensionTotal, anosEstimados }
+```js
+{
+  pension,            // pensión bruta RP (CLP)
+  pensionUF,          // ídem en UF
+  pensionLiquida,     // después de descuentos legales
+  desglose,           // { descuentoComision, descuentoSalud, descuentoImpuesto }
+  pgu,                // PGU estimada
+  pensionTotal,       // pensionLiquida + pgu
+  anosEstimados,      // años proyectados del fondo
+  pensionSinFamilia,  // pensión sin beneficiarios (para mostrar impacto)
+  impactoFamilia,     // reducción absoluta por grupo familiar (CLP)
+  cnuDetalle          // objeto retornado por calcularCNUFamiliar
+}
 ```
 
 Fuente: `js/calculos.js:calcularPensionRP`
@@ -145,15 +170,27 @@ Fuente: `js/calculos.js:calcularPensionRP`
 ## 8. Pensión Estimada — Renta Vitalicia (RV)
 
 **Tabla de mortalidad:** RV-2020 (más conservadora que B-2020)
-**Tasa técnica:** 3% real anual
+**Factor de tabla:** `1.08` (aproximación RV-2020 vs B-2020)
 
-**Fórmula:**
-```
-pensión_RV = saldo_total / CRU_RV2020(sexo, edad)
-CRU_RV2020 = CRU_B2020 × 1.08
+**Firma de la función:**
+```js
+calcularPensionRV(saldo, edad, sexo, uf, familia = null)
 ```
 
-El factor `1.08` modela la diferencia entre la tabla B-2020 (Retiro Programado) y RV-2020 (Renta Vitalicia). La RV usa un CRU mayor (más conservador) porque asume mayor esperanza de vida.
+**Fórmula base (sin grupo familiar):**
+```
+CRU_RV2020 = getCRU(sexo, edad) × 1.08
+pensión_RV = saldo_total / CRU_RV2020
+```
+
+**Fórmula con grupo familiar:**
+```
+cnuTotal = calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.08).cnuTotal
+pensión_RV = saldo_total / cnuTotal
+pensionSinFamilia = saldo_total / (getCRU(sexo, edad) × 1.08)
+```
+
+El factor `1.08` se aplica a **todos los componentes del CNU** (afiliado + cónyuge + hijos), porque la RV usa tablas RV-2020 para cada beneficiario.
 
 **Características de la RV:**
 - Pensión fija reajustable en UF.
@@ -161,11 +198,28 @@ El factor `1.08` modela la diferencia entre la tabla B-2020 (Retiro Programado) 
 - El saldo ya no es heredable (salvo período garantizado pactado).
 - Contrato irrevocable con la compañía de seguros.
 
+**Resultado enriquecido** (`calcularPensionRV` retorna):
+```js
+{
+  pension,            // pensión bruta RV (CLP)
+  pensionUF,          // ídem en UF
+  pensionLiquida,
+  desglose,
+  pgu,
+  pensionTotal,
+  pensionSinFamilia,  // sin beneficiarios
+  impactoFamilia,     // reducción por grupo familiar
+  cnuDetalle          // objeto de calcularCNUFamiliar
+}
+```
+
 Fuente: `js/calculos.js:calcularPensionRV`
 
 ---
 
 ## 9. CRU — Capital Requerido Unitario
+
+### `getCRU(sexo, edad)` — tabla pre-calculada
 
 Pre-calculado en `data/tablas.json` para edades 55–75 (hombres) y 50–75 (mujeres).
 Para edades intermedias se aplica **interpolación lineal** entre los valores disponibles.
@@ -178,7 +232,24 @@ Para edades intermedias se aplica **interpolación lineal** entre los valores di
 | 70 | 144.4 | 167.9 |
 | 75 | 121.4 | 146.2 |
 
-Fuente: `data/tablas.json`, `js/mortalidad.js:getCRU`
+### `getCRUCalculado(sexo, edad, tasaMensual)` — cálculo directo desde tabla B-2020
+
+Calcula el CRU para **cualquier edad** iterando mes a mes sobre la tabla B-2020 raw (edades 0–110).
+Necesario para beneficiarios fuera del rango pre-calculado: cónyuges jóvenes, hijos inválidos.
+
+```js
+// Valor presente de renta vitalicia de $1/mes a la edad dada
+cru = Σ(k=1..maxMeses) [ tPx(k) × (1 + tasaMensual)^(-k) ]
+
+tPx se calcula acumulando la mortalidad mensual:
+  qMensual = 1 - (1 - qx)^(1/12)
+  px_acumulado *= (1 - qMensual)
+```
+
+- Si las tablas no están cargadas, retorna `300` como fallback conservador.
+- `maxMeses = (110 - edadBase) × 12`
+
+Fuente: `data/tablas.json`, `js/mortalidad.js:getCRU`, `js/mortalidad.js:getCRUCalculado`
 
 ---
 
@@ -288,7 +359,23 @@ total_RP = pensión_RP × 0.75 × meses_vida   [factor 0.75 modela el decaimient
 Si `total_RP > total_RV` → conviene Retiro Programado.
 Si `total_RV ≥ total_RP` → conviene Renta Vitalicia.
 
-Fuente: `pages/modalidades.html`
+### Evolución del Fondo RP (`generarRPDetalle`)
+
+Muestra año a año cómo decrece el fondo bajo RP. La pensión **se recalcula cada año** (metodología real SP Chile):
+
+```
+Para cada año i desde edad_actual hasta agotamiento del fondo:
+  pension_i = calcularPensionRP(saldo_i, edad_actual + i, sexo, uf, comisión, familia).pension
+  retiro_anual_i = pension_i × 12
+  rendimiento_i = saldo_i × tasa_anual_efectiva
+  saldo_i+1 = saldo_i + rendimiento_i - retiro_anual_i
+```
+
+- **Tasa aplicada:** `(1 + TASA_RP × 12)^(1) - 1` (tasa anual efectiva con TASA_RP = 0.0331/12)
+- La pensión decrece a medida que el afiliado envejece porque el CRU disminuye con la edad (menor esperanza de vida restante).
+- Si hay grupo familiar, se muestra `(sin familia: $X)` en gris para comparar.
+
+Fuente: `pages/modalidades.html:generarRPDetalle`
 
 ---
 
@@ -433,11 +520,22 @@ Fuente: `js/calculos.js:calcularPGU`, `PGU` constant
 
 Al fallecer el pensionado, los beneficiarios tienen derecho a una pensión de sobrevivencia calculada como porcentaje de la **pensión de referencia** (pensión bruta RP o RV).
 
-| Beneficiario | Porcentaje |
-|---|---|
-| Cónyuge / conviviente civil | 60% |
-| Cada hijo < 18 años (o < 24 si estudia) | 15% |
-| Cada hijo con invalidez permanente (sin límite de edad) | 15% de por vida |
+| Beneficiario | Porcentaje | Condición |
+|---|---|---|
+| Cónyuge / conviviente civil **sin hijos comunes** | **60%** | DL 3.500 art. 58 |
+| Cónyuge / conviviente civil **con hijos comunes** | **50%** | DL 3.500 art. 58 |
+| Cada hijo < 18 años | 15% | temporal |
+| Cada hijo 18–24 años si estudia | 15% | temporal hasta los 24 |
+| Cada hijo con invalidez permanente (cualquier edad) | 15% | de por vida |
+
+> **Regla clave:** El porcentaje del cónyuge depende de si existen hijos comunes con el afiliado.
+> - Sin hijos comunes → **60%**
+> - Con hijos comunes → **50%**
+
+**Tipos de hijos diferenciados en la interfaz:**
+- `numHijosMenores` — hijos menores de 18 años
+- `numHijosEstudiantes` — hijos entre 18 y 24 años que estudian
+- `numHijosInvalidos` — hijos con invalidez permanente (cualquier edad)
 
 **Tope:** La suma total no puede superar el 100% de la pensión de referencia. Si se supera, se aplica **prorrateo proporcional**:
 ```
@@ -446,9 +544,13 @@ factor_prorrateo = 1.0 / pct_total   (cuando pct_total > 1)
 
 **Fórmula:**
 ```
-montoCónyuge = round(pensión_ref × 0.60 × factor_prorrateo)
-montoHijo    = round(pensión_ref × 0.15 × factor_prorrateo)   [por hijo]
-totalSobrevivencia = round(pensión_ref × min(pct_total, 1.0))
+tieneHijosComunes = (numHijosMenores + numHijosEstudiantes + numHijosInvalidos) > 0
+pctConyuge = tieneHijosComunes ? 0.50 : 0.60
+
+montoCónyuge          = round(pensión_ref × pctConyuge × factor_prorrateo)
+montoHijoTemporal     = round(pensión_ref × 0.15 × factor_prorrateo)   [por hijo menor/estudiante]
+montoHijoInvalido     = round(pensión_ref × 0.15 × factor_prorrateo)   [por hijo inválido]
+totalSobrevivencia    = round(pensión_ref × min(pct_total, 1.0))
 ```
 
 Fuente: `js/calculos.js:calcularPensionSobrevivencia`
@@ -539,8 +641,11 @@ Incorporados en `pages/datos.html` para cálculos de score, plan de acción y pe
 | `tienePareja` | true si casado o conviviente civil |
 | `edadConyuge` | Edad del cónyuge (visible solo si tienePareja) |
 | `sexoConyuge` | Sexo del cónyuge (M/F) |
-| `numHijos` | Número de hijos menores de edad o estudiantes |
-| `numHijosInvalidos` | Número de hijos con invalidez permanente |
+| `numHijosMenores` | Número de hijos menores de 18 años |
+| `numHijosEstudiantes` | Número de hijos entre 18 y 24 años que estudian |
+| `numHijosInvalidos` | Número de hijos con invalidez permanente (cualquier edad) |
+
+> **Compat.:** el campo `numHijos = numHijosMenores + numHijosEstudiantes` también se guarda en Store para compatibilidad con funciones que no distinguen tipo.
 
 Fuente: `pages/datos.html`, `js/store.js`
 
@@ -549,3 +654,95 @@ Fuente: `pages/datos.html`, `js/store.js`
 ## 28. Advertencia Legal
 
 > Esta calculadora es de uso **informativo**. Los valores son estimaciones basadas en tablas de mortalidad RV-2020 / B-2020 y la metodología del **DL 3.500**. Consulta a un asesor previsional certificado (CFP o asesor autorizado por SP Chile) antes de tomar decisiones de jubilación.
+
+---
+
+## 29. CNU Familiar — `calcularCNUFamiliar`
+
+Calcula el **Capital Necesario Unitario total** del grupo familiar del afiliado. Un CNU mayor implica una pensión mensual menor, dado que el mismo saldo debe financiar a más beneficiarios.
+
+**Firma:**
+```js
+calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0)
+```
+
+- `factorTabla = 1.0` para RP (tablas B-2020)
+- `factorTabla = 1.08` para RV (aproximación tablas RV-2020)
+
+**Objeto `familia` esperado:**
+```js
+{
+  tienePareja: boolean,
+  edadConyuge: number,
+  sexoConyuge: 'M' | 'F',
+  numHijosMenores: number,       // < 18 años
+  numHijosEstudiantes: number,   // 18–24 años estudiando
+  numHijosInvalidos: number      // cualquier edad, permanente
+}
+```
+
+**Fórmula:**
+```
+cnuAfiliado = getCRU(sexo, edad) × factorTabla
+
+// Cónyuge:
+tieneHijosComunes = (numHijosMenores + numHijosEstudiantes + numHijosInvalidos) > 0
+pctConyuge = tieneHijosComunes ? 0.50 : 0.60
+cruConyuge = edadConyuge >= 50 ? getCRU(sexoConyuge, edadConyuge)
+                               : getCRUCalculado(sexoConyuge, edadConyuge, TASA_RP)
+cnuConyuge = pctConyuge × cruConyuge × factorTabla   (si tienePareja)
+
+// Hijos menores (< 18 años): renta temporal de 108 meses
+cnuMenor = calcularAnualidadLimitada(108) × factorTabla × 0.15   [por hijo]
+
+// Hijos estudiantes (18–24): renta temporal de 36 meses
+cnuEstudiante = calcularAnualidadLimitada(36) × factorTabla × 0.15   [por hijo]
+
+// Hijos inválidos: vitalicio desde edad proxy = 25
+cnuInvalido = getCRUCalculado('F', 25, TASA_RP) × factorTabla × 0.15   [por hijo]
+
+cnuHijos = Σ cnuMenor + Σ cnuEstudiante + Σ cnuInvalido
+cnuTotal = cnuAfiliado + cnuConyuge + cnuHijos
+```
+
+**Anualidad limitada a N meses:**
+```
+calcularAnualidadLimitada(n) = Σ(k=1..n) (1 + TASA_RP)^(-k)
+                              = (1 - (1 + TASA_RP)^(-n)) / TASA_RP
+```
+
+**Retorno:**
+```js
+{
+  cnuTotal,       // CNU del grupo completo (divisor para pensión)
+  cnuAfiliado,    // CNU solo del afiliado
+  cnuConyuge,     // contribución del cónyuge al CNU
+  cnuHijos,       // contribución total de todos los hijos
+  factorFamilia,  // cnuTotal / cnuAfiliado (cuántas veces más capital se necesita)
+  tieneImpacto    // true si hay al menos un beneficiario
+}
+```
+
+Fuente: `js/calculos.js:calcularCNUFamiliar`, `js/mortalidad.js:getCRUCalculado`
+
+---
+
+## 30. Impacto del Grupo Familiar en la Pensión
+
+Cuando el afiliado tiene beneficiarios (cónyuge, hijos), tanto RP como RV calculan **dos pensiones**:
+
+| Campo | Descripción |
+|---|---|
+| `pension` | Pensión real considerando grupo familiar (más baja) |
+| `pensionSinFamilia` | Pensión hipotética si estuviera solo (referencia) |
+| `impactoFamilia` | `pensionSinFamilia - pension` (reducción en CLP) |
+| `cnuDetalle` | Desglose completo de `calcularCNUFamiliar` |
+
+**Presentación en la interfaz:**
+- `proyeccion.html` — avisos `rpImpactoFamilia` / `rvImpactoFamilia`: "sin beneficiarios serías $X; tu grupo familiar reduce la pensión en $Y (Z% menos)"
+- `modalidades.html` — hint bajo cada pensión: `↓ $X por grupo familiar (Y%)`; tabla RP año a año muestra `(sin familia: $X)` en gris
+- `brechas.html` — ítem del plan de acción informando la reducción por CNU familiar
+
+**La reducción es permanente:** el afiliado no puede optar entre incluir o excluir beneficiarios — la ley obliga a cubrir al grupo familiar en la modalidad elegida.
+
+Fuente: `pages/proyeccion.html`, `pages/modalidades.html`, `pages/brechas.html`
