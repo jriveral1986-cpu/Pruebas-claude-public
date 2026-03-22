@@ -81,6 +81,54 @@ export function getCRUCalculado(sexo, edad, tasaMensual) {
 }
 
 /**
+ * Extrapolates CRU for ages BELOW the pre-computed table minimum,
+ * using the slope of the two youngest entries in the table.
+ * For ages within the table range, delegates to getCRU().
+ * More accurate than getCRUCalculado() because the raw b2020 tables
+ * have qx values inconsistent with the official pre-computed CRU.
+ * @param {string} sexo - 'M' | 'F'
+ * @param {number} edad
+ * @returns {number} CRU in months
+ */
+export function getCRUExtrapolado(sexo, edad) {
+  if (!_tablas || !_tablas.cru) return 300;
+  const tabla = sexo === 'M' ? _tablas.cru.hombre : _tablas.cru.mujer;
+  const ages = Object.keys(tabla).map(Number).sort((a, b) => a - b);
+  if (edad >= ages[0]) return getCRU(sexo, edad);
+  // Linear extrapolation using slope from two youngest table entries
+  const a1 = ages[0], a2 = ages[1];
+  const slopePerYear = (tabla[a2] - tabla[a1]) / (a2 - a1); // negative (CRU decreases with age)
+  return tabla[a1] + slopePerYear * (edad - a1); // increases for ages below a1
+}
+
+/**
+ * Reversionary annuity: PV of $1/month payable to the spouse
+ * ONLY AFTER the affiliate dies (not while both are alive).
+ *
+ * Uses constant force of mortality model calibrated to the pre-computed
+ * CRU table (which are computed at 3% annual real rate per tablas.json).
+ *
+ *   μ_x = 1/CRU_x − δ   (force of mortality implied by CRU and interest rate)
+ *   a_xy = 1 / (μ_x + μ_y + δ)   (joint-life annuity, independence assumption)
+ *   a_reversional_y = CRU_y − a_xy
+ *
+ * This avoids the overestimate produced by the additive formula (CNU += pct × CRU_y),
+ * which incorrectly assumes the spouse collects from day 1.
+ *
+ * @param {number} cruAfiliado - CRU of the affiliate (from getCRU or getCRUExtrapolado)
+ * @param {number} cruConyuge  - CRU of the spouse
+ * @returns {number} reversionary annuity in months (≥ 0)
+ */
+export function getCRUReversional(cruAfiliado, cruConyuge) {
+  // δ = monthly force of interest consistent with the pre-computed CRU table (3% annual)
+  const delta = Math.log(1.03) / 12; // ≈ 0.002463 per month
+  const muX = Math.max(0, 1 / cruAfiliado - delta);
+  const muY = Math.max(0, 1 / cruConyuge - delta);
+  const aJoint = 1 / (muX + muY + delta);
+  return Math.max(0, cruConyuge - aJoint);
+}
+
+/**
  * Capital Requerido Unitario for a given sex and age.
  * Pre-computed in tablas.json for ages 50-75.
  * Interpolates linearly for intermediate ages.

@@ -4,7 +4,7 @@
  * All monetary values in CLP.
  */
 
-import { getCRU, getCRUCalculado, esperanzaVida } from './mortalidad.js';
+import { getCRU, getCRUExtrapolado, getCRUReversional, esperanzaVida } from './mortalidad.js';
 
 // ============================================================
 // CONSTANTES VIGENTES — SP Chile, marzo 2026
@@ -255,19 +255,20 @@ export function calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0) {
   const totalHijosComunes = numHijosMenores + numHijosEstudiantes + numHijosInvalidos;
   const pctConyuge = tienePareja ? (totalHijosComunes > 0 ? 0.50 : 0.60) : 0;
 
-  // CNU cónyuge/conviviente — también con factorTabla
+  // CNU cónyuge/conviviente — renta reversional (cónyuge cobra SOLO tras fallecimiento afiliado)
+  // getCRUReversional usa modelo de fuerza constante calibrado con la tabla CRU pre-calculada.
+  // Evita la sobreestimación del CNU que produce la fórmula aditiva (pct × CRU_cónyuge completo).
   let cnuConyuge = 0;
   if (tienePareja) {
-    const cruConyCorrecto = edadConyuge >= 50
-      ? getCRU(sexoConyuge, edadConyuge)
-      : getCRUCalculado(sexoConyuge, edadConyuge, TASA_RP);
-    cnuConyuge = pctConyuge * cruConyCorrecto * factorTabla;
+    const cruConyuge   = getCRUExtrapolado(sexoConyuge, edadConyuge);  // extrapola para edades jóvenes
+    const cruReversional = getCRUReversional(getCRU(sexo, edad), cruConyuge);
+    cnuConyuge = pctConyuge * cruReversional * factorTabla;
   }
 
   // CNU hijos: anualidades limitadas (promedio restante) — también con factorTabla
   const cruMenor      = numHijosMenores     > 0 ? calcularAnualidadLimitada(9  * 12) * factorTabla : 0;
   const cruEstudiante = numHijosEstudiantes > 0 ? calcularAnualidadLimitada(3  * 12) * factorTabla : 0;
-  const cruInvalido   = numHijosInvalidos   > 0 ? getCRUCalculado('F', 25, TASA_RP) * factorTabla : 0;
+  const cruInvalido   = numHijosInvalidos   > 0 ? getCRUExtrapolado('F', 25) * factorTabla : 0;
 
   const cnuHijos =
     numHijosMenores     * 0.15 * cruMenor      +

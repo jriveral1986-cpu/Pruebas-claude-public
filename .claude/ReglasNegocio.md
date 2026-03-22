@@ -221,35 +221,59 @@ Fuente: `js/calculos.js:calcularPensionRV`
 
 ### `getCRU(sexo, edad)` — tabla pre-calculada
 
-Pre-calculado en `data/tablas.json` para edades 55–75 (hombres) y 50–75 (mujeres).
+Pre-calculado en `data/tablas.json` para edades 55–75 (hombres) y 50–75 (mujeres), con tasa técnica **3% anual real**.
 Para edades intermedias se aplica **interpolación lineal** entre los valores disponibles.
 
 | Edad | CRU Hombre | CRU Mujer |
 |---|---|---|
-| 55 | 228.4 | 243.6 |
+| 55 | 228.4 | 272.1* |
 | 60 | 197.9 | 216.8 |
 | 65 | 169.9 | 191.5 |
 | 70 | 144.4 | 167.9 |
 | 75 | 121.4 | 146.2 |
 
-### `getCRUCalculado(sexo, edad, tasaMensual)` — cálculo directo desde tabla B-2020
+*La tabla de mujeres comienza en edad 50 (CRU = 272.1).
 
-Calcula el CRU para **cualquier edad** iterando mes a mes sobre la tabla B-2020 raw (edades 0–110).
-Necesario para beneficiarios fuera del rango pre-calculado: cónyuges jóvenes, hijos inválidos.
+### `getCRUExtrapolado(sexo, edad)` — extrapolación para edades jóvenes
 
-```js
-// Valor presente de renta vitalicia de $1/mes a la edad dada
-cru = Σ(k=1..maxMeses) [ tPx(k) × (1 + tasaMensual)^(-k) ]
+Para edades **por debajo del mínimo de la tabla** (mujeres < 50, hombres < 55), extrapola linealmente hacia atrás usando la pendiente de las dos entradas más jóvenes de la tabla pre-calculada.
 
-tPx se calcula acumulando la mortalidad mensual:
-  qMensual = 1 - (1 - qx)^(1/12)
-  px_acumulado *= (1 - qMensual)
+> **¿Por qué no usar los datos raw de `b2020_hombre/mujer`?**
+> Los valores `qx` en `data/tablas.json` para las tablas raw B-2020 producen una esperanza de vida de solo ~10.4 años para un hombre de 65, inconsistente con los ~17 años implícitos en la tabla CRU pre-calculada. La tabla CRU pre-calculada es la referencia correcta.
+
+```
+Pendiente (mujer): (CRU[50] - CRU[51]) / 1 ≈ +5.7 por año hacia atrás
+Pendiente (hombre): (CRU[55] - CRU[56]) / 1 ≈ +6.3 por año hacia atrás
+
+getCRUExtrapolado('F', 40) ≈ 272.1 + 10 × 5.7 = 330
+getCRUExtrapolado('F', 25) ≈ 272.1 + 25 × 5.7 = 417  (hijos inválidos)
 ```
 
-- Si las tablas no están cargadas, retorna `300` como fallback conservador.
-- `maxMeses = (110 - edadBase) × 12`
+### `getCRUReversional(cruAfiliado, cruConyuge)` — anualidad reversional
 
-Fuente: `data/tablas.json`, `js/mortalidad.js:getCRU`, `js/mortalidad.js:getCRUCalculado`
+Calcula la anualidad que el **cónyuge cobrará solo después de que fallezca el afiliado** (no desde hoy). Evita sobreestimar el CNU familiar.
+
+**Modelo**: Fuerza de mortalidad constante calibrada con los valores del CRU pre-calculado:
+```
+δ = ln(1.03) / 12   (fuerza de interés mensual consistente con tasa técnica 3%)
+
+μ_afiliado = max(0, 1/CRU_afiliado − δ)   (fuerza de mortalidad implícita)
+μ_cónyuge  = max(0, 1/CRU_cónyuge  − δ)
+
+a_conjunta = 1 / (μ_afiliado + μ_cónyuge + δ)   (anualidad vida conjunta)
+
+CRU_reversional = max(0, CRU_cónyuge − a_conjunta)
+```
+
+**Impacto real** (afiliado H65 vs fórmula aditiva incorrecta que sumaba CRU completo del cónyuge):
+
+| Caso | Fórmula aditiva (incorrecta) | Fórmula reversional (correcta) |
+|---|---|---|
+| H65 + cónyuge F60 | −43.4% pensión | −24.6% pensión |
+| H65 + cónyuge F50 | −46.1% pensión | −31.7% pensión |
+| H65 + cónyuge F40 | −53.7% pensión | −38.2% pensión |
+
+Fuente: `data/tablas.json`, `js/mortalidad.js:getCRU`, `js/mortalidad.js:getCRUExtrapolado`, `js/mortalidad.js:getCRUReversional`
 
 ---
 
@@ -685,12 +709,12 @@ calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0)
 ```
 cnuAfiliado = getCRU(sexo, edad) × factorTabla
 
-// Cónyuge:
+// Cónyuge — RENTA REVERSIONAL (el cónyuge cobra solo tras fallecimiento del afiliado):
 tieneHijosComunes = (numHijosMenores + numHijosEstudiantes + numHijosInvalidos) > 0
 pctConyuge = tieneHijosComunes ? 0.50 : 0.60
-cruConyuge = edadConyuge >= 50 ? getCRU(sexoConyuge, edadConyuge)
-                               : getCRUCalculado(sexoConyuge, edadConyuge, TASA_RP)
-cnuConyuge = pctConyuge × cruConyuge × factorTabla   (si tienePareja)
+cruConyuge = getCRUExtrapolado(sexoConyuge, edadConyuge)   // extrapola para edades jóvenes
+cruReversional = getCRUReversional(getCRU(sexo, edad), cruConyuge)
+cnuConyuge = pctConyuge × cruReversional × factorTabla
 
 // Hijos menores (< 18 años): renta temporal de 108 meses
 cnuMenor = calcularAnualidadLimitada(108) × factorTabla × 0.15   [por hijo]
@@ -699,7 +723,7 @@ cnuMenor = calcularAnualidadLimitada(108) × factorTabla × 0.15   [por hijo]
 cnuEstudiante = calcularAnualidadLimitada(36) × factorTabla × 0.15   [por hijo]
 
 // Hijos inválidos: vitalicio desde edad proxy = 25
-cnuInvalido = getCRUCalculado('F', 25, TASA_RP) × factorTabla × 0.15   [por hijo]
+cnuInvalido = getCRUExtrapolado('F', 25) × factorTabla × 0.15   [por hijo]
 
 cnuHijos = Σ cnuMenor + Σ cnuEstudiante + Σ cnuInvalido
 cnuTotal = cnuAfiliado + cnuConyuge + cnuHijos
@@ -723,7 +747,7 @@ calcularAnualidadLimitada(n) = Σ(k=1..n) (1 + TASA_RP)^(-k)
 }
 ```
 
-Fuente: `js/calculos.js:calcularCNUFamiliar`, `js/mortalidad.js:getCRUCalculado`
+Fuente: `js/calculos.js:calcularCNUFamiliar`, `js/mortalidad.js:getCRUReversional`, `js/mortalidad.js:getCRUExtrapolado`
 
 ---
 
