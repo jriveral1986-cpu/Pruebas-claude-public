@@ -16,6 +16,29 @@ wrangler login
 wrangler deploy worker-sp-proxy.js --name sp-proxy --compatibility-date 2026-01-01
 ```
 
+## Normativa (NCG)
+
+Scripts en `js/`, datos en `data/`, salida en `pages/normativa.html`.
+
+```bash
+# Actualizar normativa desde spensiones.cl (scrape + diff + build)
+node js/update.js
+
+# Solo regenerar HTML desde data/ncg.json actual
+node js/build.js
+
+# Solo extraer (sin guardar)
+node js/scrape.js
+```
+
+Setup inicial (una sola vez):
+```bash
+npm install
+npx playwright install chromium
+```
+
+Datos: `data/ncg.json` (360 NCGs, fuente de verdad) · `data/ncg_meta.json` (auditoría).
+
 Deploy to production: push to `main` → GitHub Actions auto-deploys to GitHub Pages.
 
 ## Architecture
@@ -105,7 +128,10 @@ Single stylesheet `css/main.css` shared across all pages with CSS custom propert
 - Animaciones entre 150–300ms con curva `ease-in-out`.
 - Respetar `prefers-reduced-motion` en todas las animaciones CSS.
 - Diseño mobile-first con breakpoints estándar: 375 / 768 / 1024 / 1440px.
+- Cada regla nueva, agrega la regla de negocio en el MD ReglasNegocio
 - **No usar emojis como íconos de UI** — usar SVG (Heroicons, Lucide o íconos inline).
 ## Validación visual
 - Para cambios de UI, validar con Playwright en viewport **1440×860** (desktop) y **375×812** (mobile) antes de reportar la tarea como completa.
+
+
 
