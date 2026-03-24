@@ -12,6 +12,8 @@ import { fileURLToPath } from 'url';
 const __dir  = dirname(fileURLToPath(import.meta.url));
 const ROOT   = join(__dir, '..');
 const DATA   = join(ROOT, 'data');
+// Salida en pages/ del proyecto principal (al mismo nivel que datos.html, brechas.html, etc.)
+const PAGES  = join(ROOT, '..', 'pages');
 
 export async function build() {
   const ncgData = JSON.parse(await readFile(join(DATA, 'ncg.json'), 'utf8'));
@@ -336,9 +338,11 @@ applyFilters();
 </body>
 </html>`;
 
+  await writeFile(join(PAGES, 'normativa.html'), html, 'utf8');
+  // También actualizar index.html local como copia de respaldo
   await writeFile(join(ROOT, 'index.html'), html, 'utf8');
   const size = (html.length / 1024).toFixed(1);
-  console.log(`  [build] ✓ index.html generado (${size} KB, ${totalNCGs} NCGs)`);
+  console.log(`  [build] ✓ pages/normativa.html generado (${size} KB, ${totalNCGs} NCGs)`);
 }
 
 // Ejecución directa
