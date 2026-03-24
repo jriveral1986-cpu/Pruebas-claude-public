@@ -14,7 +14,7 @@ Esto hace todo automáticamente:
 1. Abre Chromium headless y extrae NCGs desde spensiones.cl
 2. Detecta NCGs nuevas comparando contra `data/ncg.json`
 3. Si hay nuevas: actualiza `data/ncg.json` + `data/ncg_meta.json`
-4. Regenera `dist/index.html` con los datos frescos
+4. Regenera `index.html` con los datos frescos
 
 ## Comandos individuales
 
@@ -39,7 +39,7 @@ Si falla consistentemente, el sitio de la SP puede estar caído — verifica en 
 
 ## Despliegue
 
-`dist/index.html` es completamente autocontenido. Para publicar:
+`index.html` es completamente autocontenido. Para publicar:
 - Copiar a cualquier servidor estático (GitHub Pages, Netlify, etc.)
 - O abrir directamente en el navegador con `file://` (sin servidor necesario)
 

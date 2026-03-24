@@ -5,14 +5,13 @@
  * Uso:  node scripts/build.js
  */
 
-import { readFile, writeFile, mkdir } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dir  = dirname(fileURLToPath(import.meta.url));
 const ROOT   = join(__dir, '..');
 const DATA   = join(ROOT, 'data');
-const DIST   = join(ROOT, 'dist');
 
 export async function build() {
   const ncgData = JSON.parse(await readFile(join(DATA, 'ncg.json'), 'utf8'));
@@ -337,10 +336,9 @@ applyFilters();
 </body>
 </html>`;
 
-  await mkdir(DIST, { recursive: true });
-  await writeFile(join(DIST, 'index.html'), html, 'utf8');
+  await writeFile(join(ROOT, 'index.html'), html, 'utf8');
   const size = (html.length / 1024).toFixed(1);
-  console.log(`  [build] ✓ dist/index.html generado (${size} KB, ${totalNCGs} NCGs)`);
+  console.log(`  [build] ✓ index.html generado (${size} KB, ${totalNCGs} NCGs)`);
 }
 
 // Ejecución directa

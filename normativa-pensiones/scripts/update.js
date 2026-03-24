@@ -98,7 +98,7 @@ async function main() {
   console.log('  [update] Regenerando dist/index.html...');
   await build();
 
-  console.log(`\n  ✅ Listo. dist/index.html actualizado (${merged.length} NCGs, última: N°${merged[0].num})`);
+  console.log(`\n  ✅ Listo. index.html actualizado (${merged.length} NCGs, última: N°${merged[0].num})`);
   if (nuevos.length > 0) {
     console.log('\n  Nuevas NCGs agregadas:');
     nuevos.forEach(r => console.log(`    · N°${r.numStr} (${r.fecha}) — ${r.mat.substring(0, 80)}…`));
