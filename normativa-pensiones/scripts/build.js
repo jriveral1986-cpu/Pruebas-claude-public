@@ -130,19 +130,19 @@ export async function build() {
 <body>
 
 <header>
-  <p class="eyebrow">Repositorio Previsional · Chile</p>
+  <p class="eyebrow">📋 Repositorio Previsional · Chile</p>
   <h1>Normativa <em>Pensiones</em></h1>
   <p class="sub">Leyes, reglamentos y normas de carácter general. Las NCGs se cargan desde datos extraídos directamente del sitio oficial de la SP.</p>
   <div class="meta">
-    <span>Fuente: spensiones.cl · LeyChile · Previsión Social</span>
-    <span>Caché: ${fechaCache}</span>
-    <span id="total-badge">${totalNCGs} NCGs</span>
+    <span>🏛 Fuente: spensiones.cl · LeyChile · Previsión Social</span>
+    <span>📅 Caché: ${fechaCache}</span>
+    <span id="total-badge">📄 ${totalNCGs} NCGs</span>
   </div>
 </header>
 
 <div class="tabs">
-  <button class="tab-btn active" data-tab="ncg">NCG (${totalNCGs})</button>
-  <button class="tab-btn" data-tab="leyes">Leyes &amp; Documentos</button>
+  <button class="tab-btn active" data-tab="ncg">📑 NCG (${totalNCGs})</button>
+  <button class="tab-btn" data-tab="leyes">⚖ Leyes & Documentos</button>
 </div>
 
 <!-- ===== PANEL NCG ===== -->
@@ -150,8 +150,8 @@ export async function build() {
 
   <div class="info-box">
     <div class="info-box-inner">
-      <strong>Datos en caché al ${fechaCache}.</strong>
-      Para ver las NCGs más recientes, usa el botón <strong>"Ver en SP"</strong> — abre el sitio oficial de la Superintendencia de Pensiones en una nueva pestaña.
+      💡 <strong>Datos en caché al ${fechaCache}.</strong>
+      Para ver las NCGs más recientes, usa el botón <strong>"Ver en SP →"</strong> — abre el sitio oficial de la Superintendencia de Pensiones en una nueva pestaña.
     </div>
   </div>
 
@@ -195,7 +195,7 @@ export async function build() {
   <div class="laws-grid">
     <div class="law-card">
       <div class="law-year">1980</div>
-      <span class="law-tag tag-ley">Ley</span>
+      <span class="law-tag tag-ley">⚖ Ley</span>
       <div class="law-title">D.L. 3.500 — Sistema de AFP y Fondos de Pensiones</div>
       <div class="law-code">Decreto Ley N° 3.500 · 1980</div>
       <div class="law-desc">Cuerpo legal fundacional del sistema previsional chileno. Crea las AFP, regula las cotizaciones obligatorias, los multifondos y las prestaciones de vejez, invalidez y sobrevivencia.</div>
@@ -203,7 +203,7 @@ export async function build() {
     </div>
     <div class="law-card">
       <div class="law-year">2008</div>
-      <span class="law-tag tag-ley">Ley</span>
+      <span class="law-tag tag-ley">⚖ Ley</span>
       <div class="law-title">Ley 20.255 — Reforma Previsional · Pilar Solidario</div>
       <div class="law-code">Ley N° 20.255 · 2008</div>
       <div class="law-desc">Crea el Pilar Solidario (PBS y APS), el bono por hijo nacido vivo, la pensión para independientes y el SCOMP (sistema de consulta de montos de pensión).</div>
@@ -211,7 +211,7 @@ export async function build() {
     </div>
     <div class="law-card">
       <div class="law-year">2022</div>
-      <span class="law-tag tag-ley">Ley</span>
+      <span class="law-tag tag-ley">⚖ Ley</span>
       <div class="law-title">Ley 21.419 — Cotizaciones Trabajadores Independientes</div>
       <div class="law-code">Ley N° 21.419 · 2022</div>
       <div class="law-desc">Moderniza la incorporación previsional de trabajadores con boleta de honorarios. Cotización obligatoria gradual del 17% y ajuste del mecanismo de retención en operación renta.</div>
@@ -219,7 +219,7 @@ export async function build() {
     </div>
     <div class="law-card">
       <div class="law-year">2025</div>
-      <span class="law-tag tag-ley">Ley</span>
+      <span class="law-tag tag-ley">⚖ Ley</span>
       <div class="law-title">Ley 21.735 — Reforma de Pensiones 2025</div>
       <div class="law-code">Ley N° 21.735 · 2025</div>
       <div class="law-desc">Reforma estructural que crea un Seguro Social con cotización solidaria (6% empleador), aumenta la PGU, crea el FAPP y establece un sistema mixto de reparto y capitalización individual.</div>
@@ -227,7 +227,7 @@ export async function build() {
     </div>
     <div class="law-card">
       <div class="law-year">2025</div>
-      <span class="law-tag tag-tec">Técnico</span>
+      <span class="law-tag tag-tec">🔬 Técnico</span>
       <div class="law-title">Nota Técnica — Reforma de Pensiones Ley 21.735</div>
       <div class="law-code">Ministerio de Previsión Social · 2025</div>
       <div class="law-desc">Análisis financiero y actuarial oficial de la Ley 21.735. Incluye proyecciones de beneficios, tasas de reemplazo y análisis del seguro social solidario.</div>
@@ -237,7 +237,7 @@ export async function build() {
     </div>
     <div class="law-card">
       <div class="law-year">SP</div>
-      <span class="law-tag tag-cmp">Compendio</span>
+      <span class="law-tag tag-cmp">📚 Compendio</span>
       <div class="law-title">Compendio de Normas SP — Presentación Oficial</div>
       <div class="law-code">Superintendencia de Pensiones · NT 432</div>
       <div class="law-desc">Folleto oficial del Compendio de Normas SP. Resume la estructura, libros y finalidad del cuerpo normativo que regula el funcionamiento de las AFP y demás entidades previsionales.</div>
