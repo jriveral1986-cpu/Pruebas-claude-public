@@ -1,0 +1,14 @@
+{
+  "name": "normativa-pensiones",
+  "version": "1.0.0",
+  "description": "Extractor y generador estático de normativa previsional SP Chile",
+  "type": "module",
+  "scripts": {
+    "update": "node scripts/update.js",
+    "build": "node scripts/build.js",
+    "scrape": "node scripts/scrape.js"
+  },
+  "dependencies": {
+    "playwright": "^1.44.0"
+  }
+}
