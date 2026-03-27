@@ -307,8 +307,9 @@
       .card { box-shadow: none; page-break-inside: avoid; }
       .tab-content { display: block !important; }
       .section-title { page-break-before: always; margin-top: 20px; }
-      .section-title:first-of-type { page-break-before: avoid; }
-      .kpi-grid { page-break-inside: avoid; }
+      .section-title--first { page-break-before: avoid !important; }
+      .kpi-grid { page-break-inside: avoid; page-break-before: avoid; }
+      .disclaimer { page-break-after: avoid; }
       .table-wrap { overflow: visible; }
       footer { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     }
@@ -354,7 +355,7 @@
     </div>
 
     <!-- KPIs -->
-    <div class="section-title" style="margin-top:0">Resumen Ejecutivo</div>
+    <div class="section-title section-title--first" style="margin-top:0">Resumen Ejecutivo</div>
     <div class="kpi-grid">
       <div class="kpi kpi--navy">
         <div class="kpi__label">Saldo AFP (CLP)</div>
