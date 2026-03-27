@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="pageTitle">Informe Previsional — Previsión Chile</title>
+  <style>
+    :root {
+      --navy:   #1a2e4a;
+      --blue:   #2563a8;
+      --blue-lt:#e8f0fb;
+      --gold:   #c8a84b;
+      --gold-lt:#fdf6e3;
+      --green:  #16a34a;
+      --green-lt:#dcfce7;
+      --red:    #dc2626;
+      --red-lt: #fee2e2;
+      --muted:  #6b7280;
+      --border: #d1d5db;
+      --bg:     #f7f6f2;
+      --white:  #ffffff;
+      --text:   #1e1e1e;
+      --amber:  #78350f;
+      --amber-lt:#fef3c7;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; }
+
+    /* ── Print button ── */
+    .print-bar {
+      background: var(--navy);
+      padding: 10px 32px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .btn-print {
+      background: var(--gold);
+      color: var(--navy);
+      border: none;
+      padding: 8px 22px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: bold;
+      font-family: Georgia, serif;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+    }
+    .btn-print:hover { background: #b8942e; }
+    .btn-back {
+      background: transparent;
+      color: #9ca3af;
+      border: 1px solid #374151;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: Georgia, serif;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+    .btn-back:hover { color: white; }
+
+    /* ── Header ── */
+    header {
+      background: var(--navy);
+      color: white;
+      padding: 28px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .header-brand { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
+    .header-name { font-size: 22px; font-weight: normal; }
+    .header-name span { color: var(--gold); font-style: italic; }
+    .header-sub { margin-top: 6px; font-size: 13px; color: #9ca3af; }
+    .header-meta { text-align: right; font-size: 12px; color: #9ca3af; line-height: 1.9; }
+    .header-meta strong { color: var(--gold); display: block; font-size: 14px; }
+    [contenteditable] { outline: none; border-bottom: 1px dashed rgba(255,255,255,0.25); cursor: text; }
+    [contenteditable]:focus { border-bottom-color: var(--gold); }
+    .edit-hint { font-size: 10px; color: #4b5563; margin-top: 4px; letter-spacing: 0; }
+
+    /* ── Container ── */
+    .container { max-width: 1140px; margin: 0 auto; padding: 28px 24px; }
+
+    /* ── Disclaimer ── */
+    .disclaimer {
+      background: var(--amber-lt);
+      border-left: 4px solid var(--gold);
+      padding: 10px 16px;
+      font-size: 12px;
+      color: var(--amber);
+      margin-bottom: 26px;
+      border-radius: 0 6px 6px 0;
+    }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: var(--navy);
+      margin: 28px 0 14px;
+      padding-left: 12px;
+      border-left: 4px solid var(--gold);
+    }
+
+    /* ── KPI cards ── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .kpi {
+      border-radius: 10px;
+      padding: 20px 22px;
+      text-align: center;
+      color: white;
+    }
+    .kpi--navy   { background: var(--navy); }
+    .kpi--gold   { background: var(--gold); color: var(--navy); }
+    .kpi--green  { background: var(--green); }
+    .kpi--purple { background: #7c3aed; }
+    .kpi__label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.85; margin-bottom: 6px; }
+    .kpi__val   { font-size: 26px; font-weight: bold; line-height: 1.1; }
+    .kpi__sub   { font-size: 11px; opacity: 0.75; margin-top: 4px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--white);
+      border-radius: 10px;
+      padding: 22px 24px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* ── Key-value rows ── */
+    .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid #f3f4f6; }
+    .kv:last-child { border-bottom: none; }
+    .kv .lbl { color: var(--muted); font-size: 13px; }
+    .kv .val { font-weight: bold; color: var(--navy); text-align: right; }
+
+    /* ── Tables ── */
+    .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th {
+      background: var(--navy);
+      color: white;
+      padding: 9px 10px;
+      text-align: right;
+      font-weight: normal;
+      font-size: 11px;
+      letter-spacing: 0.3px;
+      position: sticky;
+      top: 0;
+      white-space: nowrap;
+    }
+    thead th:first-child { text-align: center; }
+    thead th.left { text-align: left; }
+    tbody tr:nth-child(even) { background: #f8f9fa; }
+    tbody tr:hover { background: var(--blue-lt); }
+    tbody td { padding: 7px 10px; text-align: right; border-bottom: 1px solid #eee; white-space: nowrap; }
+    tbody td:first-child { text-align: center; font-weight: bold; color: var(--navy); }
+    tbody td.left { text-align: left; }
+    .td-green { color: var(--green) !important; }
+    .td-red   { color: var(--red) !important; }
+    .td-muted { color: var(--muted) !important; font-size: 11px; }
+    .td-bold  { font-weight: bold; }
+    .td-pgu   { color: #7c3aed !important; font-weight: bold; }
+
+    /* ── Tabs ── */
+    .tab-buttons { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 8px 20px;
+      border: 1px solid var(--border);
+      background: var(--white);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: Georgia, serif;
+      color: var(--muted);
+    }
+    .tab-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Comparison table ── */
+    .comp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .comp-table th { background: var(--navy); color: white; padding: 10px 14px; text-align: left; font-weight: normal; }
+    .comp-table td { padding: 9px 14px; border-bottom: 1px solid #eee; }
+    .comp-table td:first-child { color: var(--muted); font-size: 12px; }
+    .comp-table td:nth-child(2), .comp-table td:nth-child(3) { font-weight: bold; text-align: right; }
+    .comp-table .highlight { background: var(--blue-lt); }
+    .comp-table .total-row td { background: var(--navy); color: white; font-weight: bold; font-size: 15px; }
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+    .badge-green { background: var(--green-lt); color: var(--green); }
+    .badge-blue  { background: var(--blue-lt);  color: var(--blue); }
+    .badge-red   { background: var(--red-lt);   color: var(--red); }
+    .badge-gold  { background: var(--gold-lt);  color: #92400e; }
+
+    /* ── Score ── */
+    .score-ring { display: flex; align-items: center; gap: 20px; margin-top: 8px; }
+    .score-circle {
+      width: 80px; height: 80px; border-radius: 50%;
+      border: 6px solid var(--gold);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .score-num { font-size: 26px; font-weight: bold; color: var(--navy); line-height: 1; }
+    .score-max { font-size: 11px; color: var(--muted); }
+
+    /* ── PGU card ── */
+    .pgu-card {
+      background: linear-gradient(135deg, #7c3aed11, #7c3aed05);
+      border: 1px solid #7c3aed44;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .pgu-card h2 { color: #7c3aed; border-color: #7c3aed44; }
+
+    /* ── Steps ── */
+    .steps { display: flex; flex-direction: column; gap: 16px; }
+    .step { display: flex; gap: 14px; }
+    .step-num {
+      min-width: 30px; height: 30px; border-radius: 50%;
+      background: var(--navy); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: bold; flex-shrink: 0;
+    }
+    .step-title { font-weight: bold; color: var(--navy); margin-bottom: 3px; }
+    .step-body p { color: #4b5563; font-size: 13px; }
+    code { background: #f3f4f6; padding: 1px 5px; border-radius: 3px; font-size: 12px; font-family: monospace; }
+
+    /* ── APV section ── */
+    .apv-card {
+      background: var(--green-lt);
+      border: 1px solid #86efac;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .apv-card h2 { color: var(--green); border-color: #86efac; }
+
+    /* ── Footer ── */
+    footer {
+      background: var(--navy);
+      color: #9ca3af;
+      text-align: center;
+      padding: 18px;
+      font-size: 12px;
+      margin-top: 40px;
+    }
+
+    /* ── Info note ── */
+    .note {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      font-style: italic;
+    }
+    .aviso {
+      background: var(--blue-lt);
+      border-left: 3px solid var(--blue);
+      border-radius: 0 6px 6px 0;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #1e3a5f;
+      margin-bottom: 14px;
+    }
+
+    /* ── Loading ── */
+    #loading { text-align: center; padding: 80px; color: var(--muted); font-size: 16px; }
+
+    /* ── Responsive ── */
+    @media(max-width: 900px) {
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      header { flex-direction: column; gap: 14px; }
+      .header-meta { text-align: left; }
+    }
+    @media(max-width: 600px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+      .container { padding: 16px; }
+    }
+
+    /* ── Print styles ── */
+    @media print {
+      .print-bar, .tab-buttons, .edit-hint, .btn-back { display: none !important; }
+      body { background: white; font-size: 12px; }
+      header { padding: 20px 28px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .kpi { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      thead th { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .card { box-shadow: none; page-break-inside: avoid; }
+      .tab-content { display: block !important; }
+      .section-title { page-break-before: always; margin-top: 20px; }
+      .section-title:first-of-type { page-break-before: avoid; }
+      .kpi-grid { page-break-inside: avoid; }
+      .table-wrap { overflow: visible; }
+      footer { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">Cargando informe previsional…</div>
+<div id="informe" style="display:none">
+
+  <!-- Print bar -->
+  <div class="print-bar">
+    <a href="proyeccion.html" class="btn-back">← Volver</a>
+    <button class="btn-print" onclick="window.print()">Imprimir / Guardar PDF</button>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div>
+      <div class="header-brand">Estudio de Pensión — Vejez</div>
+      <div class="header-name">
+        <span id="hdr-nombre" contenteditable="true" title="Haz clic para editar"></span>
+      </div>
+      <div class="header-sub">
+        RUT: <span id="hdr-rut" contenteditable="true" title="Haz clic para editar"></span>
+        &nbsp;·&nbsp; AFP <span id="hdr-afp"></span>
+        &nbsp;·&nbsp; Previsión Chile
+      </div>
+      <div class="edit-hint" id="edit-hint-hdr">↑ Haz clic en el nombre o RUT para editarlos antes de imprimir</div>
+    </div>
+    <div class="header-meta">
+      <strong id="hdr-mes"></strong>
+      Fecha: <span id="hdr-fecha"></span><br>
+      Edad: <span id="hdr-edad"></span><br>
+      Sexo: <span id="hdr-sexo"></span>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <div class="disclaimer">
+      ⚠ Este estudio es una <strong>estimación con fines informativos</strong>. Las proyecciones usan rentabilidad 2% real anual y CNU actuales. <strong>No constituye una oferta de pensión.</strong> Consulta a un asesor previsional certificado (APC) para decisiones formales.
+    </div>
+
+    <!-- KPIs -->
+    <div class="section-title" style="margin-top:0">Resumen Ejecutivo</div>
+    <div class="kpi-grid">
+      <div class="kpi kpi--navy">
+        <div class="kpi__label">Saldo AFP (CLP)</div>
+        <div class="kpi__val" id="k-saldo"></div>
+        <div class="kpi__sub" id="k-saldo-sub"></div>
+      </div>
+      <div class="kpi kpi--gold">
+        <div class="kpi__label">Saldo en UF</div>
+        <div class="kpi__val" id="k-uf"></div>
+        <div class="kpi__sub" id="k-uf-sub"></div>
+      </div>
+      <div class="kpi kpi--green">
+        <div class="kpi__label">Pensión Bruta RP</div>
+        <div class="kpi__val" id="k-rp"></div>
+        <div class="kpi__sub" id="k-rp-sub"></div>
+      </div>
+      <div class="kpi kpi--purple">
+        <div class="kpi__label">Pensión Bruta RV</div>
+        <div class="kpi__val" id="k-rv"></div>
+        <div class="kpi__sub" id="k-rv-sub"></div>
+      </div>
+    </div>
+
+    <!-- Personal data + Parameters -->
+    <div class="grid-2">
+      <div class="card">
+        <h2>I. Antecedentes Personales</h2>
+        <div class="kv"><span class="lbl">Nombre</span><span class="val"><span id="d-nombre" contenteditable="true">—</span></span></div>
+        <div class="kv"><span class="lbl">RUT</span><span class="val"><span id="d-rut" contenteditable="true">—</span></span></div>
+        <div class="kv"><span class="lbl">Edad</span><span class="val" id="d-edad"></span></div>
+        <div class="kv"><span class="lbl">Sexo</span><span class="val" id="d-sexo"></span></div>
+        <div class="kv"><span class="lbl">AFP</span><span class="val" id="d-afp"></span></div>
+        <div class="kv"><span class="lbl">Fondo</span><span class="val" id="d-fondo"></span></div>
+        <div class="kv"><span class="lbl">Renta imponible</span><span class="val" id="d-renta"></span></div>
+        <div class="kv"><span class="lbl">Score previsional</span><span class="val" id="d-score"></span></div>
+      </div>
+      <div class="card">
+        <h2>II. Parámetros de Cálculo</h2>
+        <div class="kv"><span class="lbl">UF a la fecha</span><span class="val" id="p-uf"></span></div>
+        <div class="kv"><span class="lbl">UTM a la fecha</span><span class="val" id="p-utm"></span></div>
+        <div class="kv"><span class="lbl">Tasa RP (TITRP)</span><span class="val">3,31% anual · Circular N°2407</span></div>
+        <div class="kv"><span class="lbl">Tasa RV (mercado)</span><span class="val">2,76% anual · feb 2026</span></div>
+        <div class="kv"><span class="lbl">Comisión AFP</span><span class="val" id="p-comision"></span></div>
+        <div class="kv"><span class="lbl">CNU Retiro Programado</span><span class="val" id="p-cnu-rp"></span></div>
+        <div class="kv"><span class="lbl">CNU Renta Vitalicia</span><span class="val" id="p-cnu-rv"></span></div>
+        <div class="kv"><span class="lbl">Tablas mortalidad</span><span class="val">B-2020 (RP) · RV-2020 (RV)</span></div>
+        <div class="kv"><span class="lbl">Rentabilidad proyección</span><span class="val">2,0% anual real</span></div>
+      </div>
+    </div>
+
+    <!-- Savings -->
+    <div class="card">
+      <h2>III. Consolidado de Ahorros Previsionales</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="left" style="text-align:left">Tipo de cuenta</th>
+              <th>Fondo</th>
+              <th>Saldo ($)</th>
+              <th>Saldo (UF)</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-saldos"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PGU -->
+    <div class="pgu-card card">
+      <h2>IV. Pensión Garantizada Universal (PGU) — Ley 21.419</h2>
+      <div id="pgu-content"></div>
+    </div>
+
+    <!-- RP vs RV Comparison -->
+    <div class="section-title">Comparativa: Retiro Programado vs Renta Vitalicia</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="table-wrap" style="margin-bottom:0;border:none;border-radius:0">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th style="width:36%">Concepto</th>
+              <th style="text-align:right">Retiro Programado</th>
+              <th style="text-align:right">Renta Vitalicia</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-comp"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- APV recommendation -->
+    <div class="apv-card card" id="seccion-apv" style="display:none">
+      <h2>V. Recomendación APV — Ahorro Previsional Voluntario</h2>
+      <div id="apv-content"></div>
+    </div>
+
+    <!-- Tax table -->
+    <div class="section-title">Tabla Impuesto Único 2ª Categoría — <span id="tax-mes"></span></div>
+    <div class="card">
+      <div class="table-wrap" style="margin-bottom:0">
+        <table id="tabla-impuesto">
+          <thead>
+            <tr>
+              <th>Tramo</th>
+              <th style="text-align:left">Desde</th>
+              <th style="text-align:left">Hasta</th>
+              <th>Tasa</th>
+              <th>Rebaja ($)</th>
+              <th>Tasa efectiva máx.</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-impuesto"></tbody>
+        </table>
+      </div>
+      <p class="note" id="nota-tramo"></p>
+    </div>
+
+    <!-- Projections -->
+    <div class="section-title">Proyecciones Año a Año</div>
+    <div class="aviso">
+      Las proyecciones asumen rentabilidad real 2% anual para el Retiro Programado y reajuste UF para la Renta Vitalicia. Los valores son nominales (en pesos de hoy). PGU se incorpora desde los 65 años. Impuestos y salud calculados con parámetros vigentes.
+    </div>
+
+    <div class="tab-buttons">
+      <button class="tab-btn active" onclick="switchTab('rp', this)">Retiro Programado (RP)</button>
+      <button class="tab-btn" onclick="switchTab('rv', this)">Renta Vitalicia (RV)</button>
+    </div>
+
+    <!-- RP tab -->
+    <div class="tab-content active" id="tab-rp">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Edad</th>
+              <th>Año</th>
+              <th>Saldo (UF)</th>
+              <th>CNU</th>
+              <th>Pensión Bruta</th>
+              <th>(-) Comisión</th>
+              <th>(-) Salud 7%</th>
+              <th>Renta Afecta</th>
+              <th>Impuesto</th>
+              <th>Pensión Líquida</th>
+              <th style="color:#c084fc">PGU</th>
+              <th>Ingreso Total</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-rp"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RV tab -->
+    <div class="tab-content" id="tab-rv">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Edad</th>
+              <th>Año</th>
+              <th>Pensión Bruta</th>
+              <th>(-) Salud 7%</th>
+              <th>Renta Afecta</th>
+              <th>Impuesto</th>
+              <th>Pensión Líquida</th>
+              <th style="color:#c084fc">PGU</th>
+              <th>Ingreso Total</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-rv"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Methodology -->
+    <div class="section-title">Metodología de Cálculo</div>
+    <div class="card">
+      <div class="steps" id="steps-container"></div>
+    </div>
+
+  </div><!-- /.container -->
+
+  <footer id="footer-text">
+    Informe de Pensión · Previsión Chile · Este documento es una estimación y no constituye una oferta formal de pensión.
+  </footer>
+</div><!-- /#informe -->
+
+<script type="module">
+  import { Store }                                                 from '../js/store.js';
+  const getStore = () => Store.leer();
+  import {
+    calcularPensionRP, calcularPensionRV,
+    calcularPGU, calcularPGUInformativa, calcularScore,
+    calcularAportacionNecesaria, PGU, UTM
+  }                                                               from '../js/calculos.js';
+  import { cargarTablas, getCRU }                                 from '../js/mortalidad.js';
+  import { getComision }                                          from '../js/comisiones.js';
+
+  // ─── Formatters ──────────────────────────────────────────────
+  const fmt     = n => '$' + Math.round(n).toLocaleString('es-CL');
+  const fmtUF   = n => n.toFixed(2) + ' UF';
+  const fmtPct  = n => (n * 100).toFixed(2) + '%';
+  const fmtMes  = n => n.toFixed(1) + ' meses';
+
+  // ─── Tax brackets (local, UTM-based for dynamic projection) ──
+  const TRAMOS = [
+    { maxUTM: 13.5,      tasa: 0,     rebajaUTM: 0     },
+    { maxUTM: 30,        tasa: 0.04,  rebajaUTM: 0.54  },
+    { maxUTM: 50,        tasa: 0.08,  rebajaUTM: 1.74  },
+    { maxUTM: 70,        tasa: 0.135, rebajaUTM: 4.49  },
+    { maxUTM: 90,        tasa: 0.23,  rebajaUTM: 11.13 },
+    { maxUTM: 120,       tasa: 0.304, rebajaUTM: 17.79 },
+    { maxUTM: 150,       tasa: 0.355, rebajaUTM: 24.01 },
+    { maxUTM: Infinity,  tasa: 0.40,  rebajaUTM: 38.78 },
+  ];
+
+  function calcImp(renta, utm) {
+    for (const t of TRAMOS) {
+      if (renta <= t.maxUTM * utm) {
+        return Math.max(0, Math.round(renta * t.tasa - t.rebajaUTM * utm));
+      }
+    }
+    return 0;
+  }
+
+  // ─── Projection builders ─────────────────────────────────────
+  function buildProyeccionRP(d, uf, utm, comisionDec) {
+    const rows = [];
+    let saldoUF = d.saldoTotal / uf;
+    const edadBase = Math.floor(d.edad);
+    const anioBase = new Date().getFullYear() + 1;
+
+    for (let i = 0; edadBase + i <= 104; i++) {
+      const edad = edadBase + i;
+      const cnu  = getCRU(d.sexo, edad);
+      if (!cnu || cnu <= 0) { saldoUF *= 1.02; continue; }
+
+      const bruta    = (saldoUF / cnu) * uf;
+      const comision = Math.round(bruta * comisionDec);
+      const neta     = bruta - comision;
+      const salud    = Math.min(Math.round(neta * 0.07), Math.round(60 * uf));
+      const afecta   = Math.max(0, Math.round(neta - salud));
+      const imp      = calcImp(afecta, utm);
+      const liquida  = Math.round(neta - salud - imp);
+      const pgu      = calcularPGU(liquida, edad);
+
+      rows.push({
+        edad, anio: anioBase + i,
+        saldoUF, cnu,
+        bruta:    Math.round(bruta),
+        comision, salud, afecta, imp, liquida, pgu,
+        total:    Math.round(liquida + pgu),
+      });
+      saldoUF *= 1.02;
+    }
+    return rows;
+  }
+
+  function buildProyeccionRV(rv, d, uf, utm) {
+    const rows = [];
+    const pensionUF = rv.pension / uf; // fixed UF pension
+    const edadBase  = Math.floor(d.edad);
+    const anioBase  = new Date().getFullYear() + 1;
+
+    for (let i = 0; edadBase + i <= 104; i++) {
+      const edad     = edadBase + i;
+      const ufAno    = uf * Math.pow(1.02, i);           // UF grows nominally
+      const bruta    = Math.round(pensionUF * ufAno);
+      const salud    = Math.min(Math.round(bruta * 0.07), Math.round(60 * uf));
+      const afecta   = Math.max(0, bruta - salud);
+      const imp      = calcImp(afecta, utm);
+      const liquida  = Math.round(bruta - salud - imp);
+      const pgu      = calcularPGU(liquida, edad);
+
+      rows.push({
+        edad, anio: anioBase + i,
+        bruta, salud, afecta, imp, liquida, pgu,
+        total: Math.round(liquida + pgu),
+      });
+    }
+    return rows;
+  }
+
+  // ─── Main ─────────────────────────────────────────────────────
+  async function main() {
+    const d = getStore();
+    if (!d || !d.saldoTotal) { window.location.href = 'datos.html'; return; }
+
+    await cargarTablas();
+
+    const uf          = d.uf  || 39717;
+    const utm         = d.utm || UTM;
+    const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
+    const comisionPct = comisionDec * 100;
+    const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, null);
+    const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf, null);
+
+    const score = calcularScore({
+      pensionRP: rp.pension, rentaImponible: d.rentaImponible || 0,
+      saldoActual: d.saldoTotal, edad: d.edad,
+    });
+
+    const proyRP = buildProyeccionRP(d, uf, utm, comisionDec);
+    const proyRV = buildProyeccionRV(rv, d, uf, utm);
+
+    render(d, uf, utm, comisionPct, comisionDec, rp, rv, score, proyRP, proyRV);
+
+    document.getElementById('loading').style.display  = 'none';
+    document.getElementById('informe').style.display  = '';
+  }
+
+  // ─── Render ───────────────────────────────────────────────────
+  function render(d, uf, utm, comisionPct, comisionDec, rp, rv, score, proyRP, proyRV) {
+    const sexoLabel  = d.sexo === 'M' ? 'Masculino' : 'Femenino';
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const now   = new Date();
+    const mesAnio = `${meses[now.getMonth()]} ${now.getFullYear()}`;
+    const fecha   = now.toLocaleDateString('es-CL');
+    const cnuRP   = getCRU(d.sexo, d.edad);
+    const cnuRV   = rv.cnuDetalle ? rv.cnuDetalle.cnuTotal.toFixed(2) : (uf > 0 ? (d.saldoTotal / rv.pension).toFixed(2) : '—');
+
+    // Header
+    document.getElementById('hdr-afp').textContent  = d.afp || '—';
+    document.getElementById('hdr-mes').textContent  = mesAnio;
+    document.getElementById('hdr-fecha').textContent = fecha;
+    document.getElementById('hdr-edad').textContent  = `${d.edad} años`;
+    document.getElementById('hdr-sexo').textContent  = sexoLabel;
+    document.title = `Informe Previsional — ${mesAnio}`;
+
+    // Load name/RUT from store, sync between header and table, save edits back to store
+    const cargarCampoEditable = (hdrId, tblId, valorStore, storeKey) => {
+      const hdr = document.getElementById(hdrId);
+      const tbl = document.getElementById(tblId);
+      if (valorStore) {
+        hdr.textContent = valorStore;
+        tbl.textContent = valorStore;
+      }
+      const sync = (src, dst) => src.addEventListener('input', e => {
+        dst.textContent = e.target.textContent;
+        Store.guardar({ [storeKey]: e.target.textContent.trim() });
+      });
+      sync(hdr, tbl);
+      sync(tbl, hdr);
+    };
+    cargarCampoEditable('hdr-nombre', 'd-nombre', d.nombreCliente, 'nombreCliente');
+    cargarCampoEditable('hdr-rut',    'd-rut',    d.rutCliente,    'rutCliente');
+
+    // KPIs
+    document.getElementById('k-saldo').textContent    = fmt(d.saldoTotal);
+    document.getElementById('k-saldo-sub').textContent = `AFP ${d.afp || '—'} · Fondo ${d.fondo || '—'}`;
+    document.getElementById('k-uf').textContent        = fmtUF(d.saldoTotal / uf);
+    document.getElementById('k-uf-sub').textContent    = `UF = ${fmt(uf)}`;
+    document.getElementById('k-rp').textContent        = fmt(rp.pension);
+    document.getElementById('k-rp-sub').textContent    = `CNU ${cnuRP.toFixed(2)} · Tasa 3,31%`;
+    document.getElementById('k-rv').textContent        = fmt(rv.pension);
+    document.getElementById('k-rv-sub').textContent    = `Tasa mercado 2,76%`;
+
+    // Personal data
+    document.getElementById('d-edad').textContent    = `${d.edad} años`;
+    document.getElementById('d-sexo').textContent    = sexoLabel;
+    document.getElementById('d-afp').textContent     = d.afp || '—';
+    document.getElementById('d-fondo').textContent   = `Fondo ${d.fondo || '—'}`;
+    document.getElementById('d-renta').textContent   = d.rentaImponible ? fmt(d.rentaImponible) : 'No informada';
+    const scoreLabel = score >= 75 ? 'Buen camino' : score >= 50 ? 'En progreso' : 'Alerta';
+    document.getElementById('d-score').innerHTML     = `<strong>${score}/100</strong> <span class="badge ${score>=75?'badge-green':score>=50?'badge-gold':'badge-red'}">${scoreLabel}</span>`;
+
+    // Parameters
+    document.getElementById('p-uf').textContent      = fmt(uf);
+    document.getElementById('p-utm').textContent     = fmt(utm);
+    document.getElementById('p-comision').textContent = `${comisionPct.toFixed(2)}% anual`;
+    document.getElementById('p-cnu-rp').textContent  = fmtMes(cnuRP);
+    document.getElementById('p-cnu-rv').textContent  = fmtMes(rv.pension > 0 ? d.saldoTotal / rv.pension : 0);
+
+    // Savings table
+    const sTbody = document.getElementById('tbody-saldos');
+    const saldoUF = (d.saldoTotal / uf).toFixed(2);
+    sTbody.innerHTML = `
+      <tr>
+        <td class="left">Cotización Obligatoria (AFP ${d.afp || '—'})</td>
+        <td style="text-align:center">Fondo ${d.fondo || '—'}</td>
+        <td>${fmt(d.saldoTotal)}</td>
+        <td>${saldoUF} UF</td>
+      </tr>
+      <tr>
+        <td class="left">Cotización Voluntaria / APV</td>
+        <td style="text-align:center">—</td>
+        <td>$0</td>
+        <td>0 UF</td>
+      </tr>
+      <tr>
+        <td class="left">Depósito Convenido / Bono Reconocimiento</td>
+        <td style="text-align:center">—</td>
+        <td>$0</td>
+        <td>0 UF</td>
+      </tr>
+      <tr style="background:#f0f7ff;font-weight:bold">
+        <td class="left">TOTAL AHORROS PREVISIONALES</td>
+        <td style="text-align:center">—</td>
+        <td>${fmt(d.saldoTotal)}</td>
+        <td>${saldoUF} UF</td>
+      </tr>`;
+
+    // PGU section
+    const pguActual   = calcularPGU(rp.pensionLiquida, d.edad);
+    const pguInfo65   = calcularPGUInformativa(rp.pensionLiquida);
+    const pguInfo65rv = calcularPGUInformativa(rv.pensionLiquida);
+    document.getElementById('pgu-content').innerHTML = d.edad < 65 ? `
+      <div class="grid-3" style="gap:16px;margin-bottom:14px">
+        <div style="text-align:center;padding:16px;background:#f5f3ff;border-radius:8px">
+          <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Hoy (${d.edad} años)</div>
+          <div style="font-size:22px;font-weight:bold;color:#374151">$0</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">PGU no aplica antes de 65 años</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:#f5f3ff;border-radius:8px;border:2px solid #7c3aed">
+          <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Desde los 65 años (RP)</div>
+          <div style="font-size:22px;font-weight:bold;color:#7c3aed">+${fmt(pguInfo65)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">mensual · estimado</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:#f5f3ff;border-radius:8px;border:2px solid #7c3aed">
+          <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Desde los 65 años (RV)</div>
+          <div style="font-size:22px;font-weight:bold;color:#7c3aed">+${fmt(pguInfo65rv)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">mensual · estimado</div>
+        </div>
+      </div>
+      <p class="note">La PGU es un beneficio estatal universal (Ley 21.419) que complementa la pensión. Requiere edad ≥ 65 años y residencia en Chile ≥ 20 años. Se reduce gradualmente para pensiones líquidas entre ${fmt(PGU.umbralCompleto)} y ${fmt(PGU.umbralTope)}. A los 82 años aumenta a ${fmt(PGU.montoMax82)}/mes.</p>
+    ` : `
+      <div class="grid-3" style="gap:16px;margin-bottom:14px">
+        <div style="text-align:center;padding:16px;background:#f5f3ff;border-radius:8px;border:2px solid #7c3aed">
+          <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">PGU con RP</div>
+          <div style="font-size:22px;font-weight:bold;color:#7c3aed">+${fmt(pguActual)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">mensual</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:#f5f3ff;border-radius:8px;border:2px solid #7c3aed">
+          <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">PGU con RV</div>
+          <div style="font-size:22px;font-weight:bold;color:#7c3aed">+${fmt(calcularPGU(rv.pensionLiquida, d.edad))}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">mensual</div>
+        </div>
+        <div style="text-align:center;padding:16px;background:var(--green-lt);border-radius:8px">
+          <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">A los 82 años</div>
+          <div style="font-size:22px;font-weight:bold;color:var(--green)">+${fmt(PGU.montoMax82)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">monto máx. (si aplica)</div>
+        </div>
+      </div>
+      <p class="note">La PGU es un beneficio estatal (Ley 21.419). Se reduce gradualmente para pensiones líquidas entre ${fmt(PGU.umbralCompleto)} y ${fmt(PGU.umbralTope)} mensuales.</p>
+    `;
+
+    // RP vs RV comparison
+    const pguRP65  = d.edad < 65 ? pguInfo65   : pguActual;
+    const pguRV65  = d.edad < 65 ? pguInfo65rv : calcularPGU(rv.pensionLiquida, d.edad);
+    const totalRP  = rp.pensionLiquida + pguRP65;
+    const totalRV  = rv.pensionLiquida + pguRV65;
+    const pguNote  = d.edad < 65 ? ` (desde los 65 años)` : '';
+    const compRows = [
+      ['Pensión bruta inicial',    fmt(rp.pension),        fmt(rv.pension)],
+      ['(-) Comisión AFP',         `-${fmt(rp.desglose.descComision)} (${comisionPct.toFixed(2)}%)`, '$0 (no aplica)'],
+      ['(-) Cotización salud 7%',  `-${fmt(rp.desglose.descSalud)}`,   `-${fmt(rv.desglose.descSalud)}`],
+      ['(-) Impuesto 2ª cat.',     rp.desglose.descImpuesto > 0 ? `-${fmt(rp.desglose.descImpuesto)}` : '$0 (exento)',
+                                   rv.desglose.descImpuesto > 0 ? `-${fmt(rv.desglose.descImpuesto)}` : '$0 (exento)'],
+      ['Pensión líquida mensual',  fmt(rp.pensionLiquida), fmt(rv.pensionLiquida)],
+      [`(+) PGU del Estado${pguNote}`, `+${fmt(pguRP65)}`, `+${fmt(pguRV65)}`],
+      ['Duración garantizada',     rp.anosEstimados ? `~${rp.anosEstimados} años estimados` : '30+ años', 'De por vida (vitalicia)'],
+      ['Herencia del saldo',       'Sí — saldo restante heredable', 'No (salvo período garantizado)'],
+      ['¿Puedo cambiar de modalidad?', 'Sí → puede migrar a RV', 'No — decisión irreversible'],
+      ['Riesgo de longevidad',     'Lo asume el afiliado',       'Lo asume la aseguradora'],
+      ['Indexación (reajuste)',     'En UF — protegido inflación', 'En UF — protegido inflación'],
+    ];
+    const compTbody = document.getElementById('tbody-comp');
+    compTbody.innerHTML = compRows.map((r, i) => {
+      const isTotal  = i === 4 || i === 6;
+      const isHighlight = i === 5;
+      return `<tr class="${isHighlight ? 'highlight' : ''}">
+        <td class="left">${r[0]}</td>
+        <td style="color:${isTotal?'var(--green)':'var(--navy)'};font-weight:${isTotal?'bold':'normal'}">${r[1]}</td>
+        <td style="color:${isTotal?'#7c3aed':'var(--navy)'};font-weight:${isTotal?'bold':'normal'}">${r[2]}</td>
+      </tr>`;
+    }).join('') + `
+      <tr class="total-row">
+        <td class="left">Ingreso total mensual${pguNote}</td>
+        <td>${fmt(totalRP)}</td>
+        <td>${fmt(totalRV)}</td>
+      </tr>`;
+
+    // APV recommendation
+    const pensionObj = d.pensionObjetivo || 0;
+    if (pensionObj > 0 && rp.pensionTotal < pensionObj) {
+      const brecha = pensionObj - rp.pensionTotal;
+      const aporte5 = calcularAportacionNecesaria(d.saldoTotal, pensionObj, d.edad, d.sexo, 0.04, 20);
+      document.getElementById('seccion-apv').style.display = '';
+      document.getElementById('apv-content').innerHTML = `
+        <div class="grid-2" style="gap:16px;margin-bottom:16px">
+          <div style="padding:16px;background:white;border-radius:8px;border:1px solid #86efac">
+            <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:1px">Brecha mensual estimada</div>
+            <div style="font-size:24px;font-weight:bold;color:var(--navy);margin-top:4px">${fmt(brecha)}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">Diferencia entre pensión objetivo y RP estimado</div>
+          </div>
+          <div style="padding:16px;background:white;border-radius:8px;border:1px solid #86efac">
+            <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:1px">APV sugerido (tasa 4%, 20 años)</div>
+            <div style="font-size:24px;font-weight:bold;color:var(--navy);margin-top:4px">${fmt(Math.max(0, aporte5))}/mes</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">Aporte mensual adicional estimado</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:#374151"><strong>Régimen A:</strong> El Estado bonifica hasta el <strong>15% de tus aportes APV</strong> (máximo 6 UTM anuales = ${fmt(6*utm/12)}/mes de bonificación). Ideal si tu tasa impositiva es baja.</p>
+        <p style="font-size:13px;color:#374151;margin-top:8px"><strong>Régimen B:</strong> Deduces el APV de tu base imponible, reduciendo el impuesto que pagas hoy. Ideal si tienes renta alta.</p>
+        <p class="note" style="margin-top:10px">Disponible en AFP, banco, compañía de seguros o administradora de fondos. Consulta a un Asesor Previsional Certificado (APC).</p>`;
+    }
+
+    // Tax table
+    document.getElementById('tax-mes').textContent = mesAnio;
+    const tramosDisplay = [
+      [1, '$0', `${fmt(13.5*utm)}`, '0%', '$0', '0%'],
+      [2, `${fmt(13.5*utm+1)}`, `${fmt(30*utm)}`, '4%', `${fmt(0.54*utm)}`, '2,20%'],
+      [3, `${fmt(30*utm+1)}`, `${fmt(50*utm)}`, '8%', `${fmt(1.74*utm)}`, '4,52%'],
+      [4, `${fmt(50*utm+1)}`, `${fmt(70*utm)}`, '13,5%', `${fmt(4.49*utm)}`, '7,09%'],
+      [5, `${fmt(70*utm+1)}`, `${fmt(90*utm)}`, '23%', `${fmt(11.13*utm)}`, '10,62%'],
+      [6, `${fmt(90*utm+1)}`, `${fmt(120*utm)}`, '30,4%', `${fmt(17.79*utm)}`, '15,57%'],
+      [7, `${fmt(120*utm+1)}`, `${fmt(150*utm)}`, '35,5%', `${fmt(24.01*utm)}`, '18,6%'],
+      [8, `${fmt(150*utm+1)}`, 'Y más', '40%', `${fmt(38.78*utm)}`, '+'],
+    ];
+    document.getElementById('tbody-impuesto').innerHTML = tramosDisplay.map(r =>
+      `<tr><td>${r[0]}°</td><td class="left">${r[1]}</td><td class="left">${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td></tr>`
+    ).join('');
+    document.getElementById('nota-tramo').textContent =
+      `* Las pensiones proyectadas para esta persona caen en el Tramo 1° (exento) durante los primeros años de jubilación. El primer tramo exento equivale a 13,5 UTM mensuales = ${fmt(13.5*utm)}.`;
+
+    // Projection RP
+    const rpTbody = document.getElementById('tbody-rp');
+    rpTbody.innerHTML = proyRP.map(r => `
+      <tr>
+        <td>${r.edad}</td>
+        <td>${r.anio}</td>
+        <td class="td-muted">${r.saldoUF.toFixed(1)} UF</td>
+        <td class="td-muted">${r.cnu.toFixed(2)}</td>
+        <td class="td-bold">${fmt(r.bruta)}</td>
+        <td style="color:var(--red)">${r.comision > 0 ? `-${fmt(r.comision)}` : '$0'}</td>
+        <td style="color:var(--red)">-${fmt(r.salud)}</td>
+        <td>${fmt(r.afecta)}</td>
+        <td style="color:${r.imp>0?'var(--red)':'var(--green)'}">${r.imp>0?fmt(r.imp):'$0'}</td>
+        <td class="td-bold" style="color:var(--green)">${fmt(r.liquida)}</td>
+        <td class="td-pgu">${r.pgu > 0 ? `+${fmt(r.pgu)}` : r.edad < 65 ? '<span class="td-muted">—</span>' : '$0'}</td>
+        <td class="td-bold" style="color:var(--navy)">${fmt(r.total)}</td>
+      </tr>`).join('');
+
+    // Projection RV
+    const rvTbody = document.getElementById('tbody-rv');
+    rvTbody.innerHTML = proyRV.map(r => `
+      <tr>
+        <td>${r.edad}</td>
+        <td>${r.anio}</td>
+        <td class="td-bold">${fmt(r.bruta)}</td>
+        <td style="color:var(--red)">-${fmt(r.salud)}</td>
+        <td>${fmt(r.afecta)}</td>
+        <td style="color:${r.imp>0?'var(--red)':'var(--green)'}">${r.imp>0?fmt(r.imp):'$0'}</td>
+        <td class="td-bold" style="color:#7c3aed">${fmt(r.liquida)}</td>
+        <td class="td-pgu">${r.pgu > 0 ? `+${fmt(r.pgu)}` : r.edad < 65 ? '<span class="td-muted">—</span>' : '$0'}</td>
+        <td class="td-bold" style="color:var(--navy)">${fmt(r.total)}</td>
+      </tr>`).join('');
+
+    // Methodology steps
+    document.getElementById('steps-container').innerHTML = `
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <div class="step-title">Conversión del saldo a UF</div>
+          <p>El saldo en pesos se convierte a UF dividiendo por el valor UF vigente.<br>
+          <code>${fmtUF(d.saldoTotal/uf)} = ${fmt(d.saldoTotal)} ÷ ${fmt(uf)}</code><br>
+          La UF protege el poder adquisitivo del ahorro.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <div class="step-title">Capital Necesario Unitario (CNU)</div>
+          <p>El CNU es cuántos meses de pensión se necesitan para financiar 1 peso de pensión mensual de por vida, dado el tiempo esperado de vida y la tasa técnica.<br>
+          <strong>RP:</strong> <code>CNU = ${cnuRP.toFixed(2)} meses</code> · Tasa 3,31% · Tablas B-2020<br>
+          <strong>RV:</strong> <code>CNU ≈ ${(d.saldoTotal/rv.pension).toFixed(2)} meses</code> · Tasa mercado 2,76% · Tablas RV-2020</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <div class="step-title">Pensión bruta inicial</div>
+          <p><strong>RP:</strong> <code>Saldo ÷ CNU = ${fmt(d.saldoTotal)} ÷ ${cnuRP.toFixed(2)} = ${fmt(rp.pension)}/mes</code><br>
+          <strong>RV:</strong> <code>${fmt(d.saldoTotal)} ÷ ${(d.saldoTotal/rv.pension).toFixed(2)} = ${fmt(rv.pension)}/mes</code> (garantizado de por vida)</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <div class="step-title">Descuentos legales (comisión, salud, impuesto)</div>
+          <p>Cada mes se descuenta: <strong>comisión AFP</strong> (${comisionPct.toFixed(2)}% RP, 0% RV), <strong>cotización de salud</strong> (7% del monto neto), e <strong>impuesto único 2ª categoría</strong> (tramos vigentes SII).<br>
+          Con la pensión actual: primer tramo exento (${fmt(13.5*utm)}) — sin impuesto a pagar.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <div class="step-title">CNU decrece con la edad (RP)</div>
+          <p>En el Retiro Programado, el CNU disminuye cada año al recalcularse con la edad real. Esto hace que la pensión bruta suba progresivamente aunque el saldo crezca moderadamente.<br>
+          Ejemplo: <code>Edad ${d.edad}: CNU=${cnuRP.toFixed(2)}</code> → <code>Edad ${d.edad+10}: CNU≈${getCRU(d.sexo,d.edad+10).toFixed(2)}</code> → <code>Edad ${d.edad+20}: CNU≈${getCRU(d.sexo,d.edad+20).toFixed(2)}</code></p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div>
+          <div class="step-title">PGU — Pensión Garantizada Universal</div>
+          <p>La PGU es un beneficio estatal que complementa la pensión desde los <strong>65 años</strong> (Ley 21.419).<br>
+          Monto máximo: <code>${fmt(PGU.montoBase)}/mes</code> (edad 65–81), <code>${fmt(PGU.montoMax82)}/mes</code> (82+).<br>
+          Se reduce gradualmente entre ${fmt(PGU.umbralCompleto)} y ${fmt(PGU.umbralTope)} de pensión líquida.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div>
+          <div class="step-title">Proyección del saldo (RP)</div>
+          <p>El saldo restante sigue invertido en el fondo AFP con rentabilidad estimada 2% real anual.<br>
+          <code>Saldo(año+1) = Saldo(año) × 1,02</code><br>
+          <strong>Nota:</strong> Esta es una proyección simplificada ilustrativa; la pensión real recalculada cada año considera el saldo efectivo menos retiros.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">8</div>
+        <div>
+          <div class="step-title">Renta Vitalicia vs Retiro Programado</div>
+          <p>La RV transfiere el riesgo de longevidad a la aseguradora a cambio de renunciar al saldo heredable. La RP mantiene el saldo como patrimonio (heredable) pero expone al afiliado al riesgo de que el fondo se agote si vive muchos años. La migración de RP → RV es posible; de RV → RP no.</p>
+        </div>
+      </div>`;
+
+    // Footer
+    document.getElementById('footer-text').innerHTML =
+      `Informe Previsional · AFP ${d.afp||'—'} · Previsión Chile · ${fecha}<br>
+       Este documento es una estimación y no constituye una oferta formal de pensión. Tasa técnica RP 3,31% (Circular SP N°2407, ene 2026). Tablas B-2020 / RV-2020 (SP Chile).`;
+  }
+
+  // ─── Tab switch ──────────────────────────────────────────────
+  window.switchTab = function(tab, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    btn.classList.add('active');
+  };
+
+  main().catch(err => {
+    console.error(err);
+    document.getElementById('loading').textContent = 'Error cargando el informe. ' + err.message;
+  });
+</script>
+</body>
+</html>
