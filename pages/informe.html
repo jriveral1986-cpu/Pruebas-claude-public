@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="pageTitle">Informe Previsional — Previsión Chile</title>
+  <link rel="stylesheet" href="../css/main.css">
   <style>
     :root {
       --navy:   #1a2e4a;
@@ -299,7 +300,7 @@
 
     /* ── Print styles ── */
     @media print {
-      .print-bar, .tab-buttons, .edit-hint, .btn-back { display: none !important; }
+      .print-bar, .tab-buttons, .edit-hint, .btn-back, .nav, .skip-link { display: none !important; }
       body { background: white; font-size: 12px; }
       header { padding: 20px 28px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       .kpi { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -316,6 +317,19 @@
   </style>
 </head>
 <body>
+
+<a href="#main-content" class="skip-link">Ir al contenido principal</a>
+
+<nav class="nav" aria-label="Navegación principal">
+  <a href="../index.html" class="nav__logo" aria-label="PrevisiónChile, ir al inicio">Previsión<span>Chile</span></a>
+  <a href="../index.html"             class="nav__link">Inicio</a>
+  <a href="datos.html"               class="nav__link">Mis Datos</a>
+  <a href="proyeccion.html"          class="nav__link">Proyección</a>
+  <a href="modalidades.html"         class="nav__link">Modalidades</a>
+  <a href="brechas.html"             class="nav__link">Brechas</a>
+  <a href="normativa.html"           class="nav__link">Normativa</a>
+  <a href="informe.html"             class="nav__link active" aria-current="page">Informe</a>
+</nav>
 
 <div id="loading">Cargando informe previsional…</div>
 <div id="informe" style="display:none">
