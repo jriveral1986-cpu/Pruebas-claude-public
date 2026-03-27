@@ -89,17 +89,30 @@ export function calcularPensionLiquida(pensionBruta, comisionAfp = 0) {
 }
 
 /**
- * Pensión Garantizada Universal (PGU) según pensión base.
- * @param {number} pensionBase  - pensión bruta (antes de PGU)
+ * Pensión Garantizada Universal (PGU) según pensión base y edad.
+ * Requisito legal: edad >= 65 (Ley 21.419). Personas que jubilan antes de los 65
+ * (ej. mujeres a los 60) no reciben PGU hasta cumplir esa edad.
+ * @param {number} pensionBase  - pensión líquida (antes de PGU)
  * @param {number} edad
- * @returns {number} monto PGU mensual
+ * @returns {number} monto PGU mensual (0 si edad < 65)
  */
 export function calcularPGU(pensionBase, edad = 65) {
+  if (edad < 65) return 0;   // PGU requiere mínimo 65 años — Ley 21.419
   const montoMax = edad >= 82 ? PGU.montoMax82 : PGU.montoBase;
   if (pensionBase <= PGU.umbralCompleto) return montoMax;
   if (pensionBase >= PGU.umbralTope)    return 0;
   const proporcion = (PGU.umbralTope - pensionBase) / (PGU.umbralTope - PGU.umbralCompleto);
   return Math.round(montoMax * proporcion);
+}
+
+/**
+ * PGU informativa — monto que recibirá cuando cumpla 65 años, independiente de la edad actual.
+ * Útil para mostrar en proyecciones de personas que jubilan antes de los 65.
+ * @param {number} pensionBase
+ * @returns {number} monto PGU a los 65 años
+ */
+export function calcularPGUInformativa(pensionBase) {
+  return calcularPGU(pensionBase, 65);
 }
 
 // ============================================================
