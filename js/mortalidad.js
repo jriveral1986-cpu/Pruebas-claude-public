@@ -171,42 +171,72 @@ export function getAAxPromedio(sexo, edad, anioDesde, anioHasta) {
 }
 
 /**
- * CNU ajustado por factor de mejoramiento (AAx) a partir del CRU pre-computado (2020).
+ * CNU con mejoramiento según NCG N°306 (SP Chile, feb-2023).
  *
- * Usa la tabla bidimensional completa de NCG N°306 (edades 0-110 × años 2021-2036).
- * Para cada año entre anioTabla+1 y anioJubilacion aplica el factor AAx exacto de ese año.
- * Para años > 2036 mantiene el factor del año 2036 (constante por normativa).
+ * Metodología:
+ *   1. Aplica q'_x = q_x,2020 × Π_{y=tm+1}^{anioJub}(1 − AA_{x,y})  (NCG N°306)
+ *   2. Calcula la anualidad desde qx base y desde qx mejorados
+ *   3. Aplica el factor relativo (mejorado/base) al CRU pre-computado oficial
  *
- * Fórmula:
- *   reduccion_acumulada = 1 − Π_{y=anioTabla+1}^{anioJubilacion}(1 − AA_{edad,y})
- *   CNU_ajustado = CRU_base × (1 + reduccion_acumulada × 0.5)
+ * Por qué el factor relativo y no la anualidad directa:
+ *   Los qx brutos calculados con aproximación mensual difieren del CRU oficial
+ *   pre-computado (SP Chile usa UDD + edades exactas). El factor relativo preserva
+ *   el CRU oficial como base y le aplica solo el efecto proporcional del mejoramiento.
  *
- * El factor 0.5 calibra la sensibilidad mortalidad → esperanza de vida → CRU,
- * verificado contra el cambio histórico SP Chile 2015→2020.
+ * Para años > 2036: factor AA constante en valor 2036 (por NCG N°306).
  *
  * @param {string} sexo - 'M' | 'F'
  * @param {number} edad - edad al momento de jubilación
- * @param {number} _tasaMensual - no usado (firma compatible con getCRUCalculado)
+ * @param {number} tasaMensual - tasa técnica mensual (ej. TASA_RP = 0.0331/12)
  * @param {number} anioJubilacion - año en que jubila el afiliado (ej. 2026)
- * @returns {number} CRU ajustado en meses
+ * @returns {number} CRU en meses ajustado por mejoramiento NCG N°306
  */
-export function calcularCNUConMejoramiento(sexo, edad, _tasaMensual, anioJubilacion) {
-  const cruBase = getCRU(sexo, edad);
+export function calcularCNUConMejoramiento(sexo, edad, tasaMensual, anioJubilacion) {
+  const cruBase = getCRU(sexo, edad);   // CRU oficial pre-computado 2020
   if (!_tablas?.aax || !anioJubilacion) return cruBase;
 
   const tm = _tablas.aax.anioTabla ?? 2020;
   if (anioJubilacion <= tm) return cruBase;
 
+  const tablaQx  = sexo === 'M' ? _tablas.b2020_hombre : _tablas.b2020_mujer;
   const aaxBidim = sexo === 'M' ? _tablas.aax.b2020_hombre : _tablas.aax.b2020_mujer;
-  if (!aaxBidim) return cruBase;
+  if (!tablaQx || !aaxBidim) return cruBase;
 
-  // Producto acumulado: Π(1 − AA_{edad,y}) para cada año
-  let productoSupervivencia = 1;
-  for (let y = tm + 1; y <= anioJubilacion; y++) {
-    productoSupervivencia *= (1 - getAAxParaAnio(aaxBidim, edad, y));
+  const edadBase = Math.floor(edad);
+
+  // Pre-computar Π_{y=tm+1}^{anioJub}(1 − AA_{x,y}) para cada edad
+  const factorMejora = new Array(111);
+  for (let x = edadBase; x <= 110; x++) {
+    let f = 1;
+    for (let y = tm + 1; y <= anioJubilacion; y++) {
+      f *= (1 - getAAxParaAnio(aaxBidim, x, y));
+    }
+    factorMejora[x] = f;
   }
-  const reduccionAcumulada = 1 - productoSupervivencia;
-  return cruBase * (1 + reduccionAcumulada * 0.5);
+
+  // Calcula anualidad usando qx con o sin mejoramiento
+  function anualidad(conMejora) {
+    let sum = 0, px = 1;
+    for (let k = 1; k <= (110 - edadBase) * 12; k++) {
+      const x   = Math.min(edadBase + Math.floor((k - 1) / 12), 110);
+      const row = tablaQx[x];
+      if (!row || row.qx >= 1) break;
+      const qx       = conMejora ? row.qx * (factorMejora[x] ?? 1) : row.qx;
+      const qMensual = 1 - Math.pow(1 - qx, 1 / 12);
+      px *= (1 - qMensual);
+      if (px < 1e-10) break;
+      sum += px * Math.pow(1 + tasaMensual, -k);
+    }
+    return sum;
+  }
+
+  const cruQxBase   = anualidad(false);
+  const cruQxMejora = anualidad(true);
+
+  if (cruQxBase <= 0) return cruBase;
+
+  // Factor relativo: aplica la mejora proporcional sobre el CRU oficial pre-computado
+  return cruBase * (cruQxMejora / cruQxBase);
 }
 
 /**
