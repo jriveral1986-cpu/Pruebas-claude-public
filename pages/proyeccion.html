@@ -85,6 +85,7 @@
                 <span class="resultado__label">(+) PGU del Estado</span>
                 <span class="resultado__valor" id="rpPGU" style="color:var(--success);">—</span>
               </div>
+              <div id="rpPGUInfo" style="display:none;font-size:var(--text-xs);color:var(--color-text-muted);padding:0 0 6px 0;"></div>
               <div class="resultado__item" style="background:var(--color-bg-alt,#f8f9fa);border-radius:8px;padding:8px 0;">
                 <span class="resultado__label" style="font-weight:700;">Ingreso total mensual</span>
                 <span class="resultado__valor resultado__valor--highlight" id="rpTotal" style="font-size:1.25em;">—</span>
@@ -136,6 +137,7 @@
                 <span class="resultado__label">(+) PGU del Estado</span>
                 <span class="resultado__valor" id="rvPGU" style="color:var(--success);">—</span>
               </div>
+              <div id="rvPGUInfo" style="display:none;font-size:var(--text-xs);color:var(--color-text-muted);padding:0 0 6px 0;"></div>
               <div class="resultado__item" style="background:var(--color-bg-alt,#f8f9fa);border-radius:8px;padding:8px 0;">
                 <span class="resultado__label" style="font-weight:700;">Ingreso total mensual</span>
                 <span class="resultado__valor resultado__valor--highlight" id="rvTotal" style="font-size:1.25em;">—</span>
@@ -258,7 +260,7 @@
     import { initBtnActualizar, mostrarDatosCliente, formatCLP, formatUF } from '../js/ui.js';
     import { Store }           from '../js/store.js';
     import { cargarTablas }    from '../js/mortalidad.js';
-    import { calcularPensionRP, calcularPensionRV, proyectarSaldo } from '../js/calculos.js';
+    import { calcularPensionRP, calcularPensionRV, proyectarSaldo, calcularPGUInformativa } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
     import { cargarAFP, getComision } from '../js/comisiones.js';
 
@@ -307,7 +309,14 @@
         ? `-${formatCLP(rp.desglose.descImpuesto)}`
         : '$0 (exento)';
       document.getElementById('rpLiquida').textContent      = formatCLP(rp.pensionLiquida);
-      document.getElementById('rpPGU').textContent          = `+${formatCLP(rp.pgu)}`;
+      document.getElementById('rpPGU').textContent = `+${formatCLP(rp.pgu)}`;
+      document.getElementById('rpPGU').style.color = 'var(--success)';
+      if (rp.pgu === 0 && d.edad < 65) {
+        const pguInfo65 = calcularPGUInformativa(rp.pensionLiquida);
+        const infoDiv = document.getElementById('rpPGUInfo');
+        infoDiv.textContent = `Se agregarán +${formatCLP(pguInfo65)} de PGU desde los 65 años`;
+        infoDiv.style.display = '';
+      }
       document.getElementById('rpTotal').textContent        = formatCLP(rp.pensionTotal);
       document.getElementById('rpPensionUF').textContent    = formatUF(rp.pensionUF);
       document.getElementById('rpAnos').textContent         = rp.anosEstimados ? `${rp.anosEstimados} años` : '—';
@@ -325,7 +334,14 @@
         ? `-${formatCLP(rv.desglose.descImpuesto)}`
         : '$0 (exento)';
       document.getElementById('rvLiquida').textContent      = formatCLP(rv.pensionLiquida);
-      document.getElementById('rvPGU').textContent          = `+${formatCLP(rv.pgu)}`;
+      document.getElementById('rvPGU').textContent = `+${formatCLP(rv.pgu)}`;
+      document.getElementById('rvPGU').style.color = 'var(--success)';
+      if (rv.pgu === 0 && d.edad < 65) {
+        const pguInfo65RV = calcularPGUInformativa(rv.pensionLiquida);
+        const infoDivRV = document.getElementById('rvPGUInfo');
+        infoDivRV.textContent = `Se agregarán +${formatCLP(pguInfo65RV)} de PGU desde los 65 años`;
+        infoDivRV.style.display = '';
+      }
       document.getElementById('rvTotal').textContent        = formatCLP(rv.pensionTotal);
       document.getElementById('rvPensionUF').textContent    = formatUF(rv.pensionUF);
 
