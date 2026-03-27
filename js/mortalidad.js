@@ -129,36 +129,60 @@ export function getCRUReversional(cruAfiliado, cruConyuge) {
 }
 
 /**
- * Interpola linealmente el factor de mejoramiento AAx para una edad dada.
- * @param {object} aaxTabla - objeto { "50": 0.019, "55": 0.018, ... }
+ * Obtiene el factor AAx para una edad y año específicos desde la tabla bidimensional.
+ * Para años > anioMax (2036) usa el valor de 2036 (constante por NCG N°306).
+ * @param {object} aaxBidim - { "2021": { "0": 0.xxx, ... }, "2022": {...}, ... }
  * @param {number} edad
- * @returns {number} factor AAx (p.ej. 0.016)
+ * @param {number} anio
+ * @returns {number} factor AAx
  */
-function getAAx(aaxTabla, edad) {
-  if (!aaxTabla) return 0;
-  const ages = Object.keys(aaxTabla).map(Number).sort((a, b) => a - b);
-  if (edad <= ages[0]) return aaxTabla[ages[0]];
-  if (edad >= ages[ages.length - 1]) return aaxTabla[ages[ages.length - 1]];
-  const lower = ages.filter(a => a <= edad).pop();
-  const upper = ages.find(a => a > edad);
-  const t = (edad - lower) / (upper - lower);
-  return aaxTabla[lower] + t * (aaxTabla[upper] - aaxTabla[lower]);
+function getAAxParaAnio(aaxBidim, edad, anio) {
+  const anioMax = 2036;
+  const anioKey = String(Math.min(anio, anioMax));
+  const tabla   = aaxBidim[anioKey];
+  if (!tabla) return 0;
+  const edadFloor = Math.floor(Math.min(edad, 110));
+  // Interpolación lineal entre edades enteras
+  const v0 = tabla[String(edadFloor)]     ?? 0;
+  const v1 = tabla[String(edadFloor + 1)] ?? v0;
+  const frac = edad - edadFloor;
+  return v0 + frac * (v1 - v0);
+}
+
+/**
+ * Calcula el promedio aritmético de los factores AAx para una edad en un rango de años.
+ * Útil para mostrar al usuario el "AAx efectivo" del período.
+ * @param {string} sexo - 'M' | 'F'
+ * @param {number} edad
+ * @param {number} anioDesde - primer año del período (exclusivo, ej. 2020)
+ * @param {number} anioHasta - último año del período (inclusivo, ej. 2026)
+ * @returns {number} promedio de AAx para el período
+ */
+export function getAAxPromedio(sexo, edad, anioDesde, anioHasta) {
+  if (!_tablas?.aax) return 0;
+  const aaxBidim = sexo === 'M' ? _tablas.aax.b2020_hombre : _tablas.aax.b2020_mujer;
+  if (!aaxBidim) return 0;
+  let suma = 0, count = 0;
+  for (let y = anioDesde + 1; y <= anioHasta; y++) {
+    suma += getAAxParaAnio(aaxBidim, edad, y);
+    count++;
+  }
+  return count > 0 ? suma / count : 0;
 }
 
 /**
  * CNU ajustado por factor de mejoramiento (AAx) a partir del CRU pre-computado (2020).
  *
- * Por qué no calculamos desde las tablas brutas:
- *   Los qx brutos en b2020_hombre/mujer producen CRU ~30% más bajo que el CRU
- *   oficial pre-computado de la SP Chile (que usa metodología UDD y edades exactas).
- *   Calcular desde tablas brutas introduciría un sesgo sistemático.
+ * Usa la tabla bidimensional completa de NCG N°306 (edades 0-110 × años 2021-2036).
+ * Para cada año entre anioTabla+1 y anioJubilacion aplica el factor AAx exacto de ese año.
+ * Para años > 2036 mantiene el factor del año 2036 (constante por normativa).
  *
- * Fórmula de ajuste (primer orden):
- *   La reducción acumulada de qx después de 'delta' años es:
- *     mejora = 1 − (1 − AAx)^delta
- *   El factor de conversión 0.5 refleja que una reducción del 1% en la mortalidad
- *   anual aumenta la esperanza de vida (y el CRU) aproximadamente en 0.5%,
- *   calibrado contra datos históricos de la SP Chile (cambio CRU 2015→2020).
+ * Fórmula:
+ *   reduccion_acumulada = 1 − Π_{y=anioTabla+1}^{anioJubilacion}(1 − AA_{edad,y})
+ *   CNU_ajustado = CRU_base × (1 + reduccion_acumulada × 0.5)
+ *
+ * El factor 0.5 calibra la sensibilidad mortalidad → esperanza de vida → CRU,
+ * verificado contra el cambio histórico SP Chile 2015→2020.
  *
  * @param {string} sexo - 'M' | 'F'
  * @param {number} edad - edad al momento de jubilación
@@ -167,21 +191,22 @@ function getAAx(aaxTabla, edad) {
  * @returns {number} CRU ajustado en meses
  */
 export function calcularCNUConMejoramiento(sexo, edad, _tasaMensual, anioJubilacion) {
-  const cruBase = getCRU(sexo, edad);                     // tabla pre-computada 2020
+  const cruBase = getCRU(sexo, edad);
   if (!_tablas?.aax || !anioJubilacion) return cruBase;
 
-  const tm       = _tablas.aax.anioTabla ?? 2020;
-  const delta    = anioJubilacion - tm;
-  if (delta <= 0) return cruBase;
+  const tm = _tablas.aax.anioTabla ?? 2020;
+  if (anioJubilacion <= tm) return cruBase;
 
-  const aaxTabla = sexo === 'M' ? _tablas.aax.b2020_hombre : _tablas.aax.b2020_mujer;
-  if (!aaxTabla) return cruBase;
+  const aaxBidim = sexo === 'M' ? _tablas.aax.b2020_hombre : _tablas.aax.b2020_mujer;
+  if (!aaxBidim) return cruBase;
 
-  const aax          = getAAx(aaxTabla, Math.floor(edad));
-  // Reducción acumulada de mortalidad tras 'delta' años de mejora
-  const mejoraCumuqx = 1 - Math.pow(1 - aax, delta);
-  // Factor de conversión mortalidad → CRU: calibrado en 0.5
-  return cruBase * (1 + mejoraCumuqx * 0.5);
+  // Producto acumulado: Π(1 − AA_{edad,y}) para cada año
+  let productoSupervivencia = 1;
+  for (let y = tm + 1; y <= anioJubilacion; y++) {
+    productoSupervivencia *= (1 - getAAxParaAnio(aaxBidim, edad, y));
+  }
+  const reduccionAcumulada = 1 - productoSupervivencia;
+  return cruBase * (1 + reduccionAcumulada * 0.5);
 }
 
 /**
