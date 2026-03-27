@@ -206,10 +206,14 @@
         <table class="tabla-comparativa" id="tablaProyeccion">
           <thead>
             <tr>
-              <th>Año</th>
+              <th>Año / Edad</th>
               <th>Saldo proyectado</th>
-              <th>Pensión RP estimada</th>
-              <th>Pensión RV estimada</th>
+              <th>CNU (RP)</th>
+              <th>Pensión RP bruta</th>
+              <th>(-) Salud 7%</th>
+              <th>(-) Impuesto</th>
+              <th>RP líquida</th>
+              <th>RV líquida</th>
             </tr>
           </thead>
           <tbody id="cuerpoProyeccion">
@@ -385,16 +389,25 @@
       const rows        = proyectarSaldo(d.saldoTotal, aporte, tasa, anos);
       const tbody       = document.getElementById('cuerpoProyeccion');
       tbody.innerHTML   = '';
-      const anioBase = new Date().getFullYear();
       rows.forEach(r => {
-        const rp  = calcularPensionRP(r.saldo, d.edad + r.ano, d.sexo, uf, 0, null, anioBase + r.ano);
-        const rv  = calcularPensionRV(r.saldo, d.edad + r.ano, d.sexo, uf, null, anioBase + r.ano);
+        const anioFila = anioActual + r.ano;
+        const rp  = calcularPensionRP(r.saldo, d.edad + r.ano, d.sexo, uf, 0, null, anioFila);
+        const rv  = calcularPensionRV(r.saldo, d.edad + r.ano, d.sexo, uf, null, anioFila);
         const tr  = document.createElement('tr');
+        const edadProyectada = d.edad + r.ano;
+        const cnu = rp.cnuDetalle?.cnuTotal?.toFixed(1) ?? '—';
+        const impRP = rp.desglose.descImpuesto > 0
+          ? `-${formatCLP(rp.desglose.descImpuesto)}`
+          : '$0';
         tr.innerHTML = `
-          <td>Año ${r.ano}</td>
+          <td>Año ${r.ano} · ${edadProyectada} años</td>
           <td class="col-num">${formatCLP(r.saldo)}</td>
-          <td class="col-num col-highlight">${formatCLP(rp.pension)}</td>
-          <td class="col-num">${formatCLP(rv.pension)}</td>
+          <td class="col-num">${cnu}</td>
+          <td class="col-num">${formatCLP(rp.pension)}</td>
+          <td class="col-num" style="color:var(--color-error);">-${formatCLP(rp.desglose.descSalud)}</td>
+          <td class="col-num" style="color:var(--color-error);">${impRP}</td>
+          <td class="col-num col-highlight">${formatCLP(rp.pensionLiquida)}</td>
+          <td class="col-num">${formatCLP(rv.pensionLiquida)}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -405,7 +418,7 @@
     // ── Export ────────────────────────────────────────
     document.getElementById('btnPDF').addEventListener('click', () => exportarPDF());
     document.getElementById('btnCSV').addEventListener('click', () => {
-      const headers = ['Año', 'Saldo proyectado', 'Pensión RP', 'Pensión RV'];
+      const headers = ['Año / Edad', 'Saldo proyectado', 'CNU (RP)', 'Pensión RP bruta', '(-) Salud 7%', '(-) Impuesto', 'RP líquida', 'RV líquida'];
       const filas   = [headers];
       document.querySelectorAll('#cuerpoProyeccion tr').forEach(tr => {
         filas.push([...tr.querySelectorAll('td')].map(td => td.textContent));

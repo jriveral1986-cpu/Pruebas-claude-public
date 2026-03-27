@@ -304,7 +304,6 @@
         numHijosInvalidos:   d.numHijosInvalidos   || 0,
       };
 
-      // Año de jubilación para ajuste AAx: año actual + años hasta jubilación
       const anioActual = new Date().getFullYear();
       const edadJub    = d.edadJubilacion || d.edad;
       const anioJub    = anioActual + Math.max(0, Math.round(edadJub - d.edad));
@@ -524,10 +523,11 @@
       // Tasa mensual compuesta equivalente a TASA_RP anual (3,31%)
       const tasaMensual = Math.pow(1 + TASA_RP * 12, 1/12) - 1;
 
+      const anioInicioRP = new Date().getFullYear();
       for (let a = 1; a <= 35 && saldo > 0; a++) {
         const edadActual  = d.edad + (a - 1);
         // Recalcular pensión al inicio de cada año con saldo y edad actuales
-        const rpAño       = calcularPensionRP(saldo, edadActual, d.sexo, uf, comisionDec, familia);
+        const rpAño       = calcularPensionRP(saldo, edadActual, d.sexo, uf, comisionDec, familia, anioInicioRP + (a - 1));
         const retiro      = rpAño.pension;          // pensión bruta del año
         const saldoInicio = saldo;
 

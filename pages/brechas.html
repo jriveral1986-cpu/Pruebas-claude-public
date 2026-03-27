@@ -279,7 +279,10 @@
       await cargarAFP();
       const uf          = d.uf || 39717;
       const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
-      const rp          = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, getFamilia());
+      const anioActual  = new Date().getFullYear();
+      const edadJub     = d.edadJubilacion || d.edad;
+      const anioJub     = anioActual + Math.max(0, Math.round(edadJub - d.edad));
+      const rp          = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, getFamilia(), anioJub);
       rpResult          = rp;
       pensionEstimada   = rp.pensionTotal; // líquida + PGU
 
@@ -374,7 +377,10 @@
       await cargarTablas();
       const uf          = d.uf || 39717;
       const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
-      const rp          = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, getFamilia());
+      const anioActual2 = new Date().getFullYear();
+      const edadJub2    = d.edadJubilacion || d.edad;
+      const anioJub2    = anioActual2 + Math.max(0, Math.round(edadJub2 - d.edad));
+      const rp          = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, getFamilia(), anioJub2);
       rpResult          = rp;
       pensionEstimada   = rp.pensionTotal;
 
