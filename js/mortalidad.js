@@ -81,6 +81,55 @@ export function getCRUCalculado(sexo, edad, tasaMensual) {
 }
 
 /**
+ * CRU para Renta Vitalicia desde tablas RV-2020 a tasa de mercado RV.
+ * Aplica mejoramiento AAx (mismos factores que B-2020 por NCG N°306) si se provee anioJubilacion.
+ *
+ * A diferencia de calcularCNUConMejoramiento (RP), aquí no existe una tabla CRU
+ * pre-computada oficial para RV, por lo que el CRU se calcula directamente desde qx.
+ *
+ * @param {string} sexo - 'M' | 'F'
+ * @param {number} edad
+ * @param {number} tasaMensualRV - tasa mensual mercado RV (ej. TASA_RV = 0.0276/12)
+ * @param {number|null} anioJubilacion
+ * @returns {number} CRU_RV en meses
+ */
+export function getCRURentaVitalicia(sexo, edad, tasaMensualRV, anioJubilacion = null) {
+  if (!_tablas) return 200;
+  const tablaQx  = sexo === 'M' ? _tablas.rv2020_hombre : _tablas.rv2020_mujer;
+  const aaxBidim = _tablas.aax
+    ? (sexo === 'M' ? _tablas.aax.b2020_hombre : _tablas.aax.b2020_mujer)
+    : null;
+  if (!tablaQx) return 200;
+
+  const edadBase = Math.floor(edad);
+  const tm = _tablas.aax?.anioTabla ?? 2020;
+
+  // Pre-computar factor de mejoramiento por edad (NCG N°306, mismos AAx para RP y RV)
+  let factorMejora = null;
+  if (aaxBidim && anioJubilacion && anioJubilacion > tm) {
+    factorMejora = new Array(111);
+    for (let x = edadBase; x <= 110; x++) {
+      let f = 1;
+      for (let y = tm + 1; y <= anioJubilacion; y++) f *= (1 - getAAxParaAnio(aaxBidim, x, y));
+      factorMejora[x] = f;
+    }
+  }
+
+  let cru = 0, px = 1;
+  for (let k = 1; k <= (110 - edadBase) * 12; k++) {
+    const x   = Math.min(edadBase + Math.floor((k - 1) / 12), 110);
+    const row = tablaQx[x];
+    if (!row || row.qx >= 1) break;
+    const qx       = factorMejora ? row.qx * (factorMejora[x] ?? 1) : row.qx;
+    const qMensual = 1 - Math.pow(1 - qx, 1 / 12);
+    px *= (1 - qMensual);
+    if (px < 1e-10) break;
+    cru += px * Math.pow(1 + tasaMensualRV, -k);
+  }
+  return cru;
+}
+
+/**
  * Extrapolates CRU for ages BELOW the pre-computed table minimum,
  * using the slope of the two youngest entries in the table.
  * For ages within the table range, delegates to getCRU().

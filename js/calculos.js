@@ -4,14 +4,17 @@
  * All monetary values in CLP.
  */
 
-import { getCRU, getCRUExtrapolado, getCRUReversional, calcularCNUConMejoramiento, esperanzaVida } from './mortalidad.js';
+import { getCRU, getCRUExtrapolado, getCRUReversional, calcularCNUConMejoramiento, getCRURentaVitalicia, esperanzaVida } from './mortalidad.js';
 
 // ============================================================
 // CONSTANTES VIGENTES — SP Chile, marzo 2026
 // ============================================================
 
-/** Tasa técnica RP: Circular SP N°2407, enero 2026 */
+/** Tasa técnica RP (TITRP): Circular SP N°2407, enero 2026 — se recalcula trimestralmente */
 export const TASA_RP = 0.0331 / 12;
+
+/** Tasa de mercado RV — vejez, promedio feb 2026 (SP Chile, spensiones.cl/apps/tasas/tasasRentasVitalicias.php) */
+export const TASA_RV = 0.0276 / 12;
 
 /** Tope imponible = 87.8 × UF */
 export function calcularTopeImponible(uf) {
@@ -404,25 +407,29 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0,
  *             pensionSinFamilia, impactoFamilia, cnuDetalle }}
  */
 export function calcularPensionRV(saldo, edad, sexo, uf, familia = null, anioJubilacion = null) {
-  const FACTOR_RV = 1.08; // RV-2020 es más conservadora que B-2020
+  // CRU_RV desde tablas RV-2020 + AAx a tasa mercado 2.76% (SP Chile, feb 2026)
+  const cruRVSinMejora = getCRURentaVitalicia(sexo, edad, TASA_RV);
+  const cruRVConMejora = anioJubilacion
+    ? getCRURentaVitalicia(sexo, edad, TASA_RV, anioJubilacion)
+    : cruRVSinMejora;
+
+  // Factor relativo RV/RP para escalar CRU de beneficiarios en calcularCNUFamiliar
+  const cruRPBase     = getCRU(sexo, edad);
+  const factorTablaRV = cruRPBase > 0 ? cruRVConMejora / cruRPBase : 1.08;
 
   let cnuDetalle = null;
   let cnu;
   if (familia && (familia.tienePareja || familia.numHijosMenores > 0 ||
       familia.numHijosEstudiantes > 0 || familia.numHijosInvalidos > 0)) {
-    cnuDetalle = calcularCNUFamiliar(edad, sexo, familia, FACTOR_RV, anioJubilacion);
+    cnuDetalle = calcularCNUFamiliar(edad, sexo, familia, factorTablaRV, anioJubilacion);
     cnu = cnuDetalle.cnuTotal;
   } else {
-    const cnuBaseSinMejora = getCRU(sexo, edad);
-    const cnuBase = anioJubilacion
-      ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
-      : cnuBaseSinMejora;
-    cnu = cnuBase * FACTOR_RV;
+    cnu = cruRVConMejora;
     cnuDetalle = {
       cnuTotal: cnu, cnuAfiliado: cnu, cnuConyuge: 0, cnuHijos: 0,
       factorFamilia: 1, tieneImpacto: false,
-      cnuSinMejora: cnuBaseSinMejora * FACTOR_RV,
-      pctAumentoMejora: cnuBaseSinMejora > 0 ? ((cnuBase - cnuBaseSinMejora) / cnuBaseSinMejora) * 100 : 0,
+      cnuSinMejora: cruRVSinMejora,
+      pctAumentoMejora: cruRVSinMejora > 0 ? ((cruRVConMejora - cruRVSinMejora) / cruRVSinMejora) * 100 : 0,
       anioJubilacion,
     };
   }
@@ -430,8 +437,8 @@ export function calcularPensionRV(saldo, edad, sexo, uf, familia = null, anioJub
   const pension = cnu > 0 ? saldo / cnu : 0;
 
   // Pensión sin familia para comparación
-  const pensionSinFamilia = getCRU(sexo, edad) * FACTOR_RV > 0
-    ? saldo / (getCRU(sexo, edad) * FACTOR_RV)
+  const pensionSinFamilia = cruRVSinMejora > 0
+    ? saldo / cruRVSinMejora
     : pension;
   const impactoFamilia = pensionSinFamilia - pension;
 
