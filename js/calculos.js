@@ -343,9 +343,11 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0,
   // Bug fix: esperanzaVida necesita nombre de tabla, no null
   const tablaRP   = sexo === 'M' ? 'b2020_hombre' : 'b2020_mujer';
   const mesesEspe = Math.max(12, (esperanzaVida(tablaRP, edad) - edad) * 12);
-  const pension   = cnu > 0
+  // Redondear a 2 decimales UF (igual que SCOMP) antes de convertir a CLP
+  const _pensionExacta = cnu > 0
     ? saldo / cnu
     : (tasaMens > 0 ? saldo * tasaMens / (1 - Math.pow(1 + tasaMens, -mesesEspe)) : 0);
+  const pension = uf > 0 ? Math.round((_pensionExacta / uf) * 100) / 100 * uf : _pensionExacta;
 
   // Pensión sin familia (solo CRU del afiliado) para mostrar el impacto
   const cruSolo = getCRU(sexo, edad);
@@ -422,7 +424,9 @@ export function calcularPensionRV(saldo, edad, sexo, uf, familia = null, anioJub
     };
   }
 
-  const pension = cnu > 0 ? saldo / cnu : 0;
+  // Redondear a 2 decimales UF (igual que SCOMP)
+  const _pensionRVExacta = cnu > 0 ? saldo / cnu : 0;
+  const pension = uf > 0 ? Math.round((_pensionRVExacta / uf) * 100) / 100 * uf : _pensionRVExacta;
 
   // Pensión sin familia para comparación
   const pensionSinFamilia = cruRVSinMejora > 0
