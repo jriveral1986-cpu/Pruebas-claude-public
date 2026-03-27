@@ -1,49 +1,150 @@
 {
-  "_fecha": "2026-03-19",
-  "_fuente": "SP Chile — cache fallback",
+  "_fecha": "2026-03-26",
+  "_fuente": "SP Chile — fetch automático",
   "A": {
-    "capital":   { "valor": 86069.50,  "fecha": "2026-03-19" },
-    "cuprum":    { "valor": 107234.82, "fecha": "2026-03-19" },
-    "habitat":   { "valor": 97451.63,  "fecha": "2026-03-19" },
-    "modelo":    { "valor": 63812.44,  "fecha": "2026-03-19" },
-    "planvital": { "valor": 79234.51,  "fecha": "2026-03-19" },
-    "provida":   { "valor": 91872.34,  "fecha": "2026-03-19" },
-    "uno":       { "valor": 56234.17,  "fecha": "2026-03-19" }
+    "capital": {
+      "valor": 84632.16,
+      "fecha": "2026-03-25"
+    },
+    "cuprum": {
+      "valor": 88133.73,
+      "fecha": "2026-03-25"
+    },
+    "habitat": {
+      "valor": 89884.21,
+      "fecha": "2026-03-25"
+    },
+    "modelo": {
+      "valor": 85598.4,
+      "fecha": "2026-03-25"
+    },
+    "planvital": {
+      "valor": 82243.9,
+      "fecha": "2026-03-25"
+    },
+    "provida": {
+      "valor": 87323.21,
+      "fecha": "2026-03-25"
+    },
+    "uno": {
+      "valor": 88833.57,
+      "fecha": "2026-03-25"
+    }
   },
   "B": {
-    "capital":   { "valor": 74423.43, "fecha": "2026-03-19" },
-    "cuprum":    { "valor": 93451.82, "fecha": "2026-03-19" },
-    "habitat":   { "valor": 84123.55, "fecha": "2026-03-19" },
-    "modelo":    { "valor": 55234.18, "fecha": "2026-03-19" },
-    "planvital": { "valor": 68451.27, "fecha": "2026-03-19" },
-    "provida":   { "valor": 79834.61, "fecha": "2026-03-19" },
-    "uno":       { "valor": 48123.44, "fecha": "2026-03-19" }
+    "capital": {
+      "valor": 73357.3,
+      "fecha": "2026-03-25"
+    },
+    "cuprum": {
+      "valor": 75402.43,
+      "fecha": "2026-03-25"
+    },
+    "habitat": {
+      "valor": 77123.92,
+      "fecha": "2026-03-25"
+    },
+    "modelo": {
+      "valor": 70977.05,
+      "fecha": "2026-03-25"
+    },
+    "planvital": {
+      "valor": 72773.35,
+      "fecha": "2026-03-25"
+    },
+    "provida": {
+      "valor": 71390.65,
+      "fecha": "2026-03-25"
+    },
+    "uno": {
+      "valor": 72642.91,
+      "fecha": "2026-03-25"
+    }
   },
   "C": {
-    "capital":   { "valor": 71238.33, "fecha": "2026-03-19" },
-    "cuprum":    { "valor": 89234.71, "fecha": "2026-03-19" },
-    "habitat":   { "valor": 80451.28, "fecha": "2026-03-19" },
-    "modelo":    { "valor": 52812.34, "fecha": "2026-03-19" },
-    "planvital": { "valor": 65234.55, "fecha": "2026-03-19" },
-    "provida":   { "valor": 76123.42, "fecha": "2026-03-19" },
-    "uno":       { "valor": 45812.61, "fecha": "2026-03-19" }
+    "capital": {
+      "valor": 70336.85,
+      "fecha": "2026-03-25"
+    },
+    "cuprum": {
+      "valor": 79885.26,
+      "fecha": "2026-03-25"
+    },
+    "habitat": {
+      "valor": 79894.08,
+      "fecha": "2026-03-25"
+    },
+    "modelo": {
+      "valor": 74810.31,
+      "fecha": "2026-03-25"
+    },
+    "planvital": {
+      "valor": 138717.97,
+      "fecha": "2026-03-25"
+    },
+    "provida": {
+      "valor": 66310.86,
+      "fecha": "2026-03-25"
+    }
   },
   "D": {
-    "capital":   { "valor": 55588.61, "fecha": "2026-03-19" },
-    "cuprum":    { "valor": 69451.38, "fecha": "2026-03-19" },
-    "habitat":   { "valor": 62812.45, "fecha": "2026-03-19" },
-    "modelo":    { "valor": 41234.18, "fecha": "2026-03-19" },
-    "planvital": { "valor": 50812.34, "fecha": "2026-03-19" },
-    "provida":   { "valor": 59451.27, "fecha": "2026-03-19" },
-    "uno":       { "valor": 35812.55, "fecha": "2026-03-19" }
+    "capital": {
+      "valor": 55116.19,
+      "fecha": "2026-03-25"
+    },
+    "cuprum": {
+      "valor": 57889.68,
+      "fecha": "2026-03-25"
+    },
+    "habitat": {
+      "valor": 58860.35,
+      "fecha": "2026-03-25"
+    },
+    "modelo": {
+      "valor": 54769.46,
+      "fecha": "2026-03-25"
+    },
+    "planvital": {
+      "valor": 53110.11,
+      "fecha": "2026-03-25"
+    },
+    "provida": {
+      "valor": 52685.32,
+      "fecha": "2026-03-25"
+    },
+    "uno": {
+      "valor": 58590.75,
+      "fecha": "2026-03-25"
+    }
   },
   "E": {
-    "capital":   { "valor": 67719.47, "fecha": "2026-03-19" },
-    "cuprum":    { "valor": 84451.62, "fecha": "2026-03-19" },
-    "habitat":   { "valor": 76234.38, "fecha": "2026-03-19" },
-    "modelo":    { "valor": 50123.44, "fecha": "2026-03-19" },
-    "planvital": { "valor": 61812.27, "fecha": "2026-03-19" },
-    "provida":   { "valor": 72451.51, "fecha": "2026-03-19" },
-    "uno":       { "valor": 43234.62, "fecha": "2026-03-19" }
+    "capital": {
+      "valor": 66870.82,
+      "fecha": "2026-03-25"
+    },
+    "cuprum": {
+      "valor": 69269.81,
+      "fecha": "2026-03-25"
+    },
+    "habitat": {
+      "valor": 63325.56,
+      "fecha": "2026-03-25"
+    },
+    "modelo": {
+      "valor": 67158.7,
+      "fecha": "2026-03-25"
+    },
+    "planvital": {
+      "valor": 106689.03,
+      "fecha": "2026-03-25"
+    },
+    "provida": {
+      "valor": 62135.89,
+      "fecha": "2026-03-25"
+    },
+    "uno": {
+      "valor": 68182.98,
+      "fecha": "2026-03-25"
+    }
   }
 }

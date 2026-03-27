@@ -288,8 +288,12 @@
         numHijosInvalidos:   d.numHijosInvalidos   || 0,
       };
 
-      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, familia);
-      const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf, familia);
+      const anioActual = new Date().getFullYear();
+      const edadJub    = d.edadJubilacion || d.edad;
+      const anioJub    = anioActual + Math.max(0, Math.round(edadJub - d.edad));
+
+      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, familia, anioJub);
+      const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf, familia, anioJub);
 
       // RP
       document.getElementById('rpPension').textContent      = formatCLP(rp.pension);
@@ -381,9 +385,10 @@
       const rows        = proyectarSaldo(d.saldoTotal, aporte, tasa, anos);
       const tbody       = document.getElementById('cuerpoProyeccion');
       tbody.innerHTML   = '';
+      const anioBase = new Date().getFullYear();
       rows.forEach(r => {
-        const rp  = calcularPensionRP(r.saldo, d.edad + r.ano, d.sexo, uf);
-        const rv  = calcularPensionRV(r.saldo, d.edad + r.ano, d.sexo, uf);
+        const rp  = calcularPensionRP(r.saldo, d.edad + r.ano, d.sexo, uf, 0, null, anioBase + r.ano);
+        const rv  = calcularPensionRV(r.saldo, d.edad + r.ano, d.sexo, uf, null, anioBase + r.ano);
         const tr  = document.createElement('tr');
         tr.innerHTML = `
           <td>Año ${r.ano}</td>

@@ -4,7 +4,7 @@
  * All monetary values in CLP.
  */
 
-import { getCRU, getCRUExtrapolado, getCRUReversional, esperanzaVida } from './mortalidad.js';
+import { getCRU, getCRUExtrapolado, getCRUReversional, calcularCNUConMejoramiento, esperanzaVida } from './mortalidad.js';
 
 // ============================================================
 // CONSTANTES VIGENTES — SP Chile, marzo 2026
@@ -236,10 +236,12 @@ function calcularAnualidadLimitada(meses) {
  * @param {number}  familia.numHijosMenores   - hijos < 18 años
  * @param {number}  familia.numHijosEstudiantes - hijos 18–24 estudiantes
  * @param {number}  familia.numHijosInvalidos  - hijos inválidos (de por vida)
- * @param {number}  factorTabla - 1.0 para RP (B-2020), 1.08 para RV (aproxima RV-2020)
- * @returns {{ cnuTotal, cnuAfiliado, cnuConyuge, cnuHijos, factorFamilia, tieneImpacto }}
+ * @param {number}  factorTabla    - 1.0 para RP (B-2020), 1.08 para RV (aproxima RV-2020)
+ * @param {number}  [anioJubilacion] - año de jubilación para ajuste AAx (ej. 2026)
+ * @returns {{ cnuTotal, cnuAfiliado, cnuConyuge, cnuHijos, factorFamilia, tieneImpacto,
+ *             cnuSinMejora, pctAumentoMejora, anioJubilacion }}
  */
-export function calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0) {
+export function calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0, anioJubilacion = null) {
   const {
     tienePareja         = false,
     edadConyuge         = 40,
@@ -249,8 +251,20 @@ export function calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0) {
     numHijosInvalidos   = 0,
   } = familia || {};
 
+  // CNU sin mejoramiento (tabla 2020 pre-computada)
+  const cnuSinMejora = getCRU(sexo, edad);
+
+  // CNU con mejoramiento si se provee año de jubilación
+  const cnuBase = anioJubilacion
+    ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
+    : cnuSinMejora;
+
+  const pctAumentoMejora = cnuSinMejora > 0
+    ? ((cnuBase - cnuSinMejora) / cnuSinMejora) * 100
+    : 0;
+
   // factorTabla: 1.0 = B-2020 (RP), 1.08 = aproximación RV-2020 (RV)
-  const cnuAfiliado = getCRU(sexo, edad) * factorTabla;
+  const cnuAfiliado = cnuBase * factorTabla;
 
   const totalHijosComunes = numHijosMenores + numHijosEstudiantes + numHijosInvalidos;
   const pctConyuge = tienePareja ? (totalHijosComunes > 0 ? 0.50 : 0.60) : 0;
@@ -279,7 +293,12 @@ export function calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0) {
   const tieneImpacto   = cnuTotal > cnuAfiliado;
   const factorFamilia  = cnuAfiliado > 0 ? cnuTotal / cnuAfiliado : 1;
 
-  return { cnuTotal, cnuAfiliado, cnuConyuge, cnuHijos, factorFamilia, tieneImpacto };
+  return {
+    cnuTotal, cnuAfiliado, cnuConyuge, cnuHijos, factorFamilia, tieneImpacto,
+    cnuSinMejora: cnuSinMejora * factorTabla,
+    pctAumentoMejora,
+    anioJubilacion,
+  };
 }
 
 // ============================================================
@@ -301,20 +320,30 @@ export function calcularSaldoDesdeNumCuotas(numCuotas, valorCuota) {
  * @param {string} sexo  'M' | 'F'
  * @param {number} uf
  * @param {number} comisionAfpDecimal - tasa comisión AFP en decimal (ej 0.0127)
- * @param {object|null} familia - grupo familiar para cálculo de CNU (opcional)
+ * @param {object|null} familia         - grupo familiar para cálculo de CNU (opcional)
+ * @param {number|null} anioJubilacion  - año de jubilación para ajuste AAx (opcional)
  * @returns {{ pension, pensionUF, pensionLiquida, desglose, pgu, pensionTotal, anosEstimados,
  *             pensionSinFamilia, impactoFamilia, cnuDetalle }}
  */
-export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0, familia = null) {
+export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0, familia = null, anioJubilacion = null) {
   // CNU total (afiliado solo o con grupo familiar)
   let cnuDetalle = null;
   let cnu;
   if (familia && (familia.tienePareja || familia.numHijosMenores > 0 ||
       familia.numHijosEstudiantes > 0 || familia.numHijosInvalidos > 0)) {
-    cnuDetalle = calcularCNUFamiliar(edad, sexo, familia);
+    cnuDetalle = calcularCNUFamiliar(edad, sexo, familia, 1.0, anioJubilacion);
     cnu = cnuDetalle.cnuTotal;
   } else {
-    cnu = getCRU(sexo, edad);
+    const cnuSinMejora = getCRU(sexo, edad);
+    cnu = anioJubilacion
+      ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
+      : cnuSinMejora;
+    cnuDetalle = {
+      cnuTotal: cnu, cnuAfiliado: cnu, cnuConyuge: 0, cnuHijos: 0,
+      factorFamilia: 1, tieneImpacto: false,
+      cnuSinMejora, pctAumentoMejora: cnuSinMejora > 0 ? ((cnu - cnuSinMejora) / cnuSinMejora) * 100 : 0,
+      anioJubilacion,
+    };
   }
 
   const tasaMens  = TASA_RP;
@@ -369,21 +398,33 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0,
  * @param {number} edad
  * @param {string} sexo
  * @param {number} uf
- * @param {object|null} familia - grupo familiar (opcional)
+ * @param {object|null} familia         - grupo familiar (opcional)
+ * @param {number|null} anioJubilacion  - año de jubilación para ajuste AAx (opcional)
  * @returns {{ pension, pensionUF, pensionLiquida, desglose, pgu, pensionTotal,
  *             pensionSinFamilia, impactoFamilia, cnuDetalle }}
  */
-export function calcularPensionRV(saldo, edad, sexo, uf, familia = null) {
+export function calcularPensionRV(saldo, edad, sexo, uf, familia = null, anioJubilacion = null) {
   const FACTOR_RV = 1.08; // RV-2020 es más conservadora que B-2020
 
   let cnuDetalle = null;
   let cnu;
   if (familia && (familia.tienePareja || familia.numHijosMenores > 0 ||
       familia.numHijosEstudiantes > 0 || familia.numHijosInvalidos > 0)) {
-    cnuDetalle = calcularCNUFamiliar(edad, sexo, familia, FACTOR_RV);
+    cnuDetalle = calcularCNUFamiliar(edad, sexo, familia, FACTOR_RV, anioJubilacion);
     cnu = cnuDetalle.cnuTotal;
   } else {
-    cnu = getCRU(sexo, edad) * FACTOR_RV;
+    const cnuBaseSinMejora = getCRU(sexo, edad);
+    const cnuBase = anioJubilacion
+      ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
+      : cnuBaseSinMejora;
+    cnu = cnuBase * FACTOR_RV;
+    cnuDetalle = {
+      cnuTotal: cnu, cnuAfiliado: cnu, cnuConyuge: 0, cnuHijos: 0,
+      factorFamilia: 1, tieneImpacto: false,
+      cnuSinMejora: cnuBaseSinMejora * FACTOR_RV,
+      pctAumentoMejora: cnuBaseSinMejora > 0 ? ((cnuBase - cnuBaseSinMejora) / cnuBaseSinMejora) * 100 : 0,
+      anioJubilacion,
+    };
   }
 
   const pension = cnu > 0 ? saldo / cnu : 0;

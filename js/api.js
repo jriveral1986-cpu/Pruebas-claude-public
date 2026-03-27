@@ -78,6 +78,26 @@ export async function getUF() {
 }
 
 /**
+ * Get UF value for a specific date from mindicador.cl.
+ * @param {string} fecha - ISO date 'YYYY-MM-DD'
+ * @returns {Promise<{valor: number, fecha: string}>}
+ */
+export async function getUFFecha(fecha) {
+  const cacheKey = `uf_${fecha}`;
+  if (_cache[cacheKey]) return _cache[cacheKey];
+  try {
+    const [y, m, d] = fecha.split('-');
+    const res  = await fetch(`${MINDICADOR}/uf/${d}-${m}-${y}`, { signal: AbortSignal.timeout(5000) });
+    const json = await res.json();
+    if (json.serie?.[0]) {
+      _cache[cacheKey] = { valor: json.serie[0].valor, fecha };
+      return _cache[cacheKey];
+    }
+  } catch { /* fall through */ }
+  return getUF(); // fallback to current
+}
+
+/**
  * Get current UTM value from mindicador.cl.
  * Fallback: hardcoded approximate value.
  *
@@ -92,6 +112,69 @@ export async function getUTM() {
     return _cache.utm;
   } catch {
     return { valor: 69889, fecha: 'fallback' };
+  }
+}
+
+/**
+ * Get UTM value for the month of a specific date from mindicador.cl.
+ * @param {string} fecha - ISO date 'YYYY-MM-DD'
+ * @returns {Promise<{valor: number, fecha: string}>}
+ */
+export async function getUTMFecha(fecha) {
+  const [y, m] = fecha.split('-');
+  const cacheKey = `utm_${y}_${m}`;
+  if (_cache[cacheKey]) return _cache[cacheKey];
+  try {
+    const res  = await fetch(`${MINDICADOR}/utm/${y}`, { signal: AbortSignal.timeout(5000) });
+    const json = await res.json();
+    // Find the entry matching the month
+    const entry = json.serie?.find(s => {
+      const d = new Date(s.fecha);
+      return d.getFullYear() === +y && (d.getMonth() + 1) === +m;
+    });
+    if (entry) {
+      _cache[cacheKey] = { valor: entry.valor, fecha: entry.fecha };
+      return _cache[cacheKey];
+    }
+  } catch { /* fall through */ }
+  return getUTM(); // fallback to current
+}
+
+/**
+ * Get valor cuota for a specific past date from the local historical cache.
+ * Returns null if the date is not available.
+ *
+ * @param {string} afp   - AFP id, e.g. 'habitat'
+ * @param {string} fondo - Fund letter: 'A'|'B'|'C'|'D'|'E'
+ * @param {string} fecha - ISO date string 'YYYY-MM-DD'
+ * @returns {Promise<{valor: number, fecha: string, fuente: string} | null>}
+ */
+export async function getValorCuotaFecha(afp, fondo, fecha) {
+  const afpKey = afp.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  try {
+    const base = location.pathname.includes('/pages/') ? '../' : './';
+    const res  = await fetch(`${base}data/vc_historico.json`);
+    const json = await res.json();
+    const valor = json[fondo]?.[fecha]?.[afpKey];
+    if (valor !== undefined) return { valor, fecha, fuente: 'historico-local' };
+  } catch { /* silent */ }
+  return null;
+}
+
+/**
+ * Returns sorted list of available dates in the historical cache for a given fund.
+ * @param {string} fondo - 'A'|'B'|'C'|'D'|'E'
+ * @returns {Promise<string[]>} sorted ISO date strings descending (newest first)
+ */
+export async function getFechasDisponibles(fondo) {
+  try {
+    const base = location.pathname.includes('/pages/') ? '../' : './';
+    const res  = await fetch(`${base}data/vc_historico.json`);
+    const json = await res.json();
+    const fechas = Object.keys(json[fondo] ?? {}).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
+    return fechas.sort((a, b) => b.localeCompare(a));
+  } catch {
+    return [];
   }
 }
 

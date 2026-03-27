@@ -104,7 +104,7 @@
         <!-- Valor cuota auto-fetch -->
         <div class="form-group">
           <label for="valorCuota">
-            Valor cuota actual
+            Valor cuota
             <span data-tip="Precio de cada cuota del fondo en CLP. Se descarga desde SP Chile automáticamente." aria-label="Información">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             </span>
@@ -112,6 +112,19 @@
           <input type="number" id="valorCuota" placeholder="Se carga al seleccionar AFP y Fondo" step="0.01" readonly>
           <span class="hint" id="statusVC">Selecciona AFP y Fondo para cargar el valor cuota.</span>
           <span id="fuenteVC" style="margin-top:4px;display:block;"></span>
+        </div>
+
+        <!-- Simulación con fecha histórica -->
+        <div class="form-group" style="margin-top:4px;">
+          <label class="radio-item" style="font-size:var(--text-sm);cursor:pointer;">
+            <input type="checkbox" id="chkFechaHistorica" style="margin-right:6px;">
+            Simular con fecha pasada (valor cuota histórico)
+          </label>
+          <div id="panelFechaHistorica" style="display:none;margin-top:10px;">
+            <label for="fechaHistorica" style="font-size:var(--text-sm);">Fecha de simulación</label>
+            <input type="date" id="fechaHistorica" style="margin-top:4px;">
+            <span class="hint" id="statusFechaHistorica">Selecciona una fecha para cargar el valor cuota de ese día.</span>
+          </div>
         </div>
       </div>
 
@@ -322,7 +335,7 @@
 
   <script type="module">
     import { initBtnActualizar, initSelectAFP, initSelectFondo, mostrarFuenteBadge, formatCLP } from '../js/ui.js';
-    import { getValorCuota, getUF }  from '../js/api.js';
+    import { getValorCuota, getValorCuotaFecha, getFechasDisponibles, getUF, getUFFecha, getUTMFecha } from '../js/api.js';
     import { Store }                  from '../js/store.js';
     import { calcularSaldoDesdeNumCuotas } from '../js/calculos.js';
 
@@ -385,6 +398,23 @@
       if (edad) document.getElementById('edadDisplay').value = `${edad} años`;
     }
 
+    // ── Auto-ajuste edad de jubilación según sexo ─────
+    // Evita que el default 65 se aplique a mujeres (legal: 60)
+    const EDAD_JUB_HOMBRE = 65;
+    const EDAD_JUB_MUJER  = 60;
+    function ajustarEdadJubilacionPorSexo(sexo) {
+      const input = document.getElementById('edadJubilacion');
+      const val   = parseInt(input.value);
+      if (sexo === 'F' && val === EDAD_JUB_HOMBRE) input.value = EDAD_JUB_MUJER;
+      if (sexo === 'M' && val === EDAD_JUB_MUJER)  input.value = EDAD_JUB_HOMBRE;
+    }
+    document.querySelectorAll('input[name="sexo"]').forEach(r =>
+      r.addEventListener('change', e => ajustarEdadJubilacionPorSexo(e.target.value))
+    );
+    // Aplica al cargar si ya hay sexo guardado
+    const sexoGuardado = document.querySelector('input[name="sexo"]:checked')?.value;
+    if (sexoGuardado && !d.edadJubilacion) ajustarEdadJubilacionPorSexo(sexoGuardado);
+
     // ── Auto-fetch valor cuota ────────────────────────
     async function autoFetchVC() {
       const afp   = document.getElementById('selectAFP').value;
@@ -394,6 +424,32 @@
       const statusVC = document.getElementById('statusVC');
       const inputVC  = document.getElementById('valorCuota');
       const fuenteVC = document.getElementById('fuenteVC');
+
+      // Si está activo el modo histórico, usar esa fecha
+      const usaHistorico = document.getElementById('chkFechaHistorica').checked;
+      const fechaHist    = document.getElementById('fechaHistorica').value;
+
+      if (usaHistorico && fechaHist) {
+        statusVC.textContent = `Buscando valor cuota del ${fechaHist}…`;
+        statusVC.className   = 'hint loading';
+        inputVC.classList.add('loading');
+        const dato = await getValorCuotaFecha(afp, fondo, fechaHist);
+        inputVC.classList.remove('loading');
+        if (dato?.valor) {
+          inputVC.value        = dato.valor;
+          statusVC.textContent = `Histórico del ${dato.fecha}`;
+          statusVC.className   = 'hint success';
+          mostrarFuenteBadge(fuenteVC, 'historico-local');
+          Store.guardar({ valorCuota: dato.valor, fechaVC: dato.fecha, afp, fondo, usaFechaHistorica: true, fechaHistorica: fechaHist });
+          recalcularSaldo();
+        } else {
+          inputVC.value        = '';
+          statusVC.textContent = `Sin datos para el ${fechaHist} — prueba otra fecha.`;
+          statusVC.className   = 'hint warning';
+          fuenteVC.innerHTML   = '';
+        }
+        return;
+      }
 
       statusVC.textContent = 'Buscando valor cuota en SP Chile…';
       statusVC.className   = 'hint loading';
@@ -410,7 +466,7 @@
         statusVC.textContent = `Fuente: ${srcLabel} — ${dato.fecha || ''}`;
         statusVC.className   = 'hint success';
         mostrarFuenteBadge(fuenteVC, dato.fuente);
-        Store.guardar({ valorCuota: dato.valor, fechaVC: dato.fecha, afp, fondo });
+        Store.guardar({ valorCuota: dato.valor, fechaVC: dato.fecha, afp, fondo, usaFechaHistorica: false, fechaHistorica: null });
         recalcularSaldo();
       } else {
         inputVC.value = '';
@@ -420,14 +476,63 @@
       }
     }
 
+    // ── Fecha histórica ───────────────────────────────
+    const chkHistorico   = document.getElementById('chkFechaHistorica');
+    const panelHistorico = document.getElementById('panelFechaHistorica');
+    const inputFecha     = document.getElementById('fechaHistorica');
+    const statusFecha    = document.getElementById('statusFechaHistorica');
+
+    chkHistorico.addEventListener('change', async () => {
+      panelHistorico.style.display = chkHistorico.checked ? '' : 'none';
+      if (chkHistorico.checked) {
+        // Populate min/max from available dates in historico
+        const fondo = document.getElementById('selectFondo').value || 'D';
+        const fechas = await getFechasDisponibles(fondo);
+        if (fechas.length > 0) {
+          inputFecha.min = fechas[fechas.length - 1]; // oldest
+          inputFecha.max = fechas[0];                 // newest
+          if (!inputFecha.value) inputFecha.value = fechas[0];
+          statusFecha.textContent = `Disponible desde ${fechas[fechas.length - 1]} hasta ${fechas[0]}`;
+        } else {
+          statusFecha.textContent = 'Sin histórico disponible. Ejecuta el backfill primero.';
+        }
+        const f = inputFecha.value;
+        await Promise.all([autoFetchVC(), cargarIndicadores(f)]);
+      } else {
+        // Restore current values
+        await Promise.all([autoFetchVC(), cargarIndicadores()]);
+      }
+    });
+
+    inputFecha.addEventListener('change', async () => {
+      const f = inputFecha.value;
+      await Promise.all([autoFetchVC(), cargarIndicadores(f)]);
+    });
+
     // Trigger auto-fetch when AFP or Fondo change
     document.getElementById('selectAFP').addEventListener('change',   autoFetchVC);
     document.getElementById('selectFondo').addEventListener('change', autoFetchVC);
 
-    // If already stored AFP+Fondo, auto-fetch on load
+    // If already stored AFP+Fondo, auto-fetch on load (restoring historical mode if active)
     if (d.afp && d.fondo) {
       // Wait for selects to be populated
-      setTimeout(autoFetchVC, 300);
+      setTimeout(async () => {
+        if (d.usaFechaHistorica && d.fechaHistorica) {
+          // Restore historical mode
+          chkHistorico.checked         = true;
+          panelHistorico.style.display = '';
+          inputFecha.value             = d.fechaHistorica;
+          const fechas = await getFechasDisponibles(document.getElementById('selectFondo').value || 'D');
+          if (fechas.length > 0) {
+            inputFecha.min = fechas[fechas.length - 1];
+            inputFecha.max = fechas[0];
+            statusFecha.textContent = `Disponible desde ${fechas[fechas.length - 1]} hasta ${fechas[0]}`;
+          }
+          await Promise.all([autoFetchVC(), cargarIndicadores(d.fechaHistorica)]);
+        } else {
+          autoFetchVC();
+        }
+      }, 300);
     }
 
     // Allow manual edit of valor cuota
@@ -500,13 +605,20 @@
       }
     });
 
-    // ── Load UF to show tope imponible ───────────────
-    getUF().then(uf => {
-      const tope = Math.round(87.8 * uf.valor);
+    // ── Indicadores (UF / UTM) ────────────────────────
+    async function cargarIndicadores(fecha = null) {
+      const [ufDato, utmDato] = await Promise.all([
+        fecha ? getUFFecha(fecha) : getUF(),
+        fecha ? getUTMFecha(fecha) : Promise.resolve(null),
+      ]);
+      const tope = Math.round(87.8 * ufDato.valor);
+      const fechaLabel = fecha ? ` (${fecha})` : '';
       document.getElementById('statusUF').textContent =
-        `UF: ${formatCLP(uf.valor)} · Tope imponible: ${formatCLP(tope)}`;
-      Store.guardar({ uf: uf.valor, topeImponible: tope });
-    });
+        `UF: ${formatCLP(ufDato.valor)}${fechaLabel} · Tope imponible: ${formatCLP(tope)}`;
+      Store.guardar({ uf: ufDato.valor, topeImponible: tope, ...(utmDato ? { utm: utmDato.valor } : {}) });
+    }
+
+    cargarIndicadores();
 
     // ── Form submit ──────────────────────────────────
     document.getElementById('formDatos').addEventListener('submit', e => {

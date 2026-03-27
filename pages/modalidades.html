@@ -201,6 +201,31 @@
       <div id="recomendacionFamiliar" class="card"></div>
     </div>
 
+    <!-- ── Capital Necesario Unitario ── -->
+    <div class="section" id="seccionCNU" style="display:none;">
+      <h2 class="section__title">Capital Necesario Unitario (CNU)</h2>
+      <div class="aviso aviso--info" style="margin-bottom:16px;">
+        El CNU es el divisor de la pensión de Retiro Programado: <strong>Pensión = Saldo ÷ CNU</strong>.
+        Se calcula sumando la probabilidad de sobrevida descontada a la tasa técnica.
+        A mayor CNU → menor pensión. La SP ajusta el CNU cada año aplicando el
+        <strong>factor de mejoramiento (AAx)</strong> que refleja el aumento de la esperanza de vida.
+      </div>
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="card card--highlight">
+          <h4>RP — Retiro Programado</h4>
+          <div id="cnuRPContenido">—</div>
+        </div>
+        <div class="card">
+          <h4>RV — Renta Vitalicia</h4>
+          <div id="cnuRVContenido">—</div>
+        </div>
+      </div>
+      <div class="aviso aviso--warning" style="font-size:var(--text-xs);">
+        Los factores de mejoramiento (AAx) son estimados. Para el CNU oficial, consulta la
+        Nota Técnica N°5 de la Superintendencia de Pensiones.
+      </div>
+    </div>
+
     <!-- ── Marco legal ── -->
     <div class="section">
       <h2 class="section__title">Marco Legal</h2>
@@ -259,6 +284,7 @@
       document.getElementById('seccionLongevidad').style.display   = '';
       document.getElementById('seccionRPDetalle').style.display    = '';
       document.getElementById('seccionSobrevivencia').style.display = '';
+      document.getElementById('seccionCNU').style.display          = '';
       init();
     }
 
@@ -278,8 +304,13 @@
         numHijosInvalidos:   d.numHijosInvalidos   || 0,
       };
 
-      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, familia);
-      const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf, familia);
+      // Año de jubilación para ajuste AAx: año actual + años hasta jubilación
+      const anioActual = new Date().getFullYear();
+      const edadJub    = d.edadJubilacion || d.edad;
+      const anioJub    = anioActual + Math.max(0, Math.round(edadJub - d.edad));
+
+      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, familia, anioJub);
+      const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf, familia, anioJub);
       rpPension = rp.pension;
       rvPension = rv.pension;
 
@@ -304,6 +335,53 @@
       actualizarLongevidad();
       generarRPDetalle(comisionDec, familia);
       renderSobrevivencia(rp.pension, rv.pension);
+      renderCNUSection(rp.cnuDetalle, rv.cnuDetalle, d.saldoTotal);
+    }
+
+    // ── Sección CNU ──────────────────────────────────
+    function renderCNUSection(cnuRP, cnuRV, saldo) {
+      if (!cnuRP || !cnuRV) return;
+
+      const anioJub = cnuRP.anioJubilacion;
+      const deltaAnios = anioJub ? anioJub - 2020 : 0;
+
+      function itemsCNU(cnu, label) {
+        const tieneGrupo = cnu.cnuConyuge > 0 || cnu.cnuHijos > 0;
+        const mejora = cnu.pctAumentoMejora ?? 0;
+        return `
+          <div class="resultado__item">
+            <span class="resultado__label">CNU afiliado (tabla 2020)</span>
+            <span class="resultado__valor" style="font-size:var(--text-base);font-weight:600;">${cnu.cnuSinMejora?.toFixed(1) ?? '—'} meses</span>
+          </div>
+          ${mejora > 0.01 ? `
+          <div class="resultado__item">
+            <span class="resultado__label">Ajuste mejoramiento ${anioJub ? `(+${deltaAnios} años)` : ''}</span>
+            <span class="resultado__valor" style="font-size:var(--text-base);color:var(--color-warning,#b45309);">+${mejora.toFixed(2)}%</span>
+          </div>` : ''}
+          ${cnu.cnuConyuge > 0 ? `
+          <div class="resultado__item">
+            <span class="resultado__label">+ CNU cónyuge (reversional)</span>
+            <span class="resultado__valor" style="font-size:var(--text-base);">+${cnu.cnuConyuge.toFixed(1)}</span>
+          </div>` : ''}
+          ${cnu.cnuHijos > 0 ? `
+          <div class="resultado__item">
+            <span class="resultado__label">+ CNU hijos</span>
+            <span class="resultado__valor" style="font-size:var(--text-base);">+${cnu.cnuHijos.toFixed(1)}</span>
+          </div>` : ''}
+          <div class="resultado__item" style="border-top:2px solid var(--color-border);padding-top:8px;margin-top:4px;">
+            <span class="resultado__label" style="font-weight:700;">CNU total</span>
+            <span class="resultado__valor resultado__valor--highlight" style="font-size:var(--text-xl);">${cnu.cnuTotal.toFixed(1)}</span>
+          </div>
+          <div style="margin-top:12px;padding:10px;background:var(--color-bg-alt,#f8f9fa);border-radius:var(--radius-md);font-size:var(--text-xs);color:var(--color-text-muted);text-align:center;">
+            Pensión = <strong>${formatCLP(saldo)}</strong> ÷ <strong>${cnu.cnuTotal.toFixed(1)}</strong> = <strong style="color:var(--color-primary);">${formatCLP(Math.round(saldo / cnu.cnuTotal))}/mes</strong>
+          </div>
+          ${anioJub ? `<div style="margin-top:8px;font-size:var(--text-xs);color:var(--color-text-muted);text-align:center;">Año de jubilación estimado: <strong>${anioJub}</strong></div>` : ''}`;
+      }
+
+      document.getElementById('cnuRPContenido').innerHTML =
+        `<div class="resultado" style="margin-top:12px;">${itemsCNU(cnuRP, 'RP')}</div>`;
+      document.getElementById('cnuRVContenido').innerHTML =
+        `<div class="resultado" style="margin-top:12px;">${itemsCNU(cnuRV, 'RV')}</div>`;
     }
 
     // ── Pensión de Sobrevivencia ──────────────────────
