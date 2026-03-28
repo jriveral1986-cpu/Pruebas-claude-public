@@ -518,6 +518,157 @@ export function calcularAportacionNecesaria(saldoActual, pensionObjetivo, edad, 
 // SCORE PREVISIONAL (0–100)
 // ============================================================
 
+// ============================================================
+// PROCESADORES POR TIPO DE JUBILACIÓN
+// ============================================================
+
+/**
+ * Vejez normal (Art. 3 DL 3.500).
+ * Edad legal: 65 hombres / 60 mujeres.
+ */
+export function procesarVejezNormal({ saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion }) {
+  const edadLegal = sexo === 'F' ? 60 : 65;
+  const acceso = {
+    cumple:     edad >= edadLegal,
+    edadAcceso: edadLegal,
+    edadActual: edad,
+    faltan:     Math.max(0, edadLegal - edad),
+  };
+  return {
+    acceso,
+    rp: calcularPensionRP(saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion),
+    rv: calcularPensionRV(saldo, edad, sexo, uf, familia, anioJubilacion),
+  };
+}
+
+/**
+ * Pensión anticipada (Art. 68 DL 3.500).
+ * Requiere: RP bruta ≥ 12 UF Y ≥ 70% del promedio de renta imponible del decenio.
+ */
+export function procesarAnticipada({ saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion, rentaPromedioDecenio, rentaImponible }) {
+  const rp    = calcularPensionRP(saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion);
+  const rv    = calcularPensionRV(saldo, edad, sexo, uf, familia, anioJubilacion);
+  const pension = rp.pension;
+  const pensUF  = uf > 0 ? pension / uf : 0;
+  const renta   = rentaPromedioDecenio || rentaImponible || 0;
+  const req12uf = pensUF >= 12;
+  const req70   = renta > 0 ? pension >= renta * 0.70 : null;
+  return {
+    acceso: {
+      cumple:      req12uf && req70 !== false,
+      rpBruta:     pension,
+      pensUF,
+      umbral12UF:  12 * uf,
+      umbral70pct: renta > 0 ? Math.round(renta * 0.70) : null,
+      req12uf,
+      req70,
+      renta,
+    },
+    rp,
+    rv,
+  };
+}
+
+/**
+ * Trabajo pesado (Ley 19.404).
+ * Rebaja la edad de acceso según tipo de puesto y meses cotizados en trabajo calificado.
+ */
+export function procesarTrabajoPesado({ saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion, tipoTrabajoPesado, mesesTrabajoPesado }) {
+  const tipoTP    = parseInt(tipoTrabajoPesado) || 2;
+  const mesesTP   = mesesTrabajoPesado || 0;
+  const factor    = tipoTP === 1 ? 0.4 : 0.2;
+  const maxRebaja = tipoTP === 1 ? 10  : 5;
+  const edadMin   = tipoTP === 1 ? 55  : 60;
+  const edadLegal = sexo === 'F' ? 60  : 65;
+  const rebaja    = Math.min((mesesTP / 12) * factor, maxRebaja);
+  const edadAcceso = Math.max(edadMin, Math.round(edadLegal - rebaja));
+  return {
+    acceso: {
+      cumple:      edad >= edadAcceso,
+      edadAcceso,
+      edadActual:  edad,
+      faltan:      Math.max(0, edadAcceso - edad),
+      tipoTP,
+      rebaja:      Math.round(rebaja * 10) / 10,
+      factor,
+      maxRebaja,
+      edadLegal,
+    },
+    rp: calcularPensionRP(saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion),
+    rv: calcularPensionRV(saldo, edad, sexo, uf, familia, anioJubilacion),
+  };
+}
+
+/**
+ * Invalidez del afiliado (Art. 54 DL 3.500).
+ *
+ * Total (pérdida ≥ 2/3):  pensión = saldo / CRU
+ * Parcial (≥ 50% < 2/3):  pensión = 0,50 × (saldo / CRU)
+ *
+ * SIS (Seguro de Invalidez y Sobrevivencia, tasa 1,54% empleador):
+ *   complementa hasta 70% de la renta promedio del decenio,
+ *   con tope en 70% × 87,8 UF (tope imponible).
+ */
+export function procesarInvalidez({ saldo, edad, sexo, uf, comisionDec, anioJubilacion, tipoInvalidez, rentaPromedioInvalidez }) {
+  const tipo      = tipoInvalidez || 'total';
+  const cruBase   = calcularCRU_RP(sexo, edad, TASA_RP, anioJubilacion);
+  const brutaBase = cruBase > 0 ? saldo / cruBase : 0;
+  const pensionBruta = tipo === 'parcial' ? brutaBase * 0.5 : brutaBase;
+
+  const rentaRef     = rentaPromedioInvalidez || 0;
+  const topeImponible = 87.8 * uf;
+  const limSIS       = rentaRef > 0 ? Math.min(rentaRef * 0.70, 0.70 * topeImponible) : 0;
+  const complementoSIS = rentaRef > 0 ? Math.max(0, Math.round(limSIS - pensionBruta)) : 0;
+
+  const desglose    = calcularPensionLiquida(pensionBruta, comisionDec);
+  return {
+    tipo,
+    pensionBruta:    Math.round(pensionBruta),
+    pensionNeta:     desglose.liquida,
+    complementoSIS,
+    pensionTotal:    desglose.liquida + complementoSIS,
+    cruBase,
+    desglose,
+    rentaRef,
+    limSIS:          Math.round(limSIS),
+  };
+}
+
+/**
+ * Dispatcher: selecciona el procesador según `d.tipoJubilacion`.
+ * Retorna `{ acceso, rp, rv }` para tipos de vejez, o `{ invalidez }` para invalidez.
+ * @param {object} d            — datos del store
+ * @param {number} uf
+ * @param {number} comisionDec
+ * @param {object} familia
+ */
+export function procesarPension(d, uf, comisionDec, familia) {
+  const tipo       = d.tipoJubilacion || 'vejez_normal';
+  const anioActual = new Date().getFullYear();
+  const edadJub    = d.edadJubilacion || d.edad;
+  const anioJub    = anioActual + Math.max(0, Math.round(edadJub - d.edad));
+  const saldoEfectivo = d.saldoTotal + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
+
+  const base = { saldo: saldoEfectivo, edad: d.edad, sexo: d.sexo, uf, comisionDec, familia, anioJubilacion: anioJub };
+
+  switch (tipo) {
+    case 'vejez_normal':
+      return procesarVejezNormal(base);
+    case 'anticipada':
+      return procesarAnticipada({ ...base, rentaPromedioDecenio: d.rentaPromedioDecenio || 0, rentaImponible: d.rentaImponible || 0 });
+    case 'trabajo_pesado':
+      return procesarTrabajoPesado({ ...base, tipoTrabajoPesado: d.tipoTrabajoPesado || 2, mesesTrabajoPesado: d.mesesTrabajoPesado || 0 });
+    case 'invalidez':
+      return procesarInvalidez({ ...base, tipoInvalidez: d.tipoInvalidez || 'total', rentaPromedioInvalidez: d.rentaPromedioInvalidez || 0 });
+    default:
+      return procesarVejezNormal(base);
+  }
+}
+
+// ============================================================
+// SCORE PREVISIONAL (0–100)
+// ============================================================
+
 /**
  * Puntaje previsional basado en múltiples factores.
  * @param {{ pensionRP, rentaImponible, apvMensual, saldoAPV, lagunas, edad, saldoActual }} datos

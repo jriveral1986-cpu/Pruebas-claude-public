@@ -103,6 +103,7 @@
               <option value="vejez_normal">Vejez normal (65 H / 60 M)</option>
               <option value="anticipada">Pensión anticipada normal (Art. 68)</option>
               <option value="trabajo_pesado">Trabajo pesado (Ley 19.404)</option>
+              <option value="invalidez">Invalidez del afiliado (Art. 54 DL 3.500)</option>
             </select>
             <span class="hint">Define los requisitos y la edad de acceso a la pensión.</span>
           </div>
@@ -159,6 +160,41 @@
               </label>
               <input type="number" id="rentaPromedioDecenio" placeholder="Opcional — si vacío se usa renta imponible actual" min="0" step="50000">
               <span class="hint">La pensión debe ser ≥ 70% de este valor Y ≥ 12 UF (condiciones simultáneas).</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel: Invalidez -->
+        <div id="panelInvalidez" style="display:none;">
+          <div class="aviso aviso--info" style="margin-bottom:12px;font-size:var(--text-xs);">
+            <strong>Art. 54 DL 3.500 — Pensión de invalidez:</strong>
+            Total (pérdida ≥ 2/3 de capacidad laboral): 100% del saldo ÷ CRU.
+            Parcial (pérdida ≥ 50% &lt; 2/3): 50% del saldo ÷ CRU.
+            El SIS complementa hasta el 70% de la renta promedio del decenio.
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Grado de invalidez</label>
+              <div class="radio-group" style="margin-top:8px;">
+                <label class="radio-item">
+                  <input type="radio" name="tipoInvalidez" value="total" checked>
+                  Total — pérdida ≥ 2/3 de capacidad laboral
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="tipoInvalidez" value="parcial">
+                  Parcial — pérdida ≥ 50% &lt; 2/3
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="rentaPromedioInvalidez">
+                Renta promedio imponible últimos 10 años (CLP)
+                <span data-tip="Base para calcular el complemento SIS. Ingresa el promedio mensual bruto del decenio." aria-label="Información">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </span>
+              </label>
+              <input type="number" id="rentaPromedioInvalidez" placeholder="Ej: 1.200.000" min="0" step="50000">
+              <span class="hint">Determina el complemento SIS: 70% de este valor − pensión propia. Si se omite, no se calcula SIS.</span>
             </div>
           </div>
         </div>
@@ -482,6 +518,8 @@
     if (d.tipoTrabajoPesado)           { const r = document.querySelector(`input[name="tipoTrabajoPesado"][value="${d.tipoTrabajoPesado}"]`); if (r) r.checked = true; }
     if (d.mesesTrabajoPesado != null)  document.getElementById('mesesTrabajoPesado').value        = d.mesesTrabajoPesado;
     if (d.rentaPromedioDecenio != null) document.getElementById('rentaPromedioDecenio').value     = d.rentaPromedioDecenio;
+    if (d.tipoInvalidez) { const r = document.querySelector(`input[name="tipoInvalidez"][value="${d.tipoInvalidez}"]`); if (r) r.checked = true; }
+    if (d.rentaPromedioInvalidez != null) document.getElementById('rentaPromedioInvalidez').value = d.rentaPromedioInvalidez;
 
     // Set max date for fechaNacimiento
     document.getElementById('fechaNacimiento').max = new Date().toISOString().slice(0,10);
@@ -550,9 +588,11 @@
       const tipo      = document.getElementById('tipoJubilacion').value;
       const panelTP   = document.getElementById('panelTrabajoPesado');
       const panelAnt  = document.getElementById('panelAnticipada');
+      const panelInv  = document.getElementById('panelInvalidez');
       const inputEdad = document.getElementById('edadJubilacion');
       panelTP.style.display  = tipo === 'trabajo_pesado' ? '' : 'none';
       panelAnt.style.display = tipo === 'anticipada'     ? '' : 'none';
+      panelInv.style.display = tipo === 'invalidez'      ? '' : 'none';
       if (tipo === 'trabajo_pesado') {
         inputEdad.readOnly = true;
         inputEdad.style.background = 'var(--color-bg-alt, #f0f2f4)';
@@ -884,10 +924,12 @@
         // campo unificado para compatibilidad con código existente
         numHijos: (parseInt(document.getElementById('numHijosMenores').value) || 0)
                 + (parseInt(document.getElementById('numHijosEstudiantes').value) || 0),
-        tipoJubilacion:       document.getElementById('tipoJubilacion').value,
-        tipoTrabajoPesado:    parseInt(document.querySelector('input[name="tipoTrabajoPesado"]:checked')?.value) || 2,
-        mesesTrabajoPesado:   parseFloat(document.getElementById('mesesTrabajoPesado').value) || 0,
-        rentaPromedioDecenio: parseFloat(document.getElementById('rentaPromedioDecenio').value) || 0,
+        tipoJubilacion:          document.getElementById('tipoJubilacion').value,
+        tipoTrabajoPesado:       parseInt(document.querySelector('input[name="tipoTrabajoPesado"]:checked')?.value) || 2,
+        mesesTrabajoPesado:      parseFloat(document.getElementById('mesesTrabajoPesado').value) || 0,
+        rentaPromedioDecenio:    parseFloat(document.getElementById('rentaPromedioDecenio').value) || 0,
+        tipoInvalidez:           document.querySelector('input[name="tipoInvalidez"]:checked')?.value || 'total',
+        rentaPromedioInvalidez:  parseFloat(document.getElementById('rentaPromedioInvalidez').value) || 0,
       });
 
       window.location.href = 'proyeccion.html';
