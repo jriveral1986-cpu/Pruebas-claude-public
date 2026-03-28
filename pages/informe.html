@@ -99,6 +99,15 @@
       border-radius: 0 6px 6px 0;
     }
 
+    /* ── Trabajo Pesado ── */
+    .tp-calc { background: var(--blue-lt); border-radius: 8px; padding: 16px 20px; }
+    .tp-edu h2 { font-size: 13px; font-weight: bold; color: var(--navy); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); padding-bottom: 6px; margin-top: 4px; }
+    #tp-resultado { margin-top: 10px; }
+    .tp-result-card { background: var(--navy); color: white; border-radius: 8px; padding: 14px 20px; display: flex; gap: 32px; align-items: center; flex-wrap: wrap; }
+    .tp-result-card .tp-val { font-size: 28px; font-weight: bold; color: var(--gold); }
+    .tp-result-card .tp-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 2px; }
+    .tp-result-card .tp-note { font-size: 12px; color: #9ca3af; margin-top: 6px; }
+
     /* ── Section subtitle (tabla RP/RV) ── */
     .section-subtitle {
       font-size: 13px;
@@ -586,6 +595,123 @@
       </div>
     </div>
 
+    <!-- Trabajo Pesado -->
+    <div class="section-title">Trabajo Pesado — Pensión Anticipada</div>
+    <div class="card" id="seccion-tp">
+
+      <!-- Calculador interactivo -->
+      <div class="tp-calc">
+        <h2 style="margin-bottom:14px">Calculador de Rebaja de Edad</h2>
+        <div class="grid-3" style="gap:12px;align-items:end;margin-bottom:14px">
+          <div class="form-group" style="margin:0">
+            <label style="font-size:12px;font-weight:600;color:var(--navy)">Meses cotizados en trabajo pesado</label>
+            <input type="number" id="tp-meses" min="0" max="600" step="1" value="60"
+              style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label style="font-size:12px;font-weight:600;color:var(--navy)">Calificación CEN</label>
+            <select id="tp-tipo" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+              <option value="2">Trabajo Pesado — sobrecotización 2%</option>
+              <option value="1">Trabajo Menos Pesado — sobrecotización 1%</option>
+            </select>
+          </div>
+          <button onclick="calcularTP()" style="padding:9px 20px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;height:38px">Calcular</button>
+        </div>
+        <div id="tp-resultado"></div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:20px 0">
+
+      <!-- Contenido educativo -->
+      <div class="tp-edu">
+
+        <h2 style="margin-bottom:12px">¿Qué es el Trabajo Pesado?</h2>
+        <p style="margin-bottom:14px">Son labores cuya realización <strong>acelera el desgaste físico, intelectual o psíquico</strong> y provoca envejecimiento prematuro, de acuerdo con la <strong>Ley N° 19.404</strong> (1995) y su modificación por la <strong>Ley N° 20.773</strong> (2014). La calificación recae sobre el <em>puesto de trabajo</em>, no sobre el nombre del cargo.</p>
+
+        <div class="grid-2" style="gap:16px;margin-bottom:20px">
+          <div class="aviso" style="margin:0;border-left-color:#7c3aed;background:#f5f3ff;color:#4c1d95">
+            <strong>¿Quién califica?</strong><br>
+            La <strong>Comisión Ergonómica Nacional (CEN)</strong>, organismo técnico dependiente de la Subsecretaría del Trabajo. El empleador debe solicitar la calificación. El listado oficial de puestos calificados se actualiza periódicamente en la Superintendencia de Pensiones.
+          </div>
+          <div class="aviso" style="margin:0;border-left-color:var(--blue);background:var(--blue-lt);color:#1e3a5f">
+            <strong>Cotización adicional</strong><br>
+            El empleador debe pagar una cotización adicional de <strong>1%</strong> (trabajo menos pesado) o <strong>2%</strong> (trabajo pesado) sobre la remuneración imponible. Esta cotización financia la mayor expectativa de pensión anticipada.
+          </div>
+        </div>
+
+        <h2 style="margin-bottom:12px">Diferencia con la Vejez Anticipada Normal</h2>
+        <div class="table-wrap" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th style="text-align:left">Concepto</th><th>Vejez Anticipada Normal (AFP)</th><th>Trabajo Pesado (AFP)</th></tr></thead>
+            <tbody>
+              <tr><td class="left">Base legal</td><td>Art. 68 DL 3.500</td><td>Art. 68 bis DL 3.500 + Ley 19.404</td></tr>
+              <tr><td class="left">Requisito principal</td><td>Pensión ≥ 80% últ. remuneración y ≥ 150 UF</td><td>Calificación CEN + cotización adicional + 20 años cotizados</td></tr>
+              <tr><td class="left">Rebaja de edad</td><td>Sin límite mínimo (depende del saldo)</td><td>Máx. 10 años (2%) · Máx. 5 años (1%)</td></tr>
+              <tr><td class="left">Edad mínima resultante</td><td>Sin mínimo legal explícito</td><td>55 años (práctica regulatoria)</td></tr>
+              <tr><td class="left">Modalidades permitidas</td><td>RP o RV</td><td>RP o RV</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 style="margin-bottom:12px">Requisitos para pensionarse por Trabajo Pesado</h2>
+        <div class="grid-2" style="gap:16px;margin-bottom:20px">
+          <div>
+            <div class="section-subtitle">Sistema AFP</div>
+            <ol style="margin:8px 0 0 18px;font-size:13px;line-height:1.9">
+              <li>Puesto calificado como trabajo pesado o menos pesado por la CEN.</li>
+              <li>Empleador haya cotizado la sobrecotización del 1% o 2%.</li>
+              <li>Al menos <strong>20 años de cotizaciones</strong> en cualquier sistema previsional (AFP, IPS, o mixto).</li>
+              <li>Solicitar la pensión anticipada ante la AFP correspondiente.</li>
+            </ol>
+          </div>
+          <div>
+            <div class="section-subtitle">Sistema Antiguo (IPS / INP)</div>
+            <ol style="margin:8px 0 0 18px;font-size:13px;line-height:1.9">
+              <li>Trabajo calificado como pesado.</li>
+              <li>Acreditar <strong>1.200 semanas de imposiciones</strong> (≈ 23 años), según ChileAtiende.</li>
+              <li>Los años de rebaja pueden diferir del sistema AFP; verificar con el IPS.</li>
+              <li>Tramitar ante el IPS (ex INP).</li>
+            </ol>
+          </div>
+        </div>
+
+        <h2 style="margin-bottom:12px">Cálculo de la Rebaja de Edad</h2>
+        <div class="table-wrap" style="margin-bottom:14px">
+          <table>
+            <thead><tr><th style="text-align:left">Tipo</th><th>Sobrecotización</th><th>Rebaja por cada 5 años trabajados</th><th>Fórmula en meses (N = meses cotizados)</th><th>Tope máximo</th></tr></thead>
+            <tbody>
+              <tr><td class="left"><strong>Trabajo Pesado</strong></td><td style="text-align:center">2%</td><td style="text-align:center">2 años</td><td><code>Rebaja = 0,4 × N</code> meses</td><td>10 años (120 meses)</td></tr>
+              <tr><td class="left"><strong>Trabajo Menos Pesado</strong></td><td style="text-align:center">1%</td><td style="text-align:center">1 año</td><td><code>Rebaja = 0,2 × N</code> meses</td><td>5 años (60 meses)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-bottom:20px">Los decimales resultantes se redondean al entero más cercano (regla estándar). La edad legal base es 65 años (hombres) y 60 años (mujeres). La edad mínima resultante es 55 años.</p>
+
+        <h2 style="margin-bottom:12px">Ejemplos Prácticos</h2>
+        <div class="table-wrap" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th style="text-align:left">Caso</th><th>Sistema</th><th>Meses cotizados</th><th>Sobrecotización</th><th>Rebaja (meses)</th><th>Edad legal</th><th>Edad con rebaja</th></tr></thead>
+            <tbody>
+              <tr><td class="left">Hombre AFP</td><td>AFP</td><td>60</td><td>2%</td><td>0,4 × 60 = 24 meses → 2 años</td><td>65</td><td><strong>63</strong></td></tr>
+              <tr><td class="left">Mujer AFP</td><td>AFP</td><td>84</td><td>1%</td><td>0,2 × 84 = 16,8 → 17 meses ≈ 1 año 5 meses</td><td>60</td><td><strong>58 años 7 meses</strong></td></tr>
+              <tr><td class="left">Hombre AFP (tope máx.)</td><td>AFP</td><td>300+</td><td>2%</td><td>Tope: 120 meses = 10 años</td><td>65</td><td><strong>55</strong></td></tr>
+              <tr><td class="left">IPS / sistema antiguo</td><td>IPS</td><td>—</td><td>—</td><td>Según art. 68 bis; verificar con IPS</td><td>65/60</td><td>Según cálculo IPS</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 style="margin-bottom:12px">Fuentes Oficiales</h2>
+        <ul style="font-size:13px;line-height:2;margin-left:18px">
+          <li><strong>Superintendencia de Pensiones</strong> — Definición de trabajo pesado · Cotización adicional · Compendio con fórmula de cálculo · Trámite de calificación · Listado oficial de puestos calificados (actualizado enero 2026)</li>
+          <li><strong>ChileAtiende</strong> — Pensión de vejez anticipada por realizar trabajos pesados</li>
+          <li><strong>Biblioteca del Congreso Nacional / LeyChile</strong> — Ley N° 19.404 · DL 3.500, artículos 68 y 68 bis</li>
+        </ul>
+        <div class="aviso" style="margin-top:16px;margin-bottom:0">
+          <strong>Resumen ejecutivo:</strong> El trabajo pesado en Chile es una categoría legal que permite anticipar la jubilación a quienes desempeñan labores que provocan desgaste prematuro. La calificación la otorga la CEN sobre el puesto —no el cargo— y obliga al empleador a pagar una sobrecotización del 1% o 2%. Para pensionarse antes, se requieren al menos 20 años de cotizaciones en AFP (o ~23 en IPS) y haber acumulado meses bajo trabajo pesado. La rebaja opera como una fórmula lineal: 0,4 × N meses con 2% y 0,2 × N con 1%, con topes de 10 y 5 años respectivamente. El beneficio no cambia la fórmula del monto de la pensión: esta sigue dependiendo del saldo, la edad real de jubilación, la modalidad elegida y el CNU. La pensión anticipada por trabajo pesado es compatible con RP y RV. Consulte siempre a un Asesor Previsional Certificado (APC) y verifique en la Superintendencia de Pensiones o ChileAtiende.
+        </div>
+      </div>
+    </div>
+
     <!-- Methodology -->
     <div class="section-title">Metodología de Cálculo</div>
     <div class="card">
@@ -706,25 +832,29 @@
     const utm         = d.utm || UTM;
     const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
     const comisionPct = comisionDec * 100;
-    const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, null);
-    const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf, null);
+    const saldoAPVNum   = d.saldoAPV || 0;
+    const br            = d.bonoReconocimiento || 0;
+    const saldoEfectivo = d.saldoTotal + saldoAPVNum + br;
+    const rp = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, null);
+    const rv = calcularPensionRV(saldoEfectivo, d.edad, d.sexo, uf, null);
 
     const score = calcularScore({
       pensionRP: rp.pension, rentaImponible: d.rentaImponible || 0,
-      saldoActual: d.saldoTotal, edad: d.edad,
+      saldoActual: saldoEfectivo, edad: d.edad,
     });
 
     const proyRP = buildProyeccionRP(d, uf, utm, comisionDec);
     const proyRV = buildProyeccionRV(rv, d, uf, utm);
 
-    render(d, uf, utm, comisionPct, comisionDec, rp, rv, score, proyRP, proyRV);
+    render(d, uf, utm, comisionPct, comisionDec, rp, rv, score, proyRP, proyRV, saldoEfectivo, saldoAPVNum, br);
 
     document.getElementById('loading').style.display  = 'none';
     document.getElementById('informe').style.display  = '';
   }
 
   // ─── Render ───────────────────────────────────────────────────
-  function render(d, uf, utm, comisionPct, comisionDec, rp, rv, score, proyRP, proyRV) {
+  function render(d, uf, utm, comisionPct, comisionDec, rp, rv, score, proyRP, proyRV, saldoEfectivo, saldoAPVNum, br) {
+    window._tpSexo = d.sexo;  // para el calculador de trabajo pesado
     const sexoLabel  = d.sexo === 'M' ? 'Masculino' : 'Femenino';
     const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const now   = new Date();
@@ -760,9 +890,14 @@
     cargarCampoEditable('hdr-rut',    'd-rut',    d.rutCliente,    'rutCliente');
 
     // KPIs
-    document.getElementById('k-saldo').textContent    = fmt(d.saldoTotal);
-    document.getElementById('k-saldo-sub').textContent = `AFP ${d.afp || '—'} · Fondo ${d.fondo || '—'}`;
-    document.getElementById('k-uf').textContent        = fmtUF(d.saldoTotal / uf);
+    document.getElementById('k-saldo').textContent     = fmt(saldoEfectivo);
+    const subSaldo = [
+      `AFP ${d.afp || '—'} · Fondo ${d.fondo || '—'}`,
+      saldoAPVNum > 0 ? `+ APV ${fmt(saldoAPVNum)}` : '',
+      br > 0          ? `+ BR ${fmt(br)}`            : '',
+    ].filter(Boolean).join(' · ');
+    document.getElementById('k-saldo-sub').textContent = subSaldo;
+    document.getElementById('k-uf').textContent        = fmtUF(saldoEfectivo / uf);
     document.getElementById('k-uf-sub').textContent    = `UF = ${fmt(uf)}`;
     document.getElementById('k-rp').textContent        = fmt(rp.pension);
     document.getElementById('k-rp-sub').textContent    = `CNU ${cnuRP.toFixed(2)} · Tasa 3,31%`;
@@ -786,32 +921,35 @@
     document.getElementById('p-cnu-rv').textContent  = fmtMes(rv.pension > 0 ? d.saldoTotal / rv.pension : 0);
 
     // Savings table
-    const sTbody = document.getElementById('tbody-saldos');
-    const saldoUF = (d.saldoTotal / uf).toFixed(2);
+    const sTbody    = document.getElementById('tbody-saldos');
+    const apvUF     = (saldoAPVNum / uf).toFixed(2);
+    const brUF      = (br / uf).toFixed(2);
+    const totalUF   = (saldoEfectivo / uf).toFixed(2);
+    const obligUF   = (d.saldoTotal / uf).toFixed(2);
     sTbody.innerHTML = `
       <tr>
         <td class="left">Cotización Obligatoria (AFP ${d.afp || '—'})</td>
         <td style="text-align:center">Fondo ${d.fondo || '—'}</td>
         <td>${fmt(d.saldoTotal)}</td>
-        <td>${saldoUF} UF</td>
+        <td>${obligUF} UF</td>
       </tr>
       <tr>
         <td class="left">Cotización Voluntaria / APV</td>
-        <td style="text-align:center">—</td>
-        <td>$0</td>
-        <td>0 UF</td>
+        <td style="text-align:center">${d.regimenAPV || '—'}</td>
+        <td>${saldoAPVNum > 0 ? fmt(saldoAPVNum) : '$0'}</td>
+        <td>${saldoAPVNum > 0 ? apvUF + ' UF' : '0 UF'}</td>
       </tr>
       <tr>
-        <td class="left">Depósito Convenido / Bono Reconocimiento</td>
-        <td style="text-align:center">—</td>
-        <td>$0</td>
-        <td>0 UF</td>
+        <td class="left">Bono de Reconocimiento (BR)</td>
+        <td style="text-align:center">IPS</td>
+        <td>${br > 0 ? fmt(br) : '$0'}</td>
+        <td>${br > 0 ? brUF + ' UF' : '0 UF'}</td>
       </tr>
       <tr style="background:#f0f7ff;font-weight:bold">
         <td class="left">TOTAL AHORROS PREVISIONALES</td>
         <td style="text-align:center">—</td>
-        <td>${fmt(d.saldoTotal)}</td>
-        <td>${saldoUF} UF</td>
+        <td>${fmt(saldoEfectivo)}</td>
+        <td>${totalUF} UF</td>
       </tr>`;
 
     // PGU section
@@ -897,8 +1035,9 @@
     // APV recommendation
     const pensionObj = d.pensionObjetivo || 0;
     if (pensionObj > 0 && rp.pensionTotal < pensionObj) {
-      const brecha = pensionObj - rp.pensionTotal;
-      const aporte5 = calcularAportacionNecesaria(d.saldoTotal, pensionObj, d.edad, d.sexo, 0.04, 20);
+      const brecha       = pensionObj - rp.pensionTotal;
+      const anosRestantes = Math.max(1, (d.edadJubilacion || 65) - d.edad);
+      const aporte5      = calcularAportacionNecesaria(saldoEfectivo, pensionObj, d.edad, d.sexo, 0.04, anosRestantes);
       document.getElementById('seccion-apv').style.display = '';
       document.getElementById('apv-content').innerHTML = `
         <div class="grid-2" style="gap:16px;margin-bottom:16px">
@@ -908,7 +1047,7 @@
             <div style="font-size:12px;color:var(--muted);margin-top:4px">Diferencia entre pensión objetivo y RP estimado</div>
           </div>
           <div style="padding:16px;background:white;border-radius:8px;border:1px solid #86efac">
-            <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:1px">APV sugerido (tasa 4%, 20 años)</div>
+            <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:1px">APV sugerido (tasa 4%, ${anosRestantes} años)</div>
             <div style="font-size:24px;font-weight:bold;color:var(--navy);margin-top:4px">${fmt(Math.max(0, aporte5))}/mes</div>
             <div style="font-size:12px;color:var(--muted);margin-top:4px">Aporte mensual adicional estimado</div>
           </div>
@@ -976,7 +1115,7 @@
         <div>
           <div class="step-title">Conversión del saldo a UF</div>
           <p>El saldo en pesos se convierte a UF dividiendo por el valor UF vigente.<br>
-          <code>${fmtUF(d.saldoTotal/uf)} = ${fmt(d.saldoTotal)} ÷ ${fmt(uf)}</code><br>
+          <code>${fmtUF(saldoEfectivo/uf)} = ${fmt(saldoEfectivo)} ÷ ${fmt(uf)}</code><br>
           La UF protege el poder adquisitivo del ahorro.</p>
         </div>
       </div>
@@ -986,15 +1125,15 @@
           <div class="step-title">Capital Necesario Unitario (CNU)</div>
           <p>El CNU es cuántos meses de pensión se necesitan para financiar 1 peso de pensión mensual de por vida, dado el tiempo esperado de vida y la tasa técnica.<br>
           <strong>RP:</strong> <code>CNU = ${cnuRP.toFixed(2)} meses</code> · Tasa 3,31% · Tablas B-2020<br>
-          <strong>RV:</strong> <code>CNU ≈ ${(d.saldoTotal/rv.pension).toFixed(2)} meses</code> · Tasa mercado 2,76% · Tablas RV-2020</p>
+          <strong>RV:</strong> <code>CNU ≈ ${(saldoEfectivo/rv.pension).toFixed(2)} meses</code> · Tasa mercado 2,76% · Tablas RV-2020</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">3</div>
         <div>
           <div class="step-title">Pensión bruta inicial</div>
-          <p><strong>RP:</strong> <code>Saldo ÷ CNU = ${fmt(d.saldoTotal)} ÷ ${cnuRP.toFixed(2)} = ${fmt(rp.pension)}/mes</code><br>
-          <strong>RV:</strong> <code>${fmt(d.saldoTotal)} ÷ ${(d.saldoTotal/rv.pension).toFixed(2)} = ${fmt(rv.pension)}/mes</code> (garantizado de por vida)</p>
+          <p><strong>RP:</strong> <code>Saldo ÷ CNU = ${fmt(saldoEfectivo)} ÷ ${cnuRP.toFixed(2)} = ${fmt(rp.pension)}/mes</code><br>
+          <strong>RV:</strong> <code>${fmt(saldoEfectivo)} ÷ ${(saldoEfectivo/rv.pension).toFixed(2)} = ${fmt(rv.pension)}/mes</code> (garantizado de por vida)</p>
         </div>
       </div>
       <div class="step">
@@ -1044,6 +1183,49 @@
       `Informe Previsional · AFP ${d.afp||'—'} · Previsión Chile · ${fecha}<br>
        Este documento es una estimación y no constituye una oferta formal de pensión. Tasa técnica RP 3,31% (Circular SP N°2407, ene 2026). Tablas B-2020 / RV-2020 (SP Chile).`;
   }
+
+  // ─── Calculador Trabajo Pesado ────────────────────────────────
+  window.calcularTP = function() {
+    const N     = parseInt(document.getElementById('tp-meses').value) || 0;
+    const tipo  = parseInt(document.getElementById('tp-tipo').value);  // 1 o 2
+    const factor = tipo === 2 ? 0.4 : 0.2;
+    const tope   = tipo === 2 ? 120 : 60;  // meses máximos de rebaja
+
+    const rebajaRaw   = factor * N;
+    const rebajaMeses = Math.min(Math.round(rebajaRaw), tope);
+    const rebajaAnios = Math.floor(rebajaMeses / 12);
+    const rebajaM     = rebajaMeses % 12;
+
+    // Edad legal del afiliado actual (viene del store vía _lastData)
+    const edadLegal   = (window._tpSexo === 'M') ? 65 : 60;
+    const edadRebajada = edadLegal - rebajaAnios - (rebajaM / 12);
+    const edadFinal    = Math.max(55, edadRebajada);
+    const edadAnios    = Math.floor(edadFinal);
+    const edadMesesR   = Math.round((edadFinal - edadAnios) * 12);
+
+    const enTope = rebajaMeses >= tope;
+
+    let html = `<div class="tp-result-card">
+      <div>
+        <div class="tp-lbl">Rebaja de edad</div>
+        <div class="tp-val">${rebajaAnios > 0 ? rebajaAnios + ' año' + (rebajaAnios > 1 ? 's' : '') : ''}${rebajaM > 0 ? ' ' + rebajaM + ' mes' + (rebajaM > 1 ? 'es' : '') : ''}${rebajaMeses === 0 ? '0 meses' : ''}</div>
+        ${enTope ? '<div class="tp-note">⚠ Tope máximo alcanzado (' + tope/12 + ' años)</div>' : ''}
+      </div>
+      <div>
+        <div class="tp-lbl">Edad legal base</div>
+        <div class="tp-val">${edadLegal} años</div>
+      </div>
+      <div>
+        <div class="tp-lbl">Edad con rebaja</div>
+        <div class="tp-val" style="color:#86efac">${edadFinal === 55 ? '55 (mínimo legal)' : edadAnios + (edadMesesR > 0 ? ' años ' + edadMesesR + ' meses' : ' años')}</div>
+      </div>
+      <div style="font-size:12px;color:#9ca3af;max-width:220px">
+        Fórmula: ${factor} × ${N} = ${rebajaRaw.toFixed(1)} → ${rebajaMeses} meses de rebaja<br>
+        Sexo detectado: ${window._tpSexo === 'M' ? 'Masculino (base 65)' : 'Femenino (base 60)'}
+      </div>
+    </div>`;
+    document.getElementById('tp-resultado').innerHTML = html;
+  };
 
   // ─── Tab switch ──────────────────────────────────────────────
   window.switchTab = function(tab, btn) {

@@ -206,6 +206,16 @@
             <input type="number" id="lagunas" value="0" min="0" max="80" step="5">
             <span class="hint">% de meses sin cotización. 0 si cotizas todos los meses.</span>
           </div>
+          <div class="form-group">
+            <label for="pensionObjetivo">
+              Pensión objetivo mensual (CLP)
+              <span data-tip="La pensión que deseas recibir al jubilar. Se usa para calcular la brecha y el APV sugerido." aria-label="Información">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </span>
+            </label>
+            <input type="number" id="pensionObjetivo" placeholder="Ej: 700.000" min="0" step="50000">
+            <span class="hint">Opcional. Activa la recomendación de APV en el informe.</span>
+          </div>
         </div>
       </div>
 
@@ -231,6 +241,11 @@
           <div class="form-group">
             <label for="saldoAPV">Saldo APV acumulado (CLP)</label>
             <input type="number" id="saldoAPV" value="0" min="0" step="100000" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="bonoReconocimiento">Bono de Reconocimiento — valor actual (CLP)</label>
+            <input type="number" id="bonoReconocimiento" value="0" min="0" step="100000" placeholder="0 si no aplica">
+            <span class="form-hint">Solo si cotizaste en el sistema antiguo (INP/IPS) antes de mayo 1981. Solicita el valor actualizado al IPS / ChileAtiende.</span>
           </div>
         </div>
       </div>
@@ -366,7 +381,9 @@
     if (d.estadoLaboral)    document.getElementById('estadoLaboral').value    = d.estadoLaboral;
     if (d.apvMensual != null) document.getElementById('apvMensual').value     = d.apvMensual;
     if (d.regimenAPV)       document.getElementById('regimenAPV').value       = d.regimenAPV;
-    if (d.saldoAPV != null) document.getElementById('saldoAPV').value         = d.saldoAPV;
+    if (d.saldoAPV != null)           document.getElementById('saldoAPV').value           = d.saldoAPV;
+    if (d.bonoReconocimiento != null) document.getElementById('bonoReconocimiento').value = d.bonoReconocimiento;
+    if (d.pensionObjetivo != null)    document.getElementById('pensionObjetivo').value    = d.pensionObjetivo;
     if (d.estadoCivil)      document.getElementById('estadoCivil').value      = d.estadoCivil;
     if (d.edadConyuge)      document.getElementById('edadConyuge').value      = d.edadConyuge;
     if (d.sexoConyuge)      document.getElementById('sexoConyuge').value      = d.sexoConyuge;
@@ -685,7 +702,9 @@
         lagunas:          parseFloat(document.getElementById('lagunas').value) || 0,
         apvMensual:       parseFloat(document.getElementById('apvMensual').value) || 0,
         regimenAPV:       document.getElementById('regimenAPV').value,
-        saldoAPV:         parseFloat(document.getElementById('saldoAPV').value) || 0,
+        saldoAPV:             parseFloat(document.getElementById('saldoAPV').value) || 0,
+        bonoReconocimiento:   parseFloat(document.getElementById('bonoReconocimiento').value) || 0,
+        pensionObjetivo:      parseFloat(document.getElementById('pensionObjetivo').value) || 0,
         estadoCivil,
         tienePareja,
         edadConyuge:          tienePareja ? (parseInt(document.getElementById('edadConyuge').value) || 40) : null,

@@ -299,8 +299,9 @@
       const edadJub    = d.edadJubilacion || d.edad;
       const anioJub    = anioActual + Math.max(0, Math.round(edadJub - d.edad));
 
-      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, familia, anioJub);
-      const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf, familia, anioJub);
+      const saldoEfectivo = d.saldoTotal + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
+      const rp = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, familia, anioJub);
+      const rv = calcularPensionRV(saldoEfectivo, d.edad, d.sexo, uf, familia, anioJub);
 
       // RP
       document.getElementById('rpPension').textContent      = formatCLP(rp.pension);
@@ -403,7 +404,7 @@
       const aporte      = parseFloat(document.getElementById('aporteMensual').value) || 0;
       const tasa        = parseFloat(document.getElementById('tasaAnual').value);
       const uf          = d.uf || 39717;
-      const rows        = proyectarSaldo(d.saldoTotal, aporte, tasa, anos);
+      const rows        = proyectarSaldo(saldoEfectivo, aporte, tasa, anos);
       const tbody       = document.getElementById('cuerpoProyeccion');
       tbody.innerHTML   = '';
       rows.forEach(r => {
