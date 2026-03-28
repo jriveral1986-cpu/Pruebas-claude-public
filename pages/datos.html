@@ -28,6 +28,10 @@
     <button id="btnActualizar" class="btn-actualizar" aria-label="Actualizar indicadores económicos">Actualizar</button>
     <span   id="infoAct"       class="info-act"></span>
     <span id="statusUF" style="font-size:var(--text-xs);color:var(--color-text-muted);margin-left:8px;"></span>
+    <label style="font-size:var(--text-xs);color:var(--color-text-muted);margin-left:16px;display:inline-flex;align-items:center;gap:6px;">
+      UF fecha SCOMP:
+      <input type="date" id="fechaUF" style="font-size:var(--text-xs);padding:2px 6px;border:1px solid var(--color-border);border-radius:4px;color:var(--color-text-muted);">
+    </label>
   </div>
 
   <main class="container" id="main-content">
@@ -636,7 +640,17 @@
       Store.guardar({ uf: ufDato.valor, topeImponible: tope, ...(utmDato ? { utm: utmDato.valor } : {}) });
     }
 
-    cargarIndicadores();
+    // Restaurar fecha UF guardada
+    const d0 = Store.leer();
+    if (d0.fechaUF) document.getElementById('fechaUF').value = d0.fechaUF;
+
+    cargarIndicadores(d0.fechaUF || null);
+
+    document.getElementById('fechaUF').addEventListener('change', function() {
+      const fecha = this.value;   // formato YYYY-MM-DD
+      Store.guardar({ fechaUF: fecha || null });
+      cargarIndicadores(fecha || null);
+    });
 
     // ── Form submit ──────────────────────────────────
     document.getElementById('formDatos').addEventListener('submit', e => {
