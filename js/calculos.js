@@ -4,7 +4,7 @@
  * All monetary values in CLP.
  */
 
-import { getCRU, getCRUExtrapolado, getCRURentaVitalicia, getCNUConyuge, calcularCNUConMejoramiento, esperanzaVida } from './mortalidad.js';
+import { getCRU, getCRUExtrapolado, getCRURentaVitalicia, getCNUConyuge, calcularCNUConMejoramiento, calcularCRU_RP, esperanzaVida } from './mortalidad.js';
 
 // ============================================================
 // CONSTANTES VIGENTES — SP Chile, marzo 2026
@@ -267,12 +267,10 @@ export function calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0, anio
     numHijosInvalidos   = 0,
   } = familia || {};
 
-  // CRU con mejoramiento AAx (NCG N°306): aplica factores de mejora desde 2020 al año de jubilación.
-  // El SCOMP de SP Chile sí aplica AAx — verificado empíricamente contra SCOMP Q1-2026.
+  // CRU según sexo: hombre aplica AAx (NCG N°306), mujer usa tabla oficial directa.
+  // Ver calcularCRU_RP en mortalidad.js para el fundamento técnico.
   const cnuSinMejora = getCRU(sexo, edad);
-  const cnuBase      = anioJubilacion
-    ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
-    : cnuSinMejora;
+  const cnuBase      = calcularCRU_RP(sexo, edad, TASA_RP, anioJubilacion);
   const pctAumentoMejora = cnuSinMejora > 0 ? ((cnuBase - cnuSinMejora) / cnuSinMejora) * 100 : 0;
 
   // factorTabla: 1.0 = B-2020 (RP), 1.08 = aproximación RV-2020 (RV)
@@ -346,9 +344,7 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0,
     cnu = cnuDetalle.cnuTotal;
   } else {
     const cruBase = getCRU(sexo, edad);
-    cnu = anioJubilacion
-      ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
-      : cruBase;
+    cnu = calcularCRU_RP(sexo, edad, TASA_RP, anioJubilacion);
     cnuDetalle = {
       cnuTotal: cnu, cnuAfiliado: cnu, cnuConyuge: 0, cnuHijos: 0,
       factorFamilia: 1, tieneImpacto: false,
@@ -368,11 +364,9 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0,
     : (tasaMens > 0 ? saldo * tasaMens / (1 - Math.pow(1 + tasaMens, -mesesEspe)) : 0);
   const pension = uf > 0 ? Math.round((_pensionExacta / uf) * 100) / 100 * uf : _pensionExacta;
 
-  // Pensión sin familia (solo CRU del afiliado, con mejoramiento) para mostrar el impacto
+  // Pensión sin familia (solo CRU del afiliado) para mostrar el impacto
   const cruSoloBase = getCRU(sexo, edad);
-  const cruSolo = anioJubilacion
-    ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
-    : cruSoloBase;
+  const cruSolo = calcularCRU_RP(sexo, edad, TASA_RP, anioJubilacion);
   const pensionSinFamilia = cruSolo > 0 ? saldo / cruSolo : pension;
   const impactoFamilia = pensionSinFamilia - pension; // cuánto menos recibe por tener familia
 

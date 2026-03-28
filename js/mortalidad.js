@@ -340,6 +340,31 @@ export function calcularCNUConMejoramiento(sexo, edad, tasaMensual, anioJubilaci
 }
 
 /**
+ * CRU para Retiro Programado, separado por sexo (NCG N°306).
+ *
+ * - HOMBRE: aplica mejoramiento AAx desde 2020 al año de jubilación.
+ *   La tabla raw b2020_hombre es consistente con el CRU oficial (≤0.75% diff),
+ *   por lo que el ratio mejora/base es fiable. Verificado contra SCOMP Q1-2026.
+ *
+ * - MUJER: usa el CRU oficial pre-computado sin ajuste AAx.
+ *   La tabla raw b2020_mujer tiene qx inconsistentes con el CRU oficial (≈6.8% diff),
+ *   lo que sesga el ratio AAx y produce un CNU incorrecto (234 en lugar de ≈228).
+ *   Con el CRU oficial directo el error vs SCOMP es < 1%, aceptable.
+ *
+ * @param {string} sexo - 'M' | 'F'
+ * @param {number} edad
+ * @param {number} tasaMensual - TASA_RP (e.g. 0.0331/12)
+ * @param {number|null} anioJubilacion - año de jubilación para AAx hombre
+ * @returns {number} CRU en meses para RP
+ */
+export function calcularCRU_RP(sexo, edad, tasaMensual, anioJubilacion = null) {
+  if (sexo === 'M' && anioJubilacion) {
+    return calcularCNUConMejoramiento('M', edad, tasaMensual, anioJubilacion);
+  }
+  return getCRU(sexo, edad);
+}
+
+/**
  * Capital Requerido Unitario for a given sex and age.
  * Pre-computed in tablas.json for ages 50-75.
  * Interpolates linearly for intermediate ages.
