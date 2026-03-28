@@ -79,7 +79,7 @@
     .header-name { font-size: 22px; font-weight: normal; }
     .header-name span { color: var(--gold); font-style: italic; }
     .header-sub { margin-top: 6px; font-size: 13px; color: #9ca3af; }
-    .header-meta { text-align: right; font-size: 12px; color: #9ca3af; line-height: 1.9; }
+    .header-meta { text-align: right; font-size: 12px; color: #9ca3af; line-height: 1.9; flex-shrink: 0; min-width: 180px; }
     .header-meta strong { color: var(--gold); display: block; font-size: 14px; }
     [contenteditable] { outline: none; border-bottom: 1px dashed rgba(255,255,255,0.25); cursor: text; }
     [contenteditable]:focus { border-bottom-color: var(--gold); }
@@ -97,6 +97,18 @@
       color: var(--amber);
       margin-bottom: 26px;
       border-radius: 0 6px 6px 0;
+    }
+
+    /* ── Section subtitle (tabla RP/RV) ── */
+    .section-subtitle {
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--navy);
+      border-left: 3px solid var(--blue);
+      padding: 6px 12px;
+      margin-bottom: 10px;
+      background: var(--blue-lt);
+      border-radius: 0 4px 4px 0;
     }
 
     /* ── Section title ── */
@@ -298,18 +310,39 @@
       .container { padding: 16px; }
     }
 
+    /* ── Page setup ── */
+    @page {
+      margin: 12mm 14mm 16mm 14mm;
+      @top-left   { content: none; }
+      @top-center { content: none; }
+      @top-right  { content: none; }
+      @bottom-left  { content: none; }
+      @bottom-center { content: counter(page); font-size: 9pt; color: #9ca3af; }
+      @bottom-right { content: none; }
+    }
+
     /* ── Print styles ── */
     @media print {
       .print-bar, .tab-buttons, .edit-hint, .btn-back, .nav, .skip-link { display: none !important; }
       body { background: white; font-size: 12px; }
-      header { padding: 20px 28px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-      .kpi { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      header { padding: 20px 28px; print-color-adjust: exact; -webkit-print-color-adjust: exact; display: flex !important; flex-direction: row !important; justify-content: space-between !important; align-items: flex-start !important; }
+      .header-meta { text-align: right !important; flex-shrink: 0; min-width: 180px; }
+      .kpi { print-color-adjust: exact; -webkit-print-color-adjust: exact; padding: 12px 14px; }
+      .kpi__val   { font-size: 16px !important; }
+      .kpi__label { font-size: 9px !important; }
+      .kpi__sub   { font-size: 9px !important; }
       thead th { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       .card { box-shadow: none; page-break-inside: avoid; }
       .tab-content { display: block !important; }
       .section-title { page-break-before: always; margin-top: 20px; }
       .section-title--first { page-break-before: avoid !important; }
-      .kpi-grid { page-break-inside: avoid; page-break-before: avoid; }
+      .kpi-grid { page-break-inside: avoid; page-break-before: avoid; grid-template-columns: repeat(4, 1fr) !important; }
+      .grid-2 { grid-template-columns: 1fr 1fr !important; }
+      .grid-3 { grid-template-columns: 1fr 1fr 1fr !important; }
+      .print-group { page-break-before: always; page-break-inside: avoid; }
+      .pgu-card h2 { font-size: 10px !important; white-space: nowrap; }
+      .pgu-card { padding: 10px 14px !important; margin-bottom: 10px !important; }
+      .pgu-card .note { font-size: 9px !important; margin-top: 6px !important; }
       .disclaimer { page-break-after: avoid; }
       .table-wrap { overflow: visible; }
       footer { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -342,7 +375,7 @@
 
   <!-- Header -->
   <header>
-    <div>
+    <div style="flex:1; min-width:0;">
       <div class="header-brand">Estudio de Pensión — Vejez</div>
       <div class="header-name">
         <span id="hdr-nombre" contenteditable="true" title="Haz clic para editar"></span>
@@ -438,6 +471,9 @@
       </div>
     </div>
 
+    <!-- PGU + Comparativa + Tabla Impuesto: misma hoja en PDF -->
+    <div class="print-group">
+
     <!-- PGU -->
     <div class="pgu-card card">
       <h2>IV. Pensión Garantizada Universal (PGU) — Ley 21.419</h2>
@@ -445,7 +481,7 @@
     </div>
 
     <!-- RP vs RV Comparison -->
-    <div class="section-title">Comparativa: Retiro Programado vs Renta Vitalicia</div>
+    <div class="section-title section-title--first">Comparativa: Retiro Programado vs Renta Vitalicia</div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="table-wrap" style="margin-bottom:0;border:none;border-radius:0">
         <table class="comp-table">
@@ -468,7 +504,7 @@
     </div>
 
     <!-- Tax table -->
-    <div class="section-title">Tabla Impuesto Único 2ª Categoría — <span id="tax-mes"></span></div>
+    <div class="section-title section-title--first">Tabla Impuesto Único 2ª Categoría — <span id="tax-mes"></span></div>
     <div class="card">
       <div class="table-wrap" style="margin-bottom:0">
         <table id="tabla-impuesto">
@@ -488,6 +524,8 @@
       <p class="note" id="nota-tramo"></p>
     </div>
 
+    </div><!-- /print-group -->
+
     <!-- Projections -->
     <div class="section-title">Proyecciones Año a Año</div>
     <div class="aviso">
@@ -501,6 +539,7 @@
 
     <!-- RP tab -->
     <div class="tab-content active" id="tab-rp">
+      <div class="section-subtitle">Retiro Programado (RP)</div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -526,6 +565,7 @@
 
     <!-- RV tab -->
     <div class="tab-content" id="tab-rv">
+      <div class="section-subtitle">Renta Vitalicia (RV)</div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -779,40 +819,40 @@
     const pguInfo65   = calcularPGUInformativa(rp.pensionLiquida);
     const pguInfo65rv = calcularPGUInformativa(rv.pensionLiquida);
     document.getElementById('pgu-content').innerHTML = d.edad < 65 ? `
-      <div class="grid-3" style="gap:16px;margin-bottom:14px">
-        <div style="text-align:center;padding:16px;background:#f5f3ff;border-radius:8px">
-          <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Hoy (${d.edad} años)</div>
-          <div style="font-size:22px;font-weight:bold;color:#374151">$0</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px">PGU no aplica antes de 65 años</div>
+      <div class="grid-3" style="gap:10px;margin-bottom:8px">
+        <div style="text-align:center;padding:8px 10px;background:#f5f3ff;border-radius:8px">
+          <div style="font-size:10px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Hoy (${d.edad} años)</div>
+          <div style="font-size:16px;font-weight:bold;color:#374151">$0</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">PGU no aplica antes de 65 años</div>
         </div>
-        <div style="text-align:center;padding:16px;background:#f5f3ff;border-radius:8px;border:2px solid #7c3aed">
-          <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Desde los 65 años (RP)</div>
-          <div style="font-size:22px;font-weight:bold;color:#7c3aed">+${fmt(pguInfo65)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px">mensual · estimado</div>
+        <div style="text-align:center;padding:8px 10px;background:#f5f3ff;border-radius:8px;border:2px solid #7c3aed">
+          <div style="font-size:10px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Desde los 65 años (RP)</div>
+          <div style="font-size:16px;font-weight:bold;color:#7c3aed">+${fmt(pguInfo65)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">mensual · estimado</div>
         </div>
-        <div style="text-align:center;padding:16px;background:#f5f3ff;border-radius:8px;border:2px solid #7c3aed">
-          <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Desde los 65 años (RV)</div>
-          <div style="font-size:22px;font-weight:bold;color:#7c3aed">+${fmt(pguInfo65rv)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px">mensual · estimado</div>
+        <div style="text-align:center;padding:8px 10px;background:#f5f3ff;border-radius:8px;border:2px solid #7c3aed">
+          <div style="font-size:10px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Desde los 65 años (RV)</div>
+          <div style="font-size:16px;font-weight:bold;color:#7c3aed">+${fmt(pguInfo65rv)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">mensual · estimado</div>
         </div>
       </div>
       <p class="note">La PGU es un beneficio estatal universal (Ley 21.419) que complementa la pensión. Requiere edad ≥ 65 años y residencia en Chile ≥ 20 años. Se reduce gradualmente para pensiones líquidas entre ${fmt(PGU.umbralCompleto)} y ${fmt(PGU.umbralTope)}. A los 82 años aumenta a ${fmt(PGU.montoMax82)}/mes.</p>
     ` : `
-      <div class="grid-3" style="gap:16px;margin-bottom:14px">
-        <div style="text-align:center;padding:16px;background:#f5f3ff;border-radius:8px;border:2px solid #7c3aed">
-          <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">PGU con RP</div>
-          <div style="font-size:22px;font-weight:bold;color:#7c3aed">+${fmt(pguActual)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px">mensual</div>
+      <div class="grid-3" style="gap:10px;margin-bottom:8px">
+        <div style="text-align:center;padding:8px 10px;background:#f5f3ff;border-radius:8px;border:2px solid #7c3aed">
+          <div style="font-size:10px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">PGU con RP</div>
+          <div style="font-size:16px;font-weight:bold;color:#7c3aed">+${fmt(pguActual)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">mensual</div>
         </div>
-        <div style="text-align:center;padding:16px;background:#f5f3ff;border-radius:8px;border:2px solid #7c3aed">
-          <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">PGU con RV</div>
-          <div style="font-size:22px;font-weight:bold;color:#7c3aed">+${fmt(calcularPGU(rv.pensionLiquida, d.edad))}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px">mensual</div>
+        <div style="text-align:center;padding:8px 10px;background:#f5f3ff;border-radius:8px;border:2px solid #7c3aed">
+          <div style="font-size:10px;color:#7c3aed;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">PGU con RV</div>
+          <div style="font-size:16px;font-weight:bold;color:#7c3aed">+${fmt(calcularPGU(rv.pensionLiquida, d.edad))}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">mensual</div>
         </div>
-        <div style="text-align:center;padding:16px;background:var(--green-lt);border-radius:8px">
-          <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">A los 82 años</div>
-          <div style="font-size:22px;font-weight:bold;color:var(--green)">+${fmt(PGU.montoMax82)}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px">monto máx. (si aplica)</div>
+        <div style="text-align:center;padding:8px 10px;background:var(--green-lt);border-radius:8px">
+          <div style="font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">A los 82 años</div>
+          <div style="font-size:16px;font-weight:bold;color:var(--green)">+${fmt(PGU.montoMax82)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">monto máx. (si aplica)</div>
         </div>
       </div>
       <p class="note">La PGU es un beneficio estatal (Ley 21.419). Se reduce gradualmente para pensiones líquidas entre ${fmt(PGU.umbralCompleto)} y ${fmt(PGU.umbralTope)} mensuales.</p>
