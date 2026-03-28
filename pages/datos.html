@@ -32,6 +32,11 @@
       UF fecha SCOMP:
       <input type="date" id="fechaUF" style="font-size:var(--text-xs);padding:2px 6px;border:1px solid var(--color-border);border-radius:4px;color:var(--color-text-muted);">
     </label>
+    <label style="font-size:var(--text-xs);color:var(--color-text-muted);margin-left:16px;display:inline-flex;align-items:center;gap:6px;" title="Ingresa el valor exacto del Banco Central para la fecha del SCOMP. Sobreescribe el valor de la API.">
+      UF exacta (BCCh):
+      <input type="number" id="ufManual" step="0.01" min="1" placeholder="ej: 39841.72" style="font-size:var(--text-xs);padding:2px 6px;border:1px solid var(--color-border);border-radius:4px;color:var(--color-text-muted);width:110px;">
+      <button type="button" id="btnClearUfManual" title="Limpiar valor manual" style="font-size:10px;padding:1px 5px;border:1px solid var(--color-border);border-radius:3px;background:transparent;cursor:pointer;color:var(--color-text-muted);">✕</button>
+    </label>
   </div>
 
   <main class="container" id="main-content">
@@ -81,6 +86,80 @@
           <div class="form-group">
             <label for="edadDisplay">Edad calculada</label>
             <input type="text" id="edadDisplay" readonly placeholder="Se calcula desde la fecha de nacimiento">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Tipo de jubilación ── -->
+      <div class="form-section">
+        <div class="form-section__title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Tipo de Jubilación
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tipoJubilacion">Tipo de jubilación</label>
+            <select id="tipoJubilacion">
+              <option value="vejez_normal">Vejez normal (65 H / 60 M)</option>
+              <option value="anticipada">Pensión anticipada normal (Art. 68)</option>
+              <option value="trabajo_pesado">Trabajo pesado (Ley 19.404)</option>
+            </select>
+            <span class="hint">Define los requisitos y la edad de acceso a la pensión.</span>
+          </div>
+        </div>
+
+        <!-- Panel: Trabajo Pesado -->
+        <div id="panelTrabajoPesado" style="display:none;">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Clasificación del puesto (Ley 19.404)</label>
+              <div class="radio-group" style="margin-top:8px;align-items:center;gap:8px;">
+                <label class="radio-item">
+                  <input type="radio" name="tipoTrabajoPesado" id="tipoTrabajoPesado" value="2" checked>
+                  Tipo 2 — Pesado <span style="font-size:var(--text-xs);color:var(--color-text-muted);">(0,2 año/año · máx. 5 años)</span>
+                </label>
+                <span style="font-weight:700;color:var(--color-text-muted);padding:0 4px;">O</span>
+                <label class="radio-item">
+                  <input type="radio" name="tipoTrabajoPesado" value="1">
+                  Tipo 1 — Muy pesado <span style="font-size:var(--text-xs);color:var(--color-text-muted);">(0,4 año/año · máx. 10 años)</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="mesesTrabajoPesado">Meses cotizados en trabajo pesado</label>
+              <input type="number" id="mesesTrabajoPesado" value="0" min="0" max="600" step="12" placeholder="0">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:4px;">
+            <div class="form-group">
+              <label>Años de rebaja calculados</label>
+              <input type="text" id="aniosRebajaDisplay" readonly placeholder="—" style="background:var(--color-bg-alt,#f0f2f4);font-weight:600;">
+            </div>
+            <div class="form-group">
+              <label>Edad de acceso resultante</label>
+              <input type="text" id="edadAccesoDisplay" readonly placeholder="—" style="background:var(--color-bg-alt,#f0f2f4);font-weight:600;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel: Pensión anticipada -->
+        <div id="panelAnticipada" style="display:none;">
+          <div class="aviso aviso--info" style="margin-bottom:12px;font-size:var(--text-xs);">
+            <strong>Art. 68 DL 3.500 — Requisitos simultáneos:</strong>
+            (1) Pensión ≥ 70% del promedio de renta imponible de los últimos 10 años, Y
+            (2) Pensión ≥ 12 UF mensuales. Ambas condiciones deben cumplirse al mismo tiempo.
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="rentaPromedioDecenio">
+                Promedio de renta imponible últimos 10 años (CLP)
+                <span data-tip="Si está vacío, se usa la renta imponible actual como referencia." aria-label="Información">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </span>
+              </label>
+              <input type="number" id="rentaPromedioDecenio" placeholder="Opcional — si vacío se usa renta imponible actual" min="0" step="50000">
+              <span class="hint">La pensión debe ser ≥ 70% de este valor Y ≥ 12 UF (condiciones simultáneas).</span>
+            </div>
           </div>
         </div>
       </div>
@@ -143,26 +222,26 @@
           <label>Método de ingreso</label>
           <div class="radio-group" style="margin-top:8px;">
             <label class="radio-item">
-              <input type="radio" name="metodoSaldo" value="cuotas" checked> Por número de cuotas
+              <input type="radio" name="metodoSaldo" value="monto" checked> Por monto total (CLP)
             </label>
             <label class="radio-item">
-              <input type="radio" name="metodoSaldo" value="monto"> Por monto total (CLP)
+              <input type="radio" name="metodoSaldo" value="cuotas"> Por número de cuotas
             </label>
           </div>
         </div>
 
-        <div id="panelCuotas">
+        <div id="panelMonto">
+          <div class="form-group">
+            <label for="montoTotal">Monto total (CLP)</label>
+            <input type="number" id="montoTotal" placeholder="Ej: 45000000" step="1" min="0">
+          </div>
+        </div>
+
+        <div id="panelCuotas" style="display:none;">
           <div class="form-group">
             <label for="numCuotas">Número de cuotas</label>
             <input type="number" id="numCuotas" placeholder="Ej: 1234.56789" step="0.00001" min="0">
             <span class="hint">Busca este dato en tu cartola AFP.</span>
-          </div>
-        </div>
-
-        <div id="panelMonto" style="display:none;">
-          <div class="form-group">
-            <label for="montoTotal">Monto total (CLP)</label>
-            <input type="number" id="montoTotal" placeholder="Ej: 45000000" step="1" min="0">
           </div>
         </div>
 
@@ -373,7 +452,11 @@
     if (d.sexo)            document.querySelector(`input[name="sexo"][value="${d.sexo}"]`)?.click?.();
     if (d.numCuotas)       document.getElementById('numCuotas').value       = d.numCuotas;
     if (d.montoTotal)      document.getElementById('montoTotal').value      = d.montoTotal;
-    if (d.metodoSaldo === 'monto') {
+    if (d.metodoSaldo === 'cuotas') {
+      document.querySelector('input[name="metodoSaldo"][value="cuotas"]').checked = true;
+      document.getElementById('panelMonto').style.display  = 'none';
+      document.getElementById('panelCuotas').style.display = '';
+    } else {
       document.querySelector('input[name="metodoSaldo"][value="monto"]').checked = true;
       document.getElementById('panelCuotas').style.display = 'none';
       document.getElementById('panelMonto').style.display  = '';
@@ -395,6 +478,10 @@
     if (d.numHijosEstudiantes != null) document.getElementById('numHijosEstudiantes').value = d.numHijosEstudiantes;
     if (d.numHijosInvalidos   != null) document.getElementById('numHijosInvalidos').value   = d.numHijosInvalidos;
     toggleCamposConyuge();
+    if (d.tipoJubilacion)              document.getElementById('tipoJubilacion').value           = d.tipoJubilacion;
+    if (d.tipoTrabajoPesado)           { const r = document.querySelector(`input[name="tipoTrabajoPesado"][value="${d.tipoTrabajoPesado}"]`); if (r) r.checked = true; }
+    if (d.mesesTrabajoPesado != null)  document.getElementById('mesesTrabajoPesado').value        = d.mesesTrabajoPesado;
+    if (d.rentaPromedioDecenio != null) document.getElementById('rentaPromedioDecenio').value     = d.rentaPromedioDecenio;
 
     // Set max date for fechaNacimiento
     document.getElementById('fechaNacimiento').max = new Date().toISOString().slice(0,10);
@@ -436,6 +523,57 @@
     // Aplica al cargar si ya hay sexo guardado
     const sexoGuardado = document.querySelector('input[name="sexo"]:checked')?.value;
     if (sexoGuardado && !d.edadJubilacion) ajustarEdadJubilacionPorSexo(sexoGuardado);
+
+    // ── Tipo de jubilación ────────────────────────────
+    function calcularRebajaTP() {
+      const tipo   = parseInt(document.querySelector('input[name="tipoTrabajoPesado"]:checked')?.value) || 2;
+      const meses  = parseFloat(document.getElementById('mesesTrabajoPesado').value) || 0;
+      const factor = tipo === 1 ? 0.4 : 0.2;
+      const maxRebaja = tipo === 1 ? 10 : 5;
+      return Math.min((meses / 12) * factor, maxRebaja);
+    }
+
+    function actualizarEdadJubilacionTP() {
+      const sexo      = document.querySelector('input[name="sexo"]:checked')?.value || 'M';
+      const edadLegal = sexo === 'F' ? 60 : 65;
+      const tipo      = parseInt(document.querySelector('input[name="tipoTrabajoPesado"]:checked')?.value) || 2;
+      const edadMin   = tipo === 1 ? 55 : 60;
+      const rebaja    = calcularRebajaTP();
+      const edadAcceso = Math.max(edadMin, edadLegal - rebaja);
+      const rebajaMostrar = Math.round(rebaja * 10) / 10;
+      document.getElementById('edadJubilacion').value       = Math.round(edadAcceso);
+      document.getElementById('aniosRebajaDisplay').value   = rebaja > 0 ? `${rebajaMostrar} años` : '0 años';
+      document.getElementById('edadAccesoDisplay').value    = `${Math.round(edadAcceso)} años (legal: ${edadLegal})`;
+    }
+
+    function togglePanelTipo() {
+      const tipo      = document.getElementById('tipoJubilacion').value;
+      const panelTP   = document.getElementById('panelTrabajoPesado');
+      const panelAnt  = document.getElementById('panelAnticipada');
+      const inputEdad = document.getElementById('edadJubilacion');
+      panelTP.style.display  = tipo === 'trabajo_pesado' ? '' : 'none';
+      panelAnt.style.display = tipo === 'anticipada'     ? '' : 'none';
+      if (tipo === 'trabajo_pesado') {
+        inputEdad.readOnly = true;
+        inputEdad.style.background = 'var(--color-bg-alt, #f0f2f4)';
+        actualizarEdadJubilacionTP();
+      } else {
+        inputEdad.readOnly = false;
+        inputEdad.style.background = '';
+      }
+    }
+
+    document.getElementById('tipoJubilacion').addEventListener('change', togglePanelTipo);
+    document.querySelectorAll('input[name="tipoTrabajoPesado"]').forEach(r =>
+      r.addEventListener('change', actualizarEdadJubilacionTP)
+    );
+    document.getElementById('mesesTrabajoPesado').addEventListener('input', actualizarEdadJubilacionTP);
+    document.querySelectorAll('input[name="sexo"]').forEach(r =>
+      r.addEventListener('change', () => {
+        if (document.getElementById('tipoJubilacion').value === 'trabajo_pesado') actualizarEdadJubilacionTP();
+      })
+    );
+    togglePanelTipo();
 
     // ── Auto-fetch valor cuota ────────────────────────
     async function autoFetchVC() {
@@ -629,27 +767,44 @@
 
     // ── Indicadores (UF / UTM) ────────────────────────
     async function cargarIndicadores(fecha = null) {
+      const ufManualVal = parseFloat(document.getElementById('ufManual').value) || null;
       const [ufDato, utmDato] = await Promise.all([
         fecha ? getUFFecha(fecha) : getUF(),
         fecha ? getUTMFecha(fecha) : Promise.resolve(null),
       ]);
-      const tope = Math.round(87.8 * ufDato.valor);
+      // Si hay valor manual, sobreescribe el de la API
+      const ufValor = ufManualVal ?? ufDato.valor;
+      const tope = Math.round(87.8 * ufValor);
       const fechaLabel = fecha ? ` (${fecha})` : '';
+      const manualLabel = ufManualVal ? ' [manual BCCh]' : '';
       document.getElementById('statusUF').textContent =
-        `UF: ${formatCLP(ufDato.valor)}${fechaLabel} · Tope imponible: ${formatCLP(tope)}`;
-      Store.guardar({ uf: ufDato.valor, topeImponible: tope, ...(utmDato ? { utm: utmDato.valor } : {}) });
+        `UF: ${formatCLP(ufValor)}${fechaLabel}${manualLabel} · Tope imponible: ${formatCLP(tope)}`;
+      Store.guardar({ uf: ufValor, topeImponible: tope, ufManual: ufManualVal, ...(utmDato ? { utm: utmDato.valor } : {}) });
     }
 
-    // Restaurar fecha UF guardada
+    // Restaurar fecha UF y UF manual guardadas
     const d0 = Store.leer();
-    if (d0.fechaUF) document.getElementById('fechaUF').value = d0.fechaUF;
+    if (d0.fechaUF)   document.getElementById('fechaUF').value  = d0.fechaUF;
+    if (d0.ufManual)  document.getElementById('ufManual').value = d0.ufManual;
 
     cargarIndicadores(d0.fechaUF || null);
 
     document.getElementById('fechaUF').addEventListener('change', function() {
-      const fecha = this.value;   // formato YYYY-MM-DD
+      const fecha = this.value;
       Store.guardar({ fechaUF: fecha || null });
       cargarIndicadores(fecha || null);
+    });
+
+    document.getElementById('ufManual').addEventListener('change', function() {
+      const val = parseFloat(this.value) || null;
+      Store.guardar({ ufManual: val });
+      cargarIndicadores(document.getElementById('fechaUF').value || null);
+    });
+
+    document.getElementById('btnClearUfManual').addEventListener('click', function() {
+      document.getElementById('ufManual').value = '';
+      Store.guardar({ ufManual: null });
+      cargarIndicadores(document.getElementById('fechaUF').value || null);
     });
 
     // ── Form submit ──────────────────────────────────
@@ -729,6 +884,10 @@
         // campo unificado para compatibilidad con código existente
         numHijos: (parseInt(document.getElementById('numHijosMenores').value) || 0)
                 + (parseInt(document.getElementById('numHijosEstudiantes').value) || 0),
+        tipoJubilacion:       document.getElementById('tipoJubilacion').value,
+        tipoTrabajoPesado:    parseInt(document.querySelector('input[name="tipoTrabajoPesado"]:checked')?.value) || 2,
+        mesesTrabajoPesado:   parseFloat(document.getElementById('mesesTrabajoPesado').value) || 0,
+        rentaPromedioDecenio: parseFloat(document.getElementById('rentaPromedioDecenio').value) || 0,
       });
 
       window.location.href = 'proyeccion.html';

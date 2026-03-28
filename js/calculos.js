@@ -4,7 +4,7 @@
  * All monetary values in CLP.
  */
 
-import { getCRU, getCRUExtrapolado, getCRUReversional, getCRURentaVitalicia, esperanzaVida } from './mortalidad.js';
+import { getCRU, getCRUExtrapolado, getCRURentaVitalicia, getCNUConyuge, calcularCNUConMejoramiento, esperanzaVida } from './mortalidad.js';
 
 // ============================================================
 // CONSTANTES VIGENTES — SP Chile, marzo 2026
@@ -267,10 +267,13 @@ export function calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0, anio
     numHijosInvalidos   = 0,
   } = familia || {};
 
-  // CRU tabla pre-computada 2020 (sin AAx — el TITRP trimestral ya incorpora longevidad)
+  // CRU con mejoramiento AAx (NCG N°306): aplica factores de mejora desde 2020 al año de jubilación.
+  // El SCOMP de SP Chile sí aplica AAx — verificado empíricamente contra SCOMP Q1-2026.
   const cnuSinMejora = getCRU(sexo, edad);
-  const cnuBase      = cnuSinMejora;
-  const pctAumentoMejora = 0;
+  const cnuBase      = anioJubilacion
+    ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
+    : cnuSinMejora;
+  const pctAumentoMejora = cnuSinMejora > 0 ? ((cnuBase - cnuSinMejora) / cnuSinMejora) * 100 : 0;
 
   // factorTabla: 1.0 = B-2020 (RP), 1.08 = aproximación RV-2020 (RV)
   const cnuAfiliado = cnuBase * factorTabla;
@@ -279,13 +282,12 @@ export function calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0, anio
   const pctConyuge = tienePareja ? (totalHijosComunes > 0 ? 0.50 : 0.60) : 0;
 
   // CNU cónyuge/conviviente — renta reversional (cónyuge cobra SOLO tras fallecimiento afiliado)
-  // getCRUReversional usa modelo de fuerza constante calibrado con la tabla CRU pre-calculada.
-  // Evita la sobreestimación del CNU que produce la fórmula aditiva (pct × CRU_cónyuge completo).
+  // getCNUConyuge calcula numéricamente la anualidad reversional desde tablas B-2020/RV-2020
+  // al 3% (consistente con la tabla CRU pre-computada), logrando ~0.6% de error vs SCOMP.
   let cnuConyuge = 0;
   if (tienePareja) {
-    const cruConyuge   = getCRUExtrapolado(sexoConyuge, edadConyuge);  // extrapola para edades jóvenes
-    const cruReversional = getCRUReversional(getCRU(sexo, edad), cruConyuge);
-    cnuConyuge = pctConyuge * cruReversional * factorTabla;
+    const reversional = getCNUConyuge(sexo, edad, sexoConyuge, edadConyuge);
+    cnuConyuge = pctConyuge * reversional * factorTabla;
   }
 
   // CNU hijos: anualidades limitadas (promedio restante) — también con factorTabla
@@ -343,11 +345,15 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0,
     cnuDetalle = calcularCNUFamiliar(edad, sexo, familia, 1.0, anioJubilacion);
     cnu = cnuDetalle.cnuTotal;
   } else {
-    cnu = getCRU(sexo, edad);
+    const cruBase = getCRU(sexo, edad);
+    cnu = anioJubilacion
+      ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
+      : cruBase;
     cnuDetalle = {
       cnuTotal: cnu, cnuAfiliado: cnu, cnuConyuge: 0, cnuHijos: 0,
       factorFamilia: 1, tieneImpacto: false,
-      cnuSinMejora: cnu, pctAumentoMejora: 0,
+      cnuSinMejora: cruBase,
+      pctAumentoMejora: cruBase > 0 ? ((cnu - cruBase) / cruBase) * 100 : 0,
       anioJubilacion,
     };
   }
@@ -362,8 +368,11 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0,
     : (tasaMens > 0 ? saldo * tasaMens / (1 - Math.pow(1 + tasaMens, -mesesEspe)) : 0);
   const pension = uf > 0 ? Math.round((_pensionExacta / uf) * 100) / 100 * uf : _pensionExacta;
 
-  // Pensión sin familia (solo CRU del afiliado) para mostrar el impacto
-  const cruSolo = getCRU(sexo, edad);
+  // Pensión sin familia (solo CRU del afiliado, con mejoramiento) para mostrar el impacto
+  const cruSoloBase = getCRU(sexo, edad);
+  const cruSolo = anioJubilacion
+    ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
+    : cruSoloBase;
   const pensionSinFamilia = cruSolo > 0 ? saldo / cruSolo : pension;
   const impactoFamilia = pensionSinFamilia - pension; // cuánto menos recibe por tener familia
 

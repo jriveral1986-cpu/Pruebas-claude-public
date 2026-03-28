@@ -57,6 +57,9 @@
         Aún no hay datos. <a href="datos.html">Ingresa tus datos primero →</a>
       </div>
       <div id="panelResultados" style="display:none;">
+        <!-- Condiciones de acceso -->
+        <div id="panelAcceso" class="card" style="margin-bottom:20px;"></div>
+
         <div class="grid-2">
           <!-- Retiro Programado -->
           <div class="card card--highlight">
@@ -379,6 +382,8 @@
         impactoDiv.style.display = 'none';
       }
 
+      renderPanelAcceso(rp, rv, uf);
+
       // Guardar para otras páginas
       Store.guardar({
         pensionRP: rp.pension, pensionRPLiquida: rp.pensionLiquida,
@@ -395,6 +400,97 @@
         document.getElementById('badgeUF').textContent  = `UF: ${formatCLP(d.uf)}`;
       if (d.utm)
         document.getElementById('badgeUTM').textContent = `UTM: ${formatCLP(d.utm)}`;
+    }
+
+    // ── Panel de condiciones de acceso ───────────────
+    function renderPanelAcceso(rp, rv, uf) {
+      const panel  = document.getElementById('panelAcceso');
+      const tipo   = d.tipoJubilacion || 'vejez_normal';
+      const sexo   = d.sexo || 'M';
+      const edad   = d.edad || 65;
+      const edadLegal = sexo === 'F' ? 60 : 65;
+
+      const row = (label, valor, color) =>
+        `<div class="resultado__item">
+          <span class="resultado__label">${label}</span>
+          <span class="resultado__valor"${color ? ` style="color:${color};"` : ''}>${valor}</span>
+        </div>`;
+
+      let html = '<h3 style="margin-bottom:12px;">Condiciones de acceso</h3><div class="resultado">';
+
+      if (tipo === 'vejez_normal') {
+        const cumple = edad >= edadLegal;
+        const faltan = edadLegal - edad;
+        html += row('Modalidad', 'Vejez normal (Art. 3 DL 3.500)');
+        html += row('Edad legal requerida', `${edadLegal} años (${sexo === 'F' ? 'mujeres' : 'hombres'})`);
+        html += row('Edad actual', `${edad} años`);
+        html += row(
+          'Cumple requisito de edad',
+          cumple ? '✓ Puede jubilarse ahora' : `✗ Faltan ${faltan} año${faltan !== 1 ? 's' : ''}`,
+          cumple ? 'var(--success)' : 'var(--color-error)'
+        );
+
+      } else if (tipo === 'anticipada') {
+        const pension  = rp.pension;
+        const pensUF   = pension / uf;
+        const renta    = d.rentaPromedioDecenio || d.rentaImponible || 0;
+        const req12uf  = pensUF >= 12;
+        const req70    = renta > 0 ? pension >= renta * 0.70 : null;
+        const cumple   = req12uf && req70 !== false;
+        html += row('Modalidad', 'Pensión anticipada (Art. 68 DL 3.500)');
+        html += row('Pensión estimada RP bruta', `${formatCLP(pension)} · ${formatUF(pensUF)}`);
+        html += row(
+          'Requisito 1: pensión ≥ 12 UF',
+          req12uf ? `✓ Cumple (${formatUF(pensUF)})` : `✗ No cumple — tiene ${formatUF(pensUF)}, requiere 12 UF`,
+          req12uf ? 'var(--success)' : 'var(--color-error)'
+        );
+        if (renta > 0) {
+          const necesaria = Math.round(renta * 0.70);
+          html += row(
+            'Requisito 2: pensión ≥ 70% promedio renta',
+            req70 ? `✓ Cumple (requiere ${formatCLP(necesaria)})` : `✗ No cumple — requiere ${formatCLP(necesaria)}`,
+            req70 ? 'var(--success)' : 'var(--color-error)'
+          );
+        } else {
+          html += row('Requisito 2: pensión ≥ 70% promedio renta', '— Ingresa la renta en Mis Datos para verificar', 'var(--color-text-muted)');
+        }
+        html += `<div class="resultado__item" style="border-top:2px solid var(--color-border);padding-top:8px;margin-top:4px;">
+          <span class="resultado__label" style="font-weight:700;">Conclusión</span>
+          <span class="resultado__valor" style="color:${cumple ? 'var(--success)' : 'var(--color-error)'};">
+            ${cumple ? '✓ Cumple ambos requisitos para pensión anticipada' : '✗ No cumple — ambas condiciones son obligatorias simultáneamente'}
+          </span></div>`;
+
+      } else if (tipo === 'trabajo_pesado') {
+        const tipoTP    = parseInt(d.tipoTrabajoPesado) || 2;
+        const mesesTP   = d.mesesTrabajoPesado || 0;
+        const anosTP    = mesesTP / 12;
+        const factor    = tipoTP === 1 ? 0.4 : 0.2;
+        const maxRebaja = tipoTP === 1 ? 10 : 5;
+        const edadMin   = tipoTP === 1 ? 55 : 60;
+        const rebaja    = Math.min(anosTP * factor, maxRebaja);
+        const rebajaMostrar = Math.round(rebaja * 10) / 10;
+        const edadAcceso    = Math.max(edadMin, Math.round(edadLegal - rebaja));
+        const cumple        = edad >= edadAcceso;
+        const faltan        = edadAcceso - edad;
+        const nombreTipo    = tipoTP === 1 ? 'Tipo 1 — Muy pesado' : 'Tipo 2 — Pesado';
+        html += row('Modalidad', 'Trabajo pesado (Ley 19.404)');
+        html += row('Tipo de puesto calificado', nombreTipo);
+        html += row('Meses cotizados en trabajo pesado', `${mesesTP} meses (${anosTP.toFixed(1)} años)`);
+        html += row('Factor de rebaja aplicado', `${factor} año/año → ${rebajaMostrar} años de rebaja (máx. ${maxRebaja})`);
+        html += row('Edad de acceso calculada', `${edadAcceso} años (edad legal ${edadLegal} − ${rebajaMostrar})`);
+        html += row('Edad actual', `${edad} años`);
+        html += `<div class="resultado__item" style="border-top:2px solid var(--color-border);padding-top:8px;margin-top:4px;">
+          <span class="resultado__label" style="font-weight:700;">Cumple requisito de edad</span>
+          <span class="resultado__valor" style="color:${cumple ? 'var(--success)' : 'var(--color-error)'};">
+            ${cumple ? '✓ Puede jubilarse con rebaja de trabajo pesado' : `✗ Faltan ${faltan} año${faltan !== 1 ? 's' : ''} para la edad de acceso`}
+          </span></div>
+          <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:8px;">
+            También se requiere haber sobrecotizado en puesto calificado según Ley 19.404. Verifica con tu AFP o empleador.
+          </p>`;
+      }
+
+      html += '</div>';
+      panel.innerHTML = html;
     }
 
     // ── Proyección ────────────────────────────────────
