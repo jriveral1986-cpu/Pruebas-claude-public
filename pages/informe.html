@@ -835,8 +835,19 @@
     const saldoAPVNum   = d.saldoAPV || 0;
     const br            = d.bonoReconocimiento || 0;
     const saldoEfectivo = d.saldoTotal + saldoAPVNum + br;
-    const rp = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, null);
-    const rv = calcularPensionRV(saldoEfectivo, d.edad, d.sexo, uf, null);
+    const familia = {
+      tienePareja:         d.tienePareja         || false,
+      edadConyuge:         d.edadConyuge         || 40,
+      sexoConyuge:         d.sexoConyuge         || 'F',
+      numHijosMenores:     d.numHijosMenores     || 0,
+      numHijosEstudiantes: d.numHijosEstudiantes || 0,
+      numHijosInvalidos:   d.numHijosInvalidos   || 0,
+    };
+    const anioActual    = new Date().getFullYear();
+    const edadJub       = d.edadJubilacion || d.edad;
+    const anioJub       = anioActual + Math.max(0, Math.round(edadJub - d.edad));
+    const rp = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, familia, anioJub);
+    const rv = calcularPensionRV(saldoEfectivo, d.edad, d.sexo, uf, familia, anioJub);
 
     const score = calcularScore({
       pensionRP: rp.pension, rentaImponible: d.rentaImponible || 0,

@@ -305,12 +305,13 @@
         numHijosInvalidos:   d.numHijosInvalidos   || 0,
       };
 
-      const anioActual = new Date().getFullYear();
-      const edadJub    = d.edadJubilacion || d.edad;
-      const anioJub    = anioActual + Math.max(0, Math.round(edadJub - d.edad));
+      const anioActual    = new Date().getFullYear();
+      const edadJub       = d.edadJubilacion || d.edad;
+      const anioJub       = anioActual + Math.max(0, Math.round(edadJub - d.edad));
+      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
 
-      const rp = calcularPensionRP(d.saldoTotal, d.edad, d.sexo, uf, comisionDec, familia, anioJub);
-      const rv = calcularPensionRV(d.saldoTotal, d.edad, d.sexo, uf, familia, anioJub);
+      const rp = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, familia, anioJub);
+      const rv = calcularPensionRV(saldoEfectivo, d.edad, d.sexo, uf, familia, anioJub);
       rpPension = rp.pension;
       rvPension = rv.pension;
 
@@ -338,9 +339,9 @@
       document.getElementById('rvTablaValor').textContent = `${formatCLP(rv.pension)} (líq. ${formatCLP(rv.pensionLiquida)})`;
 
       actualizarLongevidad();
-      generarRPDetalle(comisionDec, familia);
+      generarRPDetalle(comisionDec, familia, saldoEfectivo);
       renderSobrevivencia(rp.pension, rv.pension);
-      renderCNUSection(rp.cnuDetalle, rv.cnuDetalle, d.saldoTotal);
+      renderCNUSection(rp.cnuDetalle, rv.cnuDetalle, saldoEfectivo);
     }
 
     // ── Sección CNU ──────────────────────────────────
@@ -521,10 +522,10 @@
     // ── RP detalle año a año ──────────────────────────
     // Modelo real: la pensión se recalcula cada año sobre el saldo restante y la edad actual.
     // Esto es la esencia del "Retiro Programado": pension_año = saldo_inicio / CNU(edad_año)
-    function generarRPDetalle(comisionDec, familia) {
+    function generarRPDetalle(comisionDec, familia, saldoEfectivo) {
       const tbody   = document.getElementById('cuerpoRPDetalle');
       tbody.innerHTML = '';
-      let saldo     = d.saldoTotal;
+      let saldo     = saldoEfectivo || d.saldoTotal;
       const uf      = d.uf || 39717;
       // Tasa mensual compuesta equivalente a TASA_RP anual (3,31%)
       const tasaMensual = Math.pow(1 + TASA_RP * 12, 1/12) - 1;
