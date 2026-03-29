@@ -770,3 +770,170 @@ Cuando el afiliado tiene beneficiarios (cónyuge, hijos), tanto RP como RV calcu
 **La reducción es permanente:** el afiliado no puede optar entre incluir o excluir beneficiarios — la ley obliga a cubrir al grupo familiar en la modalidad elegida.
 
 Fuente: `pages/proyeccion.html`, `pages/modalidades.html`, `pages/brechas.html`
+
+---
+
+## 31. Saldo Efectivo Canónico
+
+**Todas las páginas** (`proyeccion.html`, `modalidades.html`, `brechas.html`, `informe.html`) deben usar la misma fórmula de saldo efectivo:
+
+```js
+const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
+```
+
+| Componente | Campo store | Descripción |
+|---|---|---|
+| `saldoTotal` | obligatorio | Saldo AFP (obligatorio + voluntario AFP) |
+| `saldoAPV` | opcional | Saldo APV acumulado en institución APV |
+| `bonoReconocimiento` | opcional | Bono de reconocimiento IPS (valor actualizado) |
+
+> **Regla de consistencia:** nunca pasar `d.saldoTotal` directamente a `calcularPensionRP` / `calcularPensionRV`. Siempre computar `saldoEfectivo` primero. Esta es la fuente de verdad para el saldo a la fecha de jubilación.
+
+---
+
+## 32. Procesadores por Tipo de Jubilación
+
+`js/calculos.js` expone un **dispatcher** y cuatro procesadores especializados. Cada procesador retorna un objeto con la misma forma base `{ acceso, rp, rv }` (excepto invalidez que retorna `{ invalidez }`).
+
+### Dispatcher principal
+
+```js
+procesarPension(d, uf, comisionDec, familia)
+```
+
+Lee `d.tipoJubilacion` y delega al procesador correspondiente. Calcula `saldoEfectivo` internamente.
+
+| `tipoJubilacion` | Procesador |
+|---|---|
+| `'vejez_normal'` | `procesarVejezNormal` |
+| `'anticipada'` | `procesarAnticipada` |
+| `'trabajo_pesado'` | `procesarTrabajoPesado` |
+| `'invalidez'` | `procesarInvalidez` |
+
+### `procesarVejezNormal({ saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion })`
+
+```
+edadLegal = sexo === 'F' ? 60 : 65
+acceso.cumple = edad >= edadLegal
+```
+Retorna `{ acceso, rp, rv }` con RP y RV calculados normalmente.
+
+### `procesarAnticipada({ ..., rentaPromedioDecenio, rentaImponible })`
+
+Requiere que la pensión RP sea ≥ 80% del promedio de renta imponible del decenio **y** ≥ 80% de la pensión media imponible (Art. 68 DL 3.500). Solo se permite si el afiliado no ha alcanzado la edad legal.
+
+```
+pctDecenio = rp.pension / rentaPromedioDecenio
+pctMedio   = rp.pension / (rentaImponible × 0.80)
+acceso.cumple = pctDecenio >= 0.80 && pctMedio >= 0.80
+```
+
+### `procesarTrabajoPesado({ ..., tipoTrabajoPesado, mesesTrabajoPesado })`
+
+Ley 19.404. El afiliado acumula rebaja de edad de jubilación.
+
+| Tipo | Rebaja por año cotizado | Máximo |
+|---|---|---|
+| Tipo 2 — Pesado | 0,2 años | 5 años |
+| Tipo 1 — Muy pesado | 0,4 años | 10 años |
+
+```
+añosCotizadosTP = mesesTrabajoPesado / 12
+rebaja = min(cotizado × tasaRebaja, máxRebaja)
+edadAcceso = edadLegal - rebaja
+acceso.cumple = edad >= edadAcceso
+```
+
+### `procesarInvalidez({ saldo, edad, sexo, uf, comisionDec, anioJubilacion, tipoInvalidez, rentaPromedioInvalidez })`
+
+Ver regla 33 para detalle.
+
+Fuente: `js/calculos.js`
+
+---
+
+## 33. Pensión de Invalidez (Art. 54 DL 3.500)
+
+**Tipos de invalidez:**
+
+| Tipo | Criterio médico | Monto base |
+|---|---|---|
+| Total | Pérdida capacidad laboral ≥ 2/3 | 100% de `saldo / CRU` |
+| Parcial | Pérdida ≥ 50% y < 2/3 | 50% de `saldo / CRU` |
+
+**Cálculo base:**
+```
+cruBase = calcularCRU_RP(sexo, edad, TASA_RP, anioJubilacion)
+brutaBase = saldo / cruBase
+pensionBruta = tipo === 'parcial' ? brutaBase × 0.5 : brutaBase
+```
+
+**Complemento SIS (Seguro de Invalidez y Sobrevivencia):**
+
+El SIS complementa la pensión hasta el 70% de la renta promedio del decenio (con tope en el 70% del tope imponible = 87.8 UF).
+
+```
+topeImponible = 87.8 × uf
+rentaRef = rentaPromedioInvalidez || 0
+limSIS = min(rentaRef × 0.70, 0.70 × topeImponible)
+complementoSIS = max(0, limSIS - pensionBruta)
+pensionTotal = pensionLiquida + complementoSIS
+```
+
+> El SIS es pagado por el empleador (1,54% del salario imponible). El complemento aplica solo si la pensión autofinanciada es menor que el 70% de la renta de referencia.
+
+**UI en `datos.html`:** nuevo panel `#panelInvalidez` visible solo cuando `tipoJubilacion === 'invalidez'`. Incluye radio `total/parcial` y campo `rentaPromedioInvalidez`.
+
+**UI en `proyeccion.html`:** cuando `tipoJubilacion === 'invalidez'`, se oculta la grilla RP/RV y se muestra `#panelInvalidezResultado` con los campos `pensionBruta`, `pensionNeta`, `complementoSIS`, `pensionTotal`.
+
+Fuente: `js/calculos.js:procesarInvalidez`, `pages/datos.html`, `pages/proyeccion.html`
+
+---
+
+## 34. Mejoramiento CRU — NCG N°306 (Tablas Generacionales AAx)
+
+La Superintendencia de Pensiones aplica factores de mejoramiento de mortalidad (mejoramiento generacional) desde el año base 2020.
+
+**Regla de implementación:**
+
+| Sexo | Función | Razón |
+|---|---|---|
+| Hombre | `calcularCNUConMejoramiento(edad, anioJubilacion, TASA_RP)` | Tabla AAx consistente ✓ |
+| Mujer | `getCRU('F', edad)` (valor raw tablas.json) | Tabla b2020_mujer inconsistente (~6.8% error) — se usa valor pre-calculado directamente |
+
+```js
+// calcularCRU_RP (función interna de calculos.js)
+function calcularCRU_RP(sexo, edad, tasa, anioJubilacion) {
+  if (sexo === 'M') return calcularCNUConMejoramiento(edad, anioJubilacion, tasa);
+  return getCRU('F', edad);   // raw pre-calculado (mujer)
+}
+```
+
+**Factor de mejoramiento:**
+```
+deltaAnios = anioJubilacion - 2020
+factorAAx  = 1 + (deltaAnios × tasaMejoraAnual)   // estimación lineal
+cnuMejorado = cnuBase × factorAAx
+```
+
+> **Validación SCOMP:** para hombre 62 años, AFP Capital, saldo $160.866.522, la diferencia entre el cálculo con mejoramiento y el SCOMP oficial fue de **0,13%** ($946.241 vs $947.436).
+
+Fuente: `js/calculos.js:calcularCRU_RP`, `js/calculos.js:calcularCNUConMejoramiento`, NCG N°306
+
+---
+
+## 35. Campos Store para Tipos de Jubilación Especiales
+
+Campos adicionales guardados en `localStorage` (`pension_chile_v1`) según el tipo de jubilación:
+
+| Campo | Tipo jubilación | Descripción |
+|---|---|---|
+| `tipoJubilacion` | todos | `'vejez_normal'` \| `'anticipada'` \| `'trabajo_pesado'` \| `'invalidez'` |
+| `edadJubilacion` | todos | Edad de acceso calculada (puede diferir de la legal) |
+| `tipoTrabajoPesado` | trabajo_pesado | `'tipo1'` (0.4/año, máx 10) o `'tipo2'` (0.2/año, máx 5) |
+| `mesesTrabajoPesado` | trabajo_pesado | Meses cotizados bajo régimen pesado |
+| `rentaPromedioDecenio` | anticipada | Promedio renta imponible últimos 10 años (CLP) |
+| `tipoInvalidez` | invalidez | `'total'` o `'parcial'` |
+| `rentaPromedioInvalidez` | invalidez | Renta promedio del decenio para cálculo complemento SIS (CLP) |
+
+Fuente: `pages/datos.html`, `js/store.js`
