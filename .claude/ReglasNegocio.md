@@ -1,939 +1,653 @@
-# Reglas de Negocio — Calculadora Previsional Chile
+# Reglas de Negocio — Calculadora Previsional Chile (versión corregida)
 
-Documento de referencia de todas las reglas de negocio implementadas en el proyecto, extraídas directamente del código fuente (`js/calculos.js`, `js/mortalidad.js`, `js/comisiones.js`, `data/tablas.json`, `data/afp.json`).
-
----
-
-## 1. Cotización y Tope Imponible
-
-| Regla | Valor | Fuente |
-|---|---|---|
-| Cotización obligatoria | 10% de la remuneración imponible | DL 3.500 |
-| Factor tope imponible | 87.8 × UF | DL 3.500 |
-| Fórmula tope imponible | `round(87.8 × UF_del_día)` | `calculos.js:calcularTopeImponible` |
-| SIS (Seguro de Invalidez y Sobrevivencia) | 1.54% — pagado por el empleador | `comisiones.js:calcularSIS` |
-
-**Implementación:**
-```js
-// calculos.js
-export function calcularTopeImponible(uf) {
-  return Math.round(87.8 * uf);
-}
-
-// comisiones.js
-export function calcularSIS(salario) {
-  return salario * 0.0154;
-}
-```
+**Fecha de actualización documental:** 29-03-2026  
+**Estado:** corregido para uso funcional/documental  
+**Objetivo:** dejar separadas las reglas **normativas**, las reglas **paramétricas** y las reglas **heurísticas** del sistema.
 
 ---
 
-## 2. AFPs y Comisiones
+## 1. Criterio de uso del documento
 
-Las comisiones son sobre la remuneración imponible (% anual). Se descuentan mensualmente.
+Este documento **sí puede usarse como referencia funcional**, pero con la siguiente convención:
 
-| AFP | Comisión anual |
-|---|---|
-| Uno | 0.49% |
-| Modelo | 0.58% |
-| Hábitat | 0.95% |
-| PlanVital | 1.16% |
-| Capital | 1.44% |
-| Cuprum | 1.44% |
-| Provida | 1.45% |
+- **Normativa:** regla legal o regulatoria que debe modelarse de forma exacta.
+- **Paramétrica:** valor vigente que debe mantenerse configurable por fecha de vigencia.
+- **Heurística / simulación:** aproximación interna del sistema; **no** debe presentarse como regla legal exacta.
 
-
-**Fórmula descuento mensual:**
-```
-descuento_mensual = salario × (comisión / 100) / 12
-```
-
-Fuente: `data/afp.json` + `comisiones.js:calcularDescuentoMensual`
+> Regla principal: ninguna aproximación actuarial, visual o comercial debe quedar documentada como si fuera una obligación legal del sistema chileno de pensiones.
 
 ---
 
-## 3. Fondos de Pensión
+## 2. Parámetros normativos base del sistema AFP
+
+### 2.1 Cotización obligatoria
+
+| Regla | Valor | Tipo |
+|---|---:|---|
+| Cotización obligatoria cuenta individual | 10% de la remuneración o renta imponible | Normativa |
+| SIS | 1,54% de la remuneración o renta imponible | Paramétrica |
+| Edad legal de pensión vejez hombre | 65 años | Normativa |
+| Edad legal de pensión vejez mujer | 60 años | Normativa |
+| Tope imponible mensual 2026 | 90,0 UF | Paramétrica |
+
+### 2.2 Fórmulas base
+
+```txt
+cotizacion_obligatoria = renta_imponible * 0.10
+sis = renta_imponible * 0.0154
+tope_imponible_clp = round(90.0 * UF)
+renta_imponible_efectiva = min(renta_imponible, tope_imponible_clp)
+```
+
+### 2.3 Regla de implementación
+
+- El tope imponible debe quedar **parametrizado por vigencia**, no hardcodeado.
+- El sistema no debe seguir usando `87.8 × UF` como valor general 2026.
+- Si se calcula costo previsional total, debe distinguirse entre:
+  - cotización obligatoria a la cuenta individual,
+  - SIS,
+  - comisión AFP,
+  - otros componentes laborales que no son parte de la pensión autofinanciada.
+
+---
+
+## 3. AFP y comisiones
+
+### 3.1 Naturaleza correcta de la comisión
+
+La comisión AFP de la cuenta obligatoria se cobra como **porcentaje mensual sobre la remuneración o renta imponible**, no como tasa anual dividida por 12.
+
+### 3.2 Comisiones vigentes documentadas
+
+| AFP | Comisión mensual sobre remuneración imponible |
+|---|---:|
+| Uno | 0,46% |
+| Modelo | 0,58% |
+| Hábitat | 1,27% |
+| PlanVital | 1,16% |
+| Capital | 1,44% |
+| Cuprum | 1,44% |
+| Provida | 1,45% |
+
+### 3.3 Fórmula correcta
+
+```txt
+comision_mensual = renta_imponible_efectiva * (comision_pct / 100)
+```
+
+### 3.4 Corrección obligatoria
+
+**No usar**:
+
+```txt
+salario * (comision / 100) / 12
+```
+
+porque eso supone erróneamente que la comisión publicada fuera anual.
+
+---
+
+## 4. Fondos de pensión
 
 | Fondo | Perfil |
 |---|---|
-| A | Más Riesgoso |
+| A | Más riesgoso |
 | B | Riesgoso |
 | C | Intermedio |
 | D | Conservador |
-| E | Más Conservador |
+| E | Más conservador |
 
-Fuente: `data/afp.json`
-
----
-
-## 4. Valor Cuota (Valor Cuota AFP)
-
-- Se obtiene en tiempo real desde **SP Chile** (`spensiones.cl`) a través de un proxy Cloudflare Worker (resuelve CORS).
-- **Cadena de fallback:**
-  1. Caché en memoria de la sesión actual (`_cache` en `api.js`)
-  2. Cloudflare Worker → SP Chile (timeout 6 segundos)
-  3. `data/vc_cache.json` (archivo local con valores recientes)
-- El valor cuota se usa para convertir número de cuotas a saldo CLP:
-  ```
-  saldo_total = número_de_cuotas × valor_cuota
-  ```
-
-Fuente: `js/api.js`, `data/vc_cache.json`
+> Esta clasificación es informativa y no altera directamente las reglas de cálculo de pensión del sistema, salvo en simulaciones de rentabilidad o perfil de inversión.
 
 ---
 
-## 5. Indicadores Económicos
+## 5. Indicadores económicos y fuentes operativas
 
-| Indicador | Fuente | Fallback |
+| Indicador | Fuente operativa | Observación |
 |---|---|---|
-| UF (Unidad de Fomento) | `mindicador.cl/api/uf` | $39.717 CLP |
-| UTM (Unidad Tributaria Mensual) | `mindicador.cl/api/utm` | $69.889 CLP |
+| UF | API o fuente oficial parametrizable | Debe persistirse con fecha de consulta |
+| UTM | API o fuente oficial parametrizable | Debe persistirse con fecha de consulta |
+| Valor cuota AFP | SP / caché / respaldo local | Debe quedar trazabilidad de fecha y AFP |
 
-- Timeout de fetch: 5 segundos.
-- Ambos se almacenan en `localStorage` via `Store` al hacer clic en "Actualizar".
+### Regla técnica
 
-Fuente: `js/api.js:getUF`, `js/api.js:getUTM`
+Todo cálculo debe registrar:
+
+```txt
+- fecha_valor_uf
+- fecha_valor_utm
+- fecha_valor_cuota
+- afp_seleccionada
+- fuente_parametro
+```
 
 ---
 
-## 6. Saldo Acumulado
+## 6. Saldo efectivo canónico
 
-El usuario puede ingresar el saldo de dos formas:
-
-| Método | Fórmula |
-|---|---|
-| Por número de cuotas | `saldo = num_cuotas × valor_cuota` |
-| Por monto total CLP | `saldo = monto ingresado directamente` |
-
-Fuente: `js/calculos.js:calcularSaldoDesdeNumCuotas`, `pages/datos.html`
-
----
-
-## 7. Pensión Estimada — Retiro Programado (RP)
-
-**Tabla de mortalidad:** B-2020 (Retiro Programado)
-**Tasa técnica:** 3,31% real anual (Circular SP N°2407, enero 2026) → `TASA_RP = 0.0331 / 12` mensual simple
-
-**Firma de la función:**
-```js
-calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0, familia = null)
-```
-
-**Fórmula base (sin grupo familiar):**
-```
-cnuAfiliado = getCRU(sexo, edad)           // tabla B-2020 pre-calculada
-pensión_RP_bruta = saldo_total / cnuAfiliado
-```
-
-**Fórmula con grupo familiar:**
-```
-cnuTotal = calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0).cnuTotal
-pensión_RP_bruta = saldo_total / cnuTotal
-pensionSinFamilia = saldo_total / cnuAfiliado   // referencia comparativa
-```
-
-Donde `CRU` (Capital Requerido Unitario) es el valor presente de una renta vitalicia de $1/mes a la edad dada, calculado con la tabla B-2020 a tasa 3,31% real anual.
-
-**Años estimados del fondo:**
-```
-r = (1 + TASA_RP × 12)^(1/12) - 1             // tasa mensual compuesta
-n = -ln(1 - saldo × r / pensionSinFamilia) / ln(1 + r)   [en meses → dividir por 12]
-```
-Se usa `pensionSinFamilia` para evitar que el CNU familiar provoque `saldo × r / pension ≥ 1`.
-Si el argumento del logaritmo ≤ 0 → se retorna 35 años.
-
-**Equivalente en UF:**
-```
-pensión_UF = pensión_CLP / UF
-```
-
-**Resultado enriquecido** (`calcularPensionRP` retorna):
-```js
-{
-  pension,            // pensión bruta RP (CLP)
-  pensionUF,          // ídem en UF
-  pensionLiquida,     // después de descuentos legales
-  desglose,           // { descuentoComision, descuentoSalud, descuentoImpuesto }
-  pgu,                // PGU estimada
-  pensionTotal,       // pensionLiquida + pgu
-  anosEstimados,      // años proyectados del fondo
-  pensionSinFamilia,  // pensión sin beneficiarios (para mostrar impacto)
-  impactoFamilia,     // reducción absoluta por grupo familiar (CLP)
-  cnuDetalle          // objeto retornado por calcularCNUFamiliar
-}
-```
-
-Fuente: `js/calculos.js:calcularPensionRP`
-
----
-
-## 8. Pensión Estimada — Renta Vitalicia (RV)
-
-**Tabla de mortalidad:** RV-2020 (más conservadora que B-2020)
-**Factor de tabla:** `1.08` (aproximación RV-2020 vs B-2020)
-
-**Firma de la función:**
-```js
-calcularPensionRV(saldo, edad, sexo, uf, familia = null)
-```
-
-**Fórmula base (sin grupo familiar):**
-```
-CRU_RV2020 = getCRU(sexo, edad) × 1.08
-pensión_RV = saldo_total / CRU_RV2020
-```
-
-**Fórmula con grupo familiar:**
-```
-cnuTotal = calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.08).cnuTotal
-pensión_RV = saldo_total / cnuTotal
-pensionSinFamilia = saldo_total / (getCRU(sexo, edad) × 1.08)
-```
-
-El factor `1.08` se aplica a **todos los componentes del CNU** (afiliado + cónyuge + hijos), porque la RV usa tablas RV-2020 para cada beneficiario.
-
-**Características de la RV:**
-- Pensión fija reajustable en UF.
-- El riesgo de longevidad lo asume la aseguradora.
-- El saldo ya no es heredable (salvo período garantizado pactado).
-- Contrato irrevocable con la compañía de seguros.
-
-**Resultado enriquecido** (`calcularPensionRV` retorna):
-```js
-{
-  pension,            // pensión bruta RV (CLP)
-  pensionUF,          // ídem en UF
-  pensionLiquida,
-  desglose,
-  pgu,
-  pensionTotal,
-  pensionSinFamilia,  // sin beneficiarios
-  impactoFamilia,     // reducción por grupo familiar
-  cnuDetalle          // objeto de calcularCNUFamiliar
-}
-```
-
-Fuente: `js/calculos.js:calcularPensionRV`
-
----
-
-## 9. CRU — Capital Requerido Unitario
-
-### `getCRU(sexo, edad)` — tabla pre-calculada
-
-Pre-calculado en `data/tablas.json` para edades 55–75 (hombres) y 50–75 (mujeres), con tasa técnica **3% anual real**.
-Para edades intermedias se aplica **interpolación lineal** entre los valores disponibles.
-
-| Edad | CRU Hombre | CRU Mujer |
-|---|---|---|
-| 55 | 228.4 | 272.1* |
-| 60 | 197.9 | 216.8 |
-| 65 | 169.9 | 191.5 |
-| 70 | 144.4 | 167.9 |
-| 75 | 121.4 | 146.2 |
-
-*La tabla de mujeres comienza en edad 50 (CRU = 272.1).
-
-### `getCRUExtrapolado(sexo, edad)` — extrapolación para edades jóvenes
-
-Para edades **por debajo del mínimo de la tabla** (mujeres < 50, hombres < 55), extrapola linealmente hacia atrás usando la pendiente de las dos entradas más jóvenes de la tabla pre-calculada.
-
-> **¿Por qué no usar los datos raw de `b2020_hombre/mujer`?**
-> Los valores `qx` en `data/tablas.json` para las tablas raw B-2020 producen una esperanza de vida de solo ~10.4 años para un hombre de 65, inconsistente con los ~17 años implícitos en la tabla CRU pre-calculada. La tabla CRU pre-calculada es la referencia correcta.
-
-```
-Pendiente (mujer): (CRU[50] - CRU[51]) / 1 ≈ +5.7 por año hacia atrás
-Pendiente (hombre): (CRU[55] - CRU[56]) / 1 ≈ +6.3 por año hacia atrás
-
-getCRUExtrapolado('F', 40) ≈ 272.1 + 10 × 5.7 = 330
-getCRUExtrapolado('F', 25) ≈ 272.1 + 25 × 5.7 = 417  (hijos inválidos)
-```
-
-### `getCRUReversional(cruAfiliado, cruConyuge)` — anualidad reversional
-
-Calcula la anualidad que el **cónyuge cobrará solo después de que fallezca el afiliado** (no desde hoy). Evita sobreestimar el CNU familiar.
-
-**Modelo**: Fuerza de mortalidad constante calibrada con los valores del CRU pre-calculado:
-```
-δ = ln(1.03) / 12   (fuerza de interés mensual consistente con tasa técnica 3%)
-
-μ_afiliado = max(0, 1/CRU_afiliado − δ)   (fuerza de mortalidad implícita)
-μ_cónyuge  = max(0, 1/CRU_cónyuge  − δ)
-
-a_conjunta = 1 / (μ_afiliado + μ_cónyuge + δ)   (anualidad vida conjunta)
-
-CRU_reversional = max(0, CRU_cónyuge − a_conjunta)
-```
-
-**Impacto real** (afiliado H65 vs fórmula aditiva incorrecta que sumaba CRU completo del cónyuge):
-
-| Caso | Fórmula aditiva (incorrecta) | Fórmula reversional (correcta) |
-|---|---|---|
-| H65 + cónyuge F60 | −43.4% pensión | −24.6% pensión |
-| H65 + cónyuge F50 | −46.1% pensión | −31.7% pensión |
-| H65 + cónyuge F40 | −53.7% pensión | −38.2% pensión |
-
-Fuente: `data/tablas.json`, `js/mortalidad.js:getCRU`, `js/mortalidad.js:getCRUExtrapolado`, `js/mortalidad.js:getCRUReversional`
-
----
-
-## 10. Edades de Jubilación
-
-| Sexo | Edad normal de jubilación |
-|---|---|
-| Hombre | 65 años |
-| Mujer | 60 años |
-
-Fuente: `data/tablas.json → parametros.edadJubilacionHombreNormal/Mujer`
-
-**Validación en datos.html:** se acepta ingreso de datos para personas entre 40 y 100 años.
-
----
-
-## 11. Proyección de Saldo
-
-Proyecta el crecimiento del fondo a N años con aportes mensuales adicionales opcionales.
-
-**Fórmula (capitalización mensual):**
-```
-r_mensual = (1 + tasa_anual)^(1/12) - 1
-saldo[mes] = saldo[mes-1] × (1 + r_mensual) + aporte_mensual
-```
-
-**Tasas disponibles en la interfaz:** 3%, 4%, 5%, 6% anual.
-**Períodos:** 5, 10, 15, 20, 30 años.
-
-Fuente: `js/calculos.js:proyectarSaldo`
-
----
-
-## 12. Análisis de Brecha
-
-Compara la pensión estimada **total (líquida + PGU)** con la pensión objetivo del usuario.
-
-```
-brecha_absoluta = pensión_objetivo - pensionTotal_RP
-brecha_porcentual = (brecha_absoluta / pensión_objetivo) × 100
-suficiente = brecha_absoluta ≤ 0
-cobertura_pct = min(100, pensionTotal_RP / pensión_objetivo × 100)
-```
-
-**Semáforo visual (barra de progreso):**
-- ≥ 80% → verde (success)
-- 50%–79% → amarillo (warning)
-- < 50% → rojo (danger)
-
-Fuente: `js/calculos.js:calcularBrecha`, `pages/brechas.html`
-
----
-
-## 13. Aportación Necesaria para Cerrar la Brecha
-
-Calcula el aporte mensual adicional necesario para alcanzar la pensión objetivo en N años.
-
-**Fórmula:**
-```
-saldo_meta = pensión_objetivo × CRU(sexo, edad_retiro)
-edad_retiro = min(edad_actual + años_restantes, 75)
-
-r = (1 + tasa_anual)^(1/12) - 1
-n = años_restantes × 12
-
-faltante = saldo_meta - saldo_actual × (1 + r)^n
-
-aporte_mensual = faltante × r / ((1 + r)^n - 1)
-```
-
-Si `faltante ≤ 0`, el aporte necesario es $0 (el saldo actual ya es suficiente).
-
-**Escenarios presentados:** Conservador (3%), Moderado (4%), Optimista (5%).
-
-Fuente: `js/calculos.js:calcularAportacionNecesaria`
-
----
-
-## 14. Comparativa por AFP
-
-Estima cuánto variaría la pensión RP si el usuario estuviera en otra AFP, modelando el impacto acumulado de las diferencias de comisión a 20 años:
-
-```
-diferencia_comisión = comisión_AFP_comparada - comisión_AFP_actual
-impacto = round(pensión_RP × (-diferencia_comisión / 100) × 0.5)
-pensión_AFP_comparada = round(pensión_RP - impacto)
-```
-
-El factor `0.5` es una aproximación conservadora del efecto compuesto a largo plazo.
-
-Fuente: `pages/brechas.html`
-
----
-
-## 15. Simulador de Longevidad (Modalidades)
-
-Estima el total acumulado cobrado según la esperanza de vida elegida:
-
-```
-años_vida = edad_esperada_fallecimiento - edad_actual
-meses_vida = años_vida × 12
-
-total_RV = pensión_RV × meses_vida
-total_RP = pensión_RP × 0.75 × meses_vida   [factor 0.75 modela el decaimiento de la pensión RP]
-```
-
-Si `total_RP > total_RV` → conviene Retiro Programado.
-Si `total_RV ≥ total_RP` → conviene Renta Vitalicia.
-
-### Evolución del Fondo RP (`generarRPDetalle`)
-
-Muestra año a año cómo decrece el fondo bajo RP. La pensión **se recalcula cada año** (metodología real SP Chile):
-
-```
-Para cada año i desde edad_actual hasta agotamiento del fondo:
-  pension_i = calcularPensionRP(saldo_i, edad_actual + i, sexo, uf, comisión, familia).pension
-  retiro_anual_i = pension_i × 12
-  rendimiento_i = saldo_i × tasa_anual_efectiva
-  saldo_i+1 = saldo_i + rendimiento_i - retiro_anual_i
-```
-
-- **Tasa aplicada:** `(1 + TASA_RP × 12)^(1) - 1` (tasa anual efectiva con TASA_RP = 0.0331/12)
-- La pensión decrece a medida que el afiliado envejece porque el CRU disminuye con la edad (menor esperanza de vida restante).
-- Si hay grupo familiar, se muestra `(sin familia: $X)` en gris para comparar.
-
-Fuente: `pages/modalidades.html:generarRPDetalle`
-
----
-
-## 16. Tablas de Mortalidad
-
-| Tabla | Uso | Sexo disponible |
-|---|---|---|
-| RV-2020 | Renta Vitalicia | Hombre / Mujer |
-| B-2020 | Retiro Programado | Hombre / Mujer |
-
-- `qx` = probabilidad de muerte a edad exacta `x`
-- Edad máxima en tablas: 110 años
-- Probabilidad de sobrevivir `t` años desde edad `x`:
-  ```
-  tPx = ∏(i=0..t-1) (1 - qx[x+i])
-  ```
-- Esperanza de vida curtada: `e_x = Σ(t=1..110-x) tPx`
-
-Fuente: `data/tablas.json`, `js/mortalidad.js`
-
----
-
-## 17. Pensión Mínima Garantizada
-
-Valor de referencia definido en `tablas.json`:
-
-```
-pensión_mínima_garantizada = $214.000 CLP
-```
-
-> Valor referencial. No se aplica automáticamente en los cálculos de estimación — es un piso informativo establecido por la regulación.
-
-Fuente: `data/tablas.json → parametros.pensionMinimaGarantizada`
-
----
-
-## 18. Estado compartido entre páginas
-
-Todos los datos del usuario se persisten en `localStorage` bajo la clave `pension_chile_v1`.
-
-**Campos relevantes al negocio:**
-
-| Campo | Descripción |
-|---|---|
-| `afp` | ID de la AFP seleccionada |
-| `fondo` | Letra del fondo (A–E) |
-| `valorCuota` | Valor cuota al momento del cálculo (CLP) |
-| `numCuotas` | Número de cuotas del fondo |
-| `montoTotal` | Saldo ingresado directamente (CLP) |
-| `saldoTotal` | Saldo calculado final (CLP) |
-| `sexo` | M / F |
-| `edad` | Calculada desde fechaNacimiento |
-| `uf` | UF al momento del cálculo |
-| `utm` | UTM al momento del cálculo |
-| `topeImponible` | 87.8 × UF |
-| `pensionRP` | Pensión RP bruta estimada |
-| `pensionRPLiquida` | Pensión RP líquida (después de descuentos) |
-| `pensionRPTotal` | Pensión RP total (líquida + PGU) |
-| `pguRP` | Monto PGU sobre pensión RP |
-| `pensionRV` | Pensión RV bruta estimada |
-| `pensionRVLiquida` | Pensión RV líquida |
-| `pensionRVTotal` | Pensión RV total (líquida + PGU) |
-| `pguRV` | Monto PGU sobre pensión RV |
-| `comisionDec` | Comisión AFP en decimal (ej: 0.0058) |
-| `pensionObjetivo` | Pensión meta ingresada por el usuario |
-| `rentaImponible` | Renta imponible mensual del afiliado |
-| `lagunas` | % meses sin cotización |
-| `apvMensual` | Aporte APV mensual |
-| `regimenAPV` | Régimen APV (A/B) |
-| `saldoAPV` | Saldo APV acumulado |
-| `tienePareja` | Tiene cónyuge o conviviente civil |
-| `numHijos` | Número de hijos beneficiarios |
-| `numHijosInvalidos` | Número de hijos con invalidez permanente |
-
-Fuente: `js/store.js`
-
----
-
-## 19. Descuentos Legales sobre la Pensión
-
-La pensión bruta se convierte en pensión líquida aplicando tres descuentos en cascada:
-
-```
-1. Descuento comisión AFP = pensión_bruta × comisión_AFP_decimal   [solo RP; RV = 0]
-2. Base imp. = pensión_bruta - descuento_comisión
-3. Descuento salud = round(base_imp × 0.07)                        [7% cotización salud obligatoria]
-4. Descuento impuesto = calcularImpuesto(base_imp)                 [Impuesto 2ª categoría]
-5. Total descuentos = descuento_comisión + descuento_salud + descuento_impuesto
-6. Pensión líquida = pensión_bruta - total_descuentos
-```
-
-Fuente: `js/calculos.js:calcularPensionLiquida`
-
----
-
-## 20. Impuesto de Segunda Categoría (2026)
-
-Calculado sobre la base imponible mensual (pensión bruta menos comisión AFP).
-UTM vigente marzo 2026: **$69.889 CLP** (`calculos.js:UTM`).
-
-| Tramo (UTM/mes) | Tasa | Rebaja (en UTM/12) |
-|---|---|---|
-| ≤ 13,5 UTM | 0% | $0 |
-| ≤ 30 UTM | 4% | $0 |
-| ≤ 50 UTM | 8% | 2.772 |
-| ≤ 70 UTM | 13,5% | 5.126 |
-| ≤ 90 UTM | 23% | 11.771 |
-| ≤ 120 UTM | 30,4% | 18.427 |
-| ≤ 150 UTM | 35,5% | 24.537 |
-| > 150 UTM | 40% | 31.287 |
-
-**Fórmula:** `impuesto = base_imp × tasa - (rebaja × UTM / 12)`, mínimo $0.
-
-Fuente: `js/calculos.js:calcularImpuesto`, `TRAMOS_IMP`
-
----
-
-## 21. PGU — Pensión Garantizada Universal
-
-Ley 21.419 + Reforma 21.735 (febrero 2026). Se suma a la pensión líquida autofinanciada.
-
-| Parámetro | Valor |
-|---|---|
-| Monto base (< 82 años) | $231.732 CLP/mes |
-| Monto máximo (≥ 82 años) | $250.275 CLP/mes |
-| Umbral pensión completa | pensión base ≤ $789.139 → PGU completa |
-| Umbral sin PGU | pensión base ≥ $1.252.602 → PGU = $0 |
-
-**Fórmula de PGU proporcional** (entre ambos umbrales):
-```
-proporción = (umbralTope - pensión_base) / (umbralTope - umbralCompleto)
-PGU = round(montoMax × proporción)
-```
-
-La pensión base para calcular PGU es la **pensión líquida** (después de descuentos).
-
-Fuente: `js/calculos.js:calcularPGU`, `PGU` constant
-
----
-
-## 22. Pensión de Sobrevivencia (DL 3.500, art. 58)
-
-Al fallecer el pensionado, los beneficiarios tienen derecho a una pensión de sobrevivencia calculada como porcentaje de la **pensión de referencia** (pensión bruta RP o RV).
-
-| Beneficiario | Porcentaje | Condición |
-|---|---|---|
-| Cónyuge / conviviente civil **sin hijos comunes** | **60%** | DL 3.500 art. 58 |
-| Cónyuge / conviviente civil **con hijos comunes** | **50%** | DL 3.500 art. 58 |
-| Cada hijo < 18 años | 15% | temporal |
-| Cada hijo 18–24 años si estudia | 15% | temporal hasta los 24 |
-| Cada hijo con invalidez permanente (cualquier edad) | 15% | de por vida |
-
-> **Regla clave:** El porcentaje del cónyuge depende de si existen hijos comunes con el afiliado.
-> - Sin hijos comunes → **60%**
-> - Con hijos comunes → **50%**
-
-**Tipos de hijos diferenciados en la interfaz:**
-- `numHijosMenores` — hijos menores de 18 años
-- `numHijosEstudiantes` — hijos entre 18 y 24 años que estudian
-- `numHijosInvalidos` — hijos con invalidez permanente (cualquier edad)
-
-**Tope:** La suma total no puede superar el 100% de la pensión de referencia. Si se supera, se aplica **prorrateo proporcional**:
-```
-factor_prorrateo = 1.0 / pct_total   (cuando pct_total > 1)
-```
-
-**Fórmula:**
-```
-tieneHijosComunes = (numHijosMenores + numHijosEstudiantes + numHijosInvalidos) > 0
-pctConyuge = tieneHijosComunes ? 0.50 : 0.60
-
-montoCónyuge          = round(pensión_ref × pctConyuge × factor_prorrateo)
-montoHijoTemporal     = round(pensión_ref × 0.15 × factor_prorrateo)   [por hijo menor/estudiante]
-montoHijoInvalido     = round(pensión_ref × 0.15 × factor_prorrateo)   [por hijo inválido]
-totalSobrevivencia    = round(pensión_ref × min(pct_total, 1.0))
-```
-
-Fuente: `js/calculos.js:calcularPensionSobrevivencia`
-
----
-
-## 23. Recomendación de Modalidad según Situación Familiar
-
-| Situación | Recomendación |
-|---|---|
-| Hijos con invalidez permanente | **RV fuertemente recomendada** (pensión de sobrevivencia de por vida) |
-| Cónyuge + hijos sin invalidez | **RV recomendada** (protege a beneficiarios) |
-| Soltero/a sin hijos ni conviviente | **RP puede convenir** (saldo heredable, pensión inicial mayor) |
-| Resto (cónyuge sin hijos, etc.) | **Mixta / SCOMP** — evaluar Renta Temporal + RV Diferida |
-
-Fuente: `js/calculos.js:recomendarModalidadFamiliar`, `pages/modalidades.html:renderSobrevivencia`
-
----
-
-## 24. Score Previsional (0–100)
-
-Puntaje que resume la situación previsional del usuario. Se calcula en `calculos.js:calcularScore`.
-
-| Factor | Puntos máx | Criterio |
-|---|---|---|
-| Tasa de reemplazo | 40 | `min(40, (TR/70) × 40)` donde TR = pensión_RP / renta_imponible × 100 |
-| APV activo | 20 | 20 pts si apvMensual > 0; 10 pts si solo tiene saldo APV |
-| Sin lagunas | 20 | `(1 - min(1, lagunas)) × 20` donde lagunas es fracción (0–1) |
-| Saldo vs edad | 20 | `min(20, (saldoActual / saldoIdeal) × 20)` |
-
-```
-saldo_ideal = renta_imponible × 12 × max(1, edad - 22) × 0.5
-```
-
-**Interpretación:**
-- 0–39: Alerta (rojo)
-- 40–69: En progreso (amarillo)
-- 70–100: Buen camino (verde)
-
-Fuente: `js/calculos.js:calcularScore`, `pages/brechas.html:renderScore`
-
----
-
-## 25. APV — Ahorro Previsional Voluntario
-
-| Régimen | Beneficio | Máximo |
-|---|---|---|
-| A | Estado bonifica **15%** del aporte | hasta 6 UTM/año (~$419.334 CLP/año en 2026) |
-| B | Deduce el aporte de la **base imponible** del impuesto | según tramo de impuesto del afiliado |
-
-- El APV se descuenta antes del cálculo de impuesto 2ª categoría (Régimen B).
-- El bono Régimen A se deposita en la cuenta al momento del retiro (no durante la acumulación).
-- Aporte sugerido en la interfaz: 5% de la renta imponible.
-
-Fuente: `pages/datos.html` (campos `apvMensual`, `regimenAPV`, `saldoAPV`), `pages/brechas.html:renderPlanAccion`
-
----
-
-## 26. Lagunas Previsionales
-
-Porcentaje de meses en que el afiliado no cotizó. Reduce el score y activa advertencias en el plan de acción.
-
-| Nivel | Alerta |
-|---|---|
-| 0% | Sin advertencia |
-| 1%–19% | Informativo |
-| ≥ 20% | Advertencia de impacto significativo en pensión |
-
-Fuente: `pages/datos.html` (campo `lagunas`), `js/calculos.js:calcularScore`, `pages/brechas.html:renderPlanAccion`
-
----
-
-## 27. Campos Adicionales de Datos del Afiliado
-
-Incorporados en `pages/datos.html` para cálculos de score, plan de acción y pensión de sobrevivencia:
-
-| Campo | Descripción |
-|---|---|
-| `estadoLaboral` | Dependiente / Independiente / Jubilado |
-| `edadJubilacion` | Edad objetivo de jubilación (default: 65 hombres / 60 mujeres) |
-| `rentaImponible` | Renta imponible mensual (CLP) — validada contra tope 87.8×UF |
-| `rentaBruta` | Renta bruta referencial |
-| `lagunas` | % de meses sin cotización (0–100) |
-| `apvMensual` | Aporte APV mensual (CLP) |
-| `regimenAPV` | Régimen APV: A o B |
-| `saldoAPV` | Saldo APV acumulado (CLP) |
-| `estadoCivil` | soltero / casado / conviviente / divorciado / viudo |
-| `tienePareja` | true si casado o conviviente civil |
-| `edadConyuge` | Edad del cónyuge (visible solo si tienePareja) |
-| `sexoConyuge` | Sexo del cónyuge (M/F) |
-| `numHijosMenores` | Número de hijos menores de 18 años |
-| `numHijosEstudiantes` | Número de hijos entre 18 y 24 años que estudian |
-| `numHijosInvalidos` | Número de hijos con invalidez permanente (cualquier edad) |
-
-> **Compat.:** el campo `numHijos = numHijosMenores + numHijosEstudiantes` también se guarda en Store para compatibilidad con funciones que no distinguen tipo.
-
-Fuente: `pages/datos.html`, `js/store.js`
-
----
-
-## 28. Advertencia Legal
-
-> Esta calculadora es de uso **informativo**. Los valores son estimaciones basadas en tablas de mortalidad RV-2020 / B-2020 y la metodología del **DL 3.500**. Consulta a un asesor previsional certificado (CFP o asesor autorizado por SP Chile) antes de tomar decisiones de jubilación.
-
----
-
-## 29. CNU Familiar — `calcularCNUFamiliar`
-
-Calcula el **Capital Necesario Unitario total** del grupo familiar del afiliado. Un CNU mayor implica una pensión mensual menor, dado que el mismo saldo debe financiar a más beneficiarios.
-
-**Firma:**
-```js
-calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0)
-```
-
-- `factorTabla = 1.0` para RP (tablas B-2020)
-- `factorTabla = 1.08` para RV (aproximación tablas RV-2020)
-
-**Objeto `familia` esperado:**
-```js
-{
-  tienePareja: boolean,
-  edadConyuge: number,
-  sexoConyuge: 'M' | 'F',
-  numHijosMenores: number,       // < 18 años
-  numHijosEstudiantes: number,   // 18–24 años estudiando
-  numHijosInvalidos: number      // cualquier edad, permanente
-}
-```
-
-**Fórmula:**
-```
-cnuAfiliado = getCRU(sexo, edad) × factorTabla
-
-// Cónyuge — RENTA REVERSIONAL (el cónyuge cobra solo tras fallecimiento del afiliado):
-tieneHijosComunes = (numHijosMenores + numHijosEstudiantes + numHijosInvalidos) > 0
-pctConyuge = tieneHijosComunes ? 0.50 : 0.60
-cruConyuge = getCRUExtrapolado(sexoConyuge, edadConyuge)   // extrapola para edades jóvenes
-cruReversional = getCRUReversional(getCRU(sexo, edad), cruConyuge)
-cnuConyuge = pctConyuge × cruReversional × factorTabla
-
-// Hijos menores (< 18 años): renta temporal de 108 meses
-cnuMenor = calcularAnualidadLimitada(108) × factorTabla × 0.15   [por hijo]
-
-// Hijos estudiantes (18–24): renta temporal de 36 meses
-cnuEstudiante = calcularAnualidadLimitada(36) × factorTabla × 0.15   [por hijo]
-
-// Hijos inválidos: vitalicio desde edad proxy = 25
-cnuInvalido = getCRUExtrapolado('F', 25) × factorTabla × 0.15   [por hijo]
-
-cnuHijos = Σ cnuMenor + Σ cnuEstudiante + Σ cnuInvalido
-cnuTotal = cnuAfiliado + cnuConyuge + cnuHijos
-```
-
-**Anualidad limitada a N meses:**
-```
-calcularAnualidadLimitada(n) = Σ(k=1..n) (1 + TASA_RP)^(-k)
-                              = (1 - (1 + TASA_RP)^(-n)) / TASA_RP
-```
-
-**Retorno:**
-```js
-{
-  cnuTotal,       // CNU del grupo completo (divisor para pensión)
-  cnuAfiliado,    // CNU solo del afiliado
-  cnuConyuge,     // contribución del cónyuge al CNU
-  cnuHijos,       // contribución total de todos los hijos
-  factorFamilia,  // cnuTotal / cnuAfiliado (cuántas veces más capital se necesita)
-  tieneImpacto    // true si hay al menos un beneficiario
-}
-```
-
-Fuente: `js/calculos.js:calcularCNUFamiliar`, `js/mortalidad.js:getCRUReversional`, `js/mortalidad.js:getCRUExtrapolado`
-
----
-
-## 30. Impacto del Grupo Familiar en la Pensión
-
-Cuando el afiliado tiene beneficiarios (cónyuge, hijos), tanto RP como RV calculan **dos pensiones**:
-
-| Campo | Descripción |
-|---|---|
-| `pension` | Pensión real considerando grupo familiar (más baja) |
-| `pensionSinFamilia` | Pensión hipotética si estuviera solo (referencia) |
-| `impactoFamilia` | `pensionSinFamilia - pension` (reducción en CLP) |
-| `cnuDetalle` | Desglose completo de `calcularCNUFamiliar` |
-
-**Presentación en la interfaz:**
-- `proyeccion.html` — avisos `rpImpactoFamilia` / `rvImpactoFamilia`: "sin beneficiarios serías $X; tu grupo familiar reduce la pensión en $Y (Z% menos)"
-- `modalidades.html` — hint bajo cada pensión: `↓ $X por grupo familiar (Y%)`; tabla RP año a año muestra `(sin familia: $X)` en gris
-- `brechas.html` — ítem del plan de acción informando la reducción por CNU familiar
-
-**La reducción es permanente:** el afiliado no puede optar entre incluir o excluir beneficiarios — la ley obliga a cubrir al grupo familiar en la modalidad elegida.
-
-Fuente: `pages/proyeccion.html`, `pages/modalidades.html`, `pages/brechas.html`
-
----
-
-## 31. Saldo Efectivo Canónico
-
-**Todas las páginas** (`proyeccion.html`, `modalidades.html`, `brechas.html`, `informe.html`) deben usar la misma fórmula de saldo efectivo:
+La fuente de verdad del saldo a pensionar debe ser:
 
 ```js
 const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
 ```
 
-| Componente | Campo store | Descripción |
+| Componente | Campo | Tipo |
 |---|---|---|
-| `saldoTotal` | obligatorio | Saldo AFP (obligatorio + voluntario AFP) |
-| `saldoAPV` | opcional | Saldo APV acumulado en institución APV |
-| `bonoReconocimiento` | opcional | Bono de reconocimiento IPS (valor actualizado) |
+| Saldo obligatorio AFP | `saldoTotal` | Paramétrico |
+| APV acumulado | `saldoAPV` | Paramétrico |
+| Bono de reconocimiento | `bonoReconocimiento` | Paramétrico |
 
-> **Regla de consistencia:** nunca pasar `d.saldoTotal` directamente a `calcularPensionRP` / `calcularPensionRV`. Siempre computar `saldoEfectivo` primero. Esta es la fuente de verdad para el saldo a la fecha de jubilación.
+### Regla funcional
+
+Nunca debe enviarse solo `saldoTotal` al motor si existe saldo APV y/o bono de reconocimiento disponible para financiar la pensión.
 
 ---
 
-## 32. Procesadores por Tipo de Jubilación
+## 7. Retiro Programado (RP)
 
-`js/calculos.js` expone un **dispatcher** y cuatro procesadores especializados. Cada procesador retorna un objeto con la misma forma base `{ acceso, rp, rv }` (excepto invalidez que retorna `{ invalidez }`).
+### 7.1 Regla normativa base
 
-### Dispatcher principal
+El retiro programado es la modalidad en que la pensión se recalcula periódicamente dividiendo el saldo real por el capital necesario para pagar una unidad de pensión al afiliado y, al fallecimiento de éste, a sus beneficiarios.
 
-```js
-procesarPension(d, uf, comisionDec, familia)
+### 7.2 Tasa de interés 2026
+
+Para los cálculos y recálculos que corresponden a partir de enero de 2026, la tasa informada por la SP para nuevos retiros programados y rentas temporales es **3,31%**.
+
+### 7.3 Fórmula funcional esperada
+
+```txt
+pension_rp_uf = saldo_real_uf / capital_necesario_unitario
+pension_rp_clp = pension_rp_uf * UF
 ```
 
-Lee `d.tipoJubilacion` y delega al procesador correspondiente. Calcula `saldoEfectivo` internamente.
+### 7.4 Regla de consistencia obligatoria
 
-| `tipoJubilacion` | Procesador |
+Si el sistema usa:
+
+- tasa RP vigente = **3,31%**, pero
+- tablas CRU pre-calculadas con **3,00%**,
+
+entonces el cálculo queda internamente inconsistente.
+
+**Acción requerida:** elegir una sola de estas estrategias:
+
+1. recalcular CRU/CNU con la tasa vigente; o
+2. documentar expresamente que las tablas son una aproximación y no un cálculo normativo exacto.
+
+### 7.5 Con grupo familiar
+
+La existencia de beneficiarios sí afecta el divisor del retiro programado. Sin embargo, la construcción del CNU familiar debe distinguir entre:
+
+- parte normativa,
+- supuestos actuariales del motor,
+- simplificaciones de interfaz.
+
+---
+
+## 8. Renta Vitalicia (RV)
+
+### 8.1 Regla documental correcta
+
+La renta vitalicia es una modalidad contractual con una compañía de seguros y debe documentarse como tal.
+
+### 8.2 Corrección importante
+
+El uso de:
+
+```txt
+CRU_RV = CRU_B2020 * 1.08
+```
+
+o de `factorTabla = 1.08` es una **aproximación interna**, útil para simulación, pero **no debe presentarse como fórmula legal exacta** de renta vitalicia.
+
+### 8.3 Cómo debe quedar documentado
+
+- **Normativa:** la RV usa tablas y metodología propias del régimen aplicable.
+- **Motor actual:** si se utiliza un factor 1,08 sobre B-2020, debe rotularse como **estimación comparativa**.
+
+---
+
+## 9. CRU / CNU / tablas de mortalidad
+
+### 9.1 Regla documental
+
+- Las tablas B-2020 y RV-2020 son insumo normativo/técnico.
+- Las tablas pre-calculadas de `CRU` y la interpolación/extrapolación son una **implementación propia del sistema**.
+
+### 9.2 Corrección obligatoria de rotulado
+
+Los siguientes elementos deben quedar marcados como **heurística actuarial** y no como regla legal:
+
+- `getCRUExtrapolado()` para edades fuera de rango,
+- uso de pendientes lineales para edades jóvenes,
+- uso de un sexo/edad proxy fijo para hijos inválidos,
+- anualidad reversional construida desde CRU implícito,
+- cualquier simplificación de tipo `factorTabla = 1.08`.
+
+### 9.3 Regla recomendada
+
+El documento debe distinguir siempre:
+
+```txt
+CRU legal/técnico de referencia != implementación pre-calculada del motor
+```
+
+---
+
+## 10. Pensión de vejez anticipada
+
+### 10.1 Regla correcta
+
+La pensión anticipada requiere cumplir **simultáneamente**:
+
+1. una pensión igual o superior al **70%** del promedio de las remuneraciones imponibles y rentas declaradas, según artículo 63 del DL 3.500; y
+2. una pensión igual o superior a **12 UF**.
+
+### 10.2 Requisito adicional de afiliación
+
+Debe existir además el requisito de antigüedad/afiliación que corresponda según normativa del sistema.
+
+### 10.3 Fórmula funcional esperada
+
+```txt
+cumple_70pct = pension_referencia >= promedio_120_meses * 0.70
+cumple_12uf  = pension_referencia_uf >= 12
+acceso_anticipada = cumple_70pct && cumple_12uf
+```
+
+### 10.4 Corrección obligatoria
+
+Eliminar del documento la regla anterior basada en “80% y 80%”, porque **no corresponde a la regla vigente**.
+
+---
+
+## 11. Trabajo pesado
+
+### 11.1 Requisitos correctos
+
+Para acceder a rebaja de edad por trabajo pesado deben verificarse copulativamente:
+
+1. trabajo calificado como pesado por la CEN,
+2. cotización adicional de **1% o 2%** según corresponda,
+3. al menos **20 años de cotizaciones** en cualquier sistema previsional.
+
+### 11.2 Rebaja de edad
+
+| Cotización adicional | Rebaja |
 |---|---|
-| `'vejez_normal'` | `procesarVejezNormal` |
-| `'anticipada'` | `procesarAnticipada` |
-| `'trabajo_pesado'` | `procesarTrabajoPesado` |
-| `'invalidez'` | `procesarInvalidez` |
+| 1% | 1 año por cada 5 años, tope 5 años |
+| 2% | 2 años por cada 5 años, tope 10 años |
 
-### `procesarVejezNormal({ saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion })`
+### 11.3 Regla funcional esperada
 
-```
-edadLegal = sexo === 'F' ? 60 : 65
-acceso.cumple = edad >= edadLegal
-```
-Retorna `{ acceso, rp, rv }` con RP y RV calculados normalmente.
-
-### `procesarAnticipada({ ..., rentaPromedioDecenio, rentaImponible })`
-
-Requiere que la pensión RP sea ≥ 80% del promedio de renta imponible del decenio **y** ≥ 80% de la pensión media imponible (Art. 68 DL 3.500). Solo se permite si el afiliado no ha alcanzado la edad legal.
-
-```
-pctDecenio = rp.pension / rentaPromedioDecenio
-pctMedio   = rp.pension / (rentaImponible × 0.80)
-acceso.cumple = pctDecenio >= 0.80 && pctMedio >= 0.80
+```txt
+años_tp = mesesTrabajoPesado / 12
+rebaja = segun_tasa_adicional(años_tp)
+edad_acceso = edad_legal - rebaja
+acceso = cumple_requisitos_tp && edad >= edad_acceso
 ```
 
-### `procesarTrabajoPesado({ ..., tipoTrabajoPesado, mesesTrabajoPesado })`
+### 11.4 Corrección obligatoria
 
-Ley 19.404. El afiliado acumula rebaja de edad de jubilación.
+No basta con calcular solo la rebaja de edad. El motor debe validar además:
 
-| Tipo | Rebaja por año cotizado | Máximo |
-|---|---|---|
-| Tipo 2 — Pesado | 0,2 años | 5 años |
-| Tipo 1 — Muy pesado | 0,4 años | 10 años |
-
-```
-añosCotizadosTP = mesesTrabajoPesado / 12
-rebaja = min(cotizado × tasaRebaja, máxRebaja)
-edadAcceso = edadLegal - rebaja
-acceso.cumple = edad >= edadAcceso
-```
-
-### `procesarInvalidez({ saldo, edad, sexo, uf, comisionDec, anioJubilacion, tipoInvalidez, rentaPromedioInvalidez })`
-
-Ver regla 33 para detalle.
-
-Fuente: `js/calculos.js`
+- existencia de trabajo pesado reconocido,
+- tasa adicional correcta,
+- total de años cotizados.
 
 ---
 
-## 33. Pensión de Invalidez (Art. 54 DL 3.500)
+## 12. Pensión de invalidez
 
-**Tipos de invalidez:**
+### 12.1 Regla normativa base
 
-| Tipo | Criterio médico | Monto base |
-|---|---|---|
-| Total | Pérdida capacidad laboral ≥ 2/3 | 100% de `saldo / CRU` |
-| Parcial | Pérdida ≥ 50% y < 2/3 | 50% de `saldo / CRU` |
+La invalidez se define por pérdida permanente de capacidad de trabajo y utiliza como base el **ingreso base** y la cobertura del SIS, no simplemente `saldo / CRU` como regla legal general.
 
-**Cálculo base:**
-```
-cruBase = calcularCRU_RP(sexo, edad, TASA_RP, anioJubilacion)
-brutaBase = saldo / cruBase
-pensionBruta = tipo === 'parcial' ? brutaBase × 0.5 : brutaBase
-```
+### 12.2 Pensiones de referencia
 
-**Complemento SIS (Seguro de Invalidez y Sobrevivencia):**
+| Tipo | Referencia normativa |
+|---|---:|
+| Invalidez total | 70% del ingreso base |
+| Invalidez parcial | 50% del ingreso base |
 
-El SIS complementa la pensión hasta el 70% de la renta promedio del decenio (con tope en el 70% del tope imponible = 87.8 UF).
+### 12.3 Corrección obligatoria
 
-```
-topeImponible = 87.8 × uf
-rentaRef = rentaPromedioInvalidez || 0
-limSIS = min(rentaRef × 0.70, 0.70 × topeImponible)
-complementoSIS = max(0, limSIS - pensionBruta)
-pensionTotal = pensionLiquida + complementoSIS
+La documentación **no debe afirmar** como regla legal que:
+
+```txt
+invalidez total = 100% de saldo / CRU
+invalidez parcial = 50% de saldo / CRU
 ```
 
-> El SIS es pagado por el empleador (1,54% del salario imponible). El complemento aplica solo si la pensión autofinanciada es menor que el 70% de la renta de referencia.
+Eso puede usarse como **simulación interna**, pero no como descripción normativa del sistema.
 
-**UI en `datos.html`:** nuevo panel `#panelInvalidez` visible solo cuando `tipoJubilacion === 'invalidez'`. Incluye radio `total/parcial` y campo `rentaPromedioInvalidez`.
+### 12.4 Regla documental correcta
 
-**UI en `proyeccion.html`:** cuando `tipoJubilacion === 'invalidez'`, se oculta la grilla RP/RV y se muestra `#panelInvalidezResultado` con los campos `pensionBruta`, `pensionNeta`, `complementoSIS`, `pensionTotal`.
-
-Fuente: `js/calculos.js:procesarInvalidez`, `pages/datos.html`, `pages/proyeccion.html`
+- **Normativa:** el beneficio depende de ingreso base, dictamen y cobertura del SIS.
+- **Motor interno:** si se usa saldo/CRU como aproximación base, debe quedar expresamente rotulado como **estimación simplificada**.
 
 ---
 
-## 34. Mejoramiento CRU — NCG N°306 (Tablas Generacionales AAx)
+## 13. Pensión de sobrevivencia
 
-La Superintendencia de Pensiones aplica factores de mejoramiento de mortalidad (mejoramiento generacional) desde el año base 2020.
+### 13.1 Porcentajes correctos a documentar
 
-**Regla de implementación:**
+| Beneficiario/a | Porcentaje |
+|---|---:|
+| Cónyuge | 60% |
+| Cónyuge con hijos con derecho | 50% |
+| Hijo/a menor de 18 años | 15% |
+| Hijo/a estudiante menor de 24 años | 15% |
+| Hijo/a inválido parcial mayor de 24 años | 11% |
+| Padre o madre de hijo/a de filiación no matrimonial | 36% |
+| Padre o madre de hijo/a de filiación no matrimonial con hijos con derecho | 30% |
+| Padres reconocidos como cargas familiares | 50% |
 
-| Sexo | Función | Razón |
-|---|---|---|
-| Hombre | `calcularCNUConMejoramiento(edad, anioJubilacion, TASA_RP)` | Tabla AAx consistente ✓ |
-| Mujer | `getCRU('F', edad)` (valor raw tablas.json) | Tabla b2020_mujer inconsistente (~6.8% error) — se usa valor pre-calculado directamente |
+### 13.2 Requisitos que deben quedar documentados
 
-```js
-// calcularCRU_RP (función interna de calculos.js)
-function calcularCRU_RP(sexo, edad, tasa, anioJubilacion) {
-  if (sexo === 'M') return calcularCNUConMejoramiento(edad, anioJubilacion, tasa);
-  return getCRU('F', edad);   // raw pre-calculado (mujer)
-}
-```
+- Cónyuge: plazos mínimos de matrimonio según si el causante estaba activo o pensionado, salvo excepciones legales.
+- Hijos/as: requisitos etarios, de estudios o invalidez.
+- Padres del causante: solo a falta de otros beneficiarios y si eran cargas reconocidas.
 
-**Factor de mejoramiento:**
-```
-deltaAnios = anioJubilacion - 2020
-factorAAx  = 1 + (deltaAnios × tasaMejoraAnual)   // estimación lineal
-cnuMejorado = cnuBase × factorAAx
-```
+### 13.3 Corrección obligatoria
 
-> **Validación SCOMP:** para hombre 62 años, AFP Capital, saldo $160.866.522, la diferencia entre el cálculo con mejoramiento y el SCOMP oficial fue de **0,13%** ($946.241 vs $947.436).
+La documentación anterior estaba **incompleta**. No debe limitarse solo a:
 
-Fuente: `js/calculos.js:calcularCRU_RP`, `js/calculos.js:calcularCNUConMejoramiento`, NCG N°306
+- cónyuge 60/50,
+- hijos 15%,
+- tope 100%.
+
+Debe incluir también:
+
+- 36% / 30% para padre o madre de hijo/a de filiación no matrimonial,
+- 11% para hijos inválidos parciales mayores de 24,
+- 50% para padres reconocidos como carga, a falta de otros beneficiarios.
+
+### 13.4 Regla de implementación
+
+Si el motor realiza prorrateo cuando la suma supera 100%, debe documentarse como **mecánica de distribución del sistema/modelo**, no como sustituto de los requisitos de elegibilidad.
 
 ---
 
-## 35. Campos Store para Tipos de Jubilación Especiales
+## 14. PGU — Pensión Garantizada Universal
 
-Campos adicionales guardados en `localStorage` (`pension_chile_v1`) según el tipo de jubilación:
+### 14.1 Parámetros 2026 documentados
 
-| Campo | Tipo jubilación | Descripción |
-|---|---|---|
-| `tipoJubilacion` | todos | `'vejez_normal'` \| `'anticipada'` \| `'trabajo_pesado'` \| `'invalidez'` |
-| `edadJubilacion` | todos | Edad de acceso calculada (puede diferir de la legal) |
-| `tipoTrabajoPesado` | trabajo_pesado | `'tipo1'` (0.4/año, máx 10) o `'tipo2'` (0.2/año, máx 5) |
-| `mesesTrabajoPesado` | trabajo_pesado | Meses cotizados bajo régimen pesado |
-| `rentaPromedioDecenio` | anticipada | Promedio renta imponible últimos 10 años (CLP) |
-| `tipoInvalidez` | invalidez | `'total'` o `'parcial'` |
-| `rentaPromedioInvalidez` | invalidez | Renta promedio del decenio para cálculo complemento SIS (CLP) |
+| Parámetro | Valor |
+|---|---:|
+| PGU personas menores de 82 años | $231.732 |
+| PGU personas de 82 años o más | $250.275 |
+| Pensión inferior | $789.139 |
+| Pensión superior | $1.252.602 |
 
-Fuente: `pages/datos.html`, `js/store.js`
+### 14.2 Regla documental correcta
+
+La PGU debe modelarse con parámetros vigentes y con la base normativa que corresponda según la regulación aplicable.
+
+### 14.3 Corrección obligatoria
+
+No dejar documentado de forma categórica que:
+
+```txt
+pension_base_pgu = pension_liquida
+```
+
+como si fuera la regla universal del beneficio. Si el motor usa ese valor como simplificación, debe quedar rotulado como **aproximación funcional** y no como exactitud normativa.
+
+### 14.4 Regla de implementación recomendada
+
+- parametrizar montos por fecha de vigencia,
+- aislar el cálculo de PGU en un módulo propio,
+- documentar explícitamente cuándo se usa cálculo simplificado versus cálculo normativo completo.
+
+---
+
+## 15. Impuesto Único de Segunda Categoría
+
+### 15.1 Regla documental correcta
+
+El impuesto debe calcularse usando la **tabla mensual vigente del SII** para el mes de cálculo, sobre la renta líquida imponible que corresponda.
+
+### 15.2 UTM marzo 2026
+
+```txt
+UTM marzo 2026 = $69.889
+```
+
+### 15.3 Tabla mensual marzo 2026 (SII)
+
+| Tramo mensual | Factor | Rebaja |
+|---|---:|---:|
+| Hasta $943.501,50 | Exento | - |
+| $943.501,51 a $2.096.670,00 | 0,04 | $37.740,06 |
+| $2.096.670,01 a $3.494.450,00 | 0,08 | $121.606,86 |
+| $3.494.450,01 a $4.892.230,00 | 0,135 | $313.801,61 |
+| $4.892.230,01 a $6.290.010,00 | 0,23 | $778.563,46 |
+| $6.290.010,01 a $8.386.680,00 | 0,304 | $1.244.024,20 |
+| $8.386.680,01 a $21.665.590,00 | 0,35 | $1.629.811,48 |
+| Desde $21.665.590,01 | 0,40 | $2.713.090,98 |
+
+### 15.4 Fórmula
+
+```txt
+impuesto = max(0, renta_liquida_imponible * factor - rebaja)
+```
+
+### 15.5 Corrección obligatoria
+
+No usar una tabla simplificada basada solo en UTM si no coincide exactamente con la tabla mensual vigente del SII.
+
+---
+
+## 16. Pensión mínima garantizada / referencias mínimas
+
+### Corrección obligatoria
+
+Eliminar o dejar como **obsoleto/no aplicable** el texto:
+
+```txt
+pension_minima_garantizada = $214.000
+```
+
+si se presenta como piso general vigente del sistema.
+
+### Regla documental correcta
+
+- No usar ese valor como regla general de cálculo previsional 2026.
+- Si se necesita mantener un campo histórico en `tablas.json`, debe quedar marcado como:
+  - `deprecated`,
+  - `no usar en cálculos vigentes`,
+  - `solo referencia histórica`.
+
+---
+
+## 17. APV
+
+### 17.1 Régimen A
+
+| Regla | Valor |
+|---|---:|
+| Bonificación estatal | 15% del ahorro anual |
+| Tope anual de bonificación | 6 UTM |
+
+### 17.2 Régimen B
+
+- El ahorro se rebaja de la base imponible tributaria según corresponda.
+
+### 17.3 Regla documental
+
+El APV sí puede mantenerse como se encontraba documentado, pero distinguiendo correctamente entre:
+
+- efecto tributario,
+- efecto en saldo final para pensión,
+- sugerencias de interfaz (que no son norma).
+
+---
+
+## 18. Beneficios de la reforma 2026 que faltaba documentar
+
+### 18.1 Beneficio por Años Cotizados (BAC)
+
+Debe incorporarse como módulo/documentación vigente 2026.
+
+Regla general documentable:
+
+```txt
+BAC = años_cotizados * 0,1 UF
+```
+
+con tope de **2,5 UF** y reglas especiales según stock/flujo, fecha de pensión y anualidad BAC cuando corresponda.
+
+### 18.2 Compensación por Diferencias de Expectativa de Vida (CEV)
+
+Debe incorporarse como beneficio vigente 2026 para mujeres que cumplan los requisitos legales. No debe omitirse si la calculadora se presenta como actualizada a 2026.
+
+---
+
+## 19. Heurísticas y simulaciones del sistema (permitidas, pero no normativas)
+
+Las siguientes reglas **pueden mantenerse en el producto**, pero deben rotularse como estimaciones o ayudas de decisión:
+
+| Regla | Clasificación |
+|---|---|
+| `factorTabla = 1.08` para RV | Heurística actuarial |
+| Comparativa por AFP con factor `0.5` | Heurística comparativa |
+| Simulador de longevidad con factor `0.75` para RP | Heurística visual |
+| Score previsional 0–100 | Heurística UX |
+| Semáforo verde/amarillo/rojo | Heurística UX |
+| Recomendación automática de modalidad familiar | Heurística comercial/UX |
+| Proxy fijo para hijos inválidos | Heurística actuarial |
+| Rentas temporales de hijos como 108/36 meses planas | Simplificación actuarial |
+
+### Regla de rotulado obligatorio
+
+Cada una de estas piezas debe aparecer en documentación y UI como una de estas dos etiquetas:
+
+- `Estimación interna`
+- `Simulación orientativa`
+
+Nunca como:
+
+- `regla legal`,
+- `resultado oficial`,
+- `cálculo normativo exacto`.
+
+---
+
+## 20. Dispatcher por tipo de jubilación
+
+### 20.1 Estructura recomendada
+
+```txt
+vejez_normal
+anticipada
+trabajo_pesado
+invalidez
+```
+
+### 20.2 Corrección funcional mínima
+
+- `vejez_normal`: correcto si valida edad legal.
+- `anticipada`: debe reemplazarse por regla **70% + 12 UF**.
+- `trabajo_pesado`: debe validar requisitos completos, no solo edad rebajada.
+- `invalidez`: no debe documentarse como simple derivación de `saldo / CRU`.
+
+---
+
+## 21. Persistencia / store
+
+Los campos del `localStorage` pueden mantenerse, pero con las siguientes correcciones:
+
+### 21.1 Corregir campos dependientes de parámetros vigentes
+
+- `topeImponible` debe pasar a **90.0 × UF** para 2026.
+- `comisionDec` debe derivarse desde una comisión **mensual**.
+- `pguRP` / `pguRV` no deben depender de una simplificación mal rotulada como normativa.
+
+### 21.2 Nuevos campos sugeridos
+
+```txt
+fechaVigenciaParametros
+origenComisionAFP
+origenTopeImponible
+origenPGU
+usaModeloSimplificadoPGU
+usaModeloSimplificadoRV
+```
+
+---
+
+## 22. Advertencia legal recomendada
+
+> Esta calculadora es de uso informativo y de simulación. Algunos resultados corresponden a estimaciones internas basadas en parámetros vigentes y modelos simplificados. Las decisiones de pensión deben validarse con información oficial de AFP, IPS, compañías de seguros, SCOMP y normativa vigente de la Superintendencia de Pensiones.
+
+---
+
+## 23. Resumen ejecutivo de correcciones obligatorias
+
+### Corregir sí o sí
+
+1. Comisión AFP: pasar de “anual/12” a **mensual sobre imponible**.
+2. Tope imponible: pasar de **87,8 UF** a **90,0 UF** para 2026.
+3. Pensión anticipada: reemplazar por **70% + 12 UF**.
+4. Trabajo pesado: validar además **CEN + 1%/2% + 20 años cotizados**.
+5. Invalidez: no documentar `saldo/CRU` como regla legal general.
+6. Sobrevivencia: incorporar porcentajes faltantes (36%, 30%, 11%, 50%).
+7. PGU: no equiparar automáticamente “pensión base” con “pensión líquida” como regla universal.
+8. Impuesto: usar tabla mensual oficial SII vigente.
+9. Pensión mínima garantizada `$214.000`: eliminar como regla general vigente.
+10. Marcar todas las heurísticas como **simulación**.
+
+### Mantener, pero bien rotulado
+
+- score previsional,
+- semáforos,
+- comparativas AFP,
+- simulador de longevidad,
+- recomendación de modalidad,
+- aproximación RV con factor 1,08.
+
+---
+
+## 24. Fuentes oficiales utilizadas para esta corrección
+
+### Superintendencia de Pensiones
+
+- Comisiones AFP: https://www.spensiones.cl/portal/institucional/594/w3-article-2810.html
+- Sistema AFP / parámetros generales: https://www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9893.html
+- Tope imponible 2026: https://www.spensiones.cl/portal/institucional/594/w3-article-16921.html
+- Pensión de vejez / anticipada: https://www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9921.html
+- Requisitos anticipada (compendio): https://www.spensiones.cl/portal/compendio/596/w3-propertyvalue-3200.html
+- Excedente de libre disposición / pensión mínima requerida: https://www.spensiones.cl/portal/compendio/596/w3-propertyvalue-3226.html
+- Trabajo pesado: https://www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9918.html
+- Rebaja por trabajo pesado: https://www.spensiones.cl/portal/institucional/594/w3-article-2903.html
+- Pensión de invalidez: https://www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9923.html
+- Pensiones de referencia invalidez/sobrevivencia: https://www.spensiones.cl/portal/institucional/594/w3-article-2959.html
+- Pensión de sobrevivencia: https://www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9922.html
+- Tasa RP 2026: https://www.spensiones.cl/apps/tasas/tasdescto.php
+- Circular 2407: https://www.spensiones.cl/apps/GetFile.php?id=001&namefile=CAFP2407.pdf
+- PGU 2026: https://www.spensiones.cl/portal/institucional/594/w3-article-16886.html
+- PGU general: https://www.spensiones.cl/portal/institucional/594/w3-propertyvalue-10531.html
+- BAC: https://www.spensiones.cl/portal/compendio/596/w3-propertyvalue-10829.html
+- CEV: https://www.spensiones.cl/portal/compendio/596/w3-propertyvalue-10834.html
+- CEV cálculo: https://www.spensiones.cl/portal/compendio/596/w3-propertyvalue-10835.html
+
+### Servicio de Impuestos Internos
+
+- Impuesto único segunda categoría 2026: https://www.sii.cl/valores_y_fechas/impuesto_2da_categoria/impuesto2026.htm
+- UTM 2026: https://www.sii.cl/valores_y_fechas/utm/utm2026.htm
+
+---
+
+## 25. Estado final del documento
+
+**Conclusión funcional:**
+
+Este documento reemplaza la versión anterior como referencia recomendada para:
+
+- ajuste del motor de cálculo,
+- revisión de reglas de negocio,
+- documentación técnica/funcional,
+- priorización de correcciones.
+
+**No reemplaza** la validación jurídica o actuarial final si el sistema será usado para decisiones reales de pensión, oferta comercial o entrega de montos con pretensión oficial.

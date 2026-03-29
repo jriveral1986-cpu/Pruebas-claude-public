@@ -6,10 +6,10 @@
     "edadJubilacionMujerNormal": 60,
     "tasaDescuentoRP": 0.03,
     "tasaDescuentoRV": 0.03,
-    "topeImponibleFactor": 87.8,
+    "topeImponibleFactor": 90.0,
     "cotizacionObligatoria": 0.1,
     "cotizacionSIS": 0.0154,
-    "pensionMinimaGarantizada": 214000,
+    "pensionMinimaGarantizada_deprecated": 214000,
     "edadMaximaTablas": 110
   },
   "cru": {

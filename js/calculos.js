@@ -16,9 +16,9 @@ export const TASA_RP = 0.0331 / 12;
 /** Tasa de mercado RV — vejez, promedio feb 2026 (SP Chile, spensiones.cl/apps/tasas/tasasRentasVitalicias.php) */
 export const TASA_RV = 0.0276 / 12;
 
-/** Tope imponible = 87.8 × UF */
+/** Tope imponible mensual 2026 = 90,0 × UF (SP Chile, vigente feb-2026) */
 export function calcularTopeImponible(uf) {
-  return Math.round(87.8 * uf);
+  return Math.round(90.0 * uf);
 }
 
 /** PGU — Pensión Garantizada Universal (Ley 21.419 + Reforma 21.735, feb 2026) */
@@ -32,16 +32,20 @@ export const PGU = {
 /** UTM marzo 2026 — SII Chile */
 export const UTM = 69889;
 
-/** Tabla impuesto 2ª categoría 2026 (SII) — tramos en UTM */
+/**
+ * Tabla impuesto 2ª categoría — marzo 2026 (SII Chile).
+ * Tramos en CLP, rebaja en CLP. Fórmula: max(0, renta × factor − rebaja).
+ * UTM marzo 2026: $69.889. Fuente: tabla mensual SII vigente mar-2026.
+ */
 const TRAMOS_IMP = [
-  { hasta: 13.5,     tasa: 0,     rebaja: 0       },
-  { hasta: 30,       tasa: 0.04,  rebaja: 0        },
-  { hasta: 50,       tasa: 0.08,  rebaja: 2772     },
-  { hasta: 70,       tasa: 0.135, rebaja: 5126     },
-  { hasta: 90,       tasa: 0.23,  rebaja: 11771    },
-  { hasta: 120,      tasa: 0.304, rebaja: 18427    },
-  { hasta: 150,      tasa: 0.355, rebaja: 24537    },
-  { hasta: Infinity, tasa: 0.40,  rebaja: 31287    },
+  { hasta: 943501,   tasa: 0,     rebaja: 0        },
+  { hasta: 2096670,  tasa: 0.04,  rebaja: 37740    },
+  { hasta: 3494450,  tasa: 0.08,  rebaja: 121607   },
+  { hasta: 4892230,  tasa: 0.135, rebaja: 313802   },
+  { hasta: 6290010,  tasa: 0.23,  rebaja: 778563   },
+  { hasta: 8386680,  tasa: 0.304, rebaja: 1244024  },
+  { hasta: 21665590, tasa: 0.35,  rebaja: 1629811  },
+  { hasta: Infinity, tasa: 0.40,  rebaja: 2713091  },
 ];
 
 // ============================================================
@@ -54,11 +58,9 @@ const TRAMOS_IMP = [
  * @returns {number} impuesto mensual en pesos
  */
 export function calcularImpuesto(pensionBruta) {
-  const enUTM = pensionBruta / UTM;
   for (const t of TRAMOS_IMP) {
-    if (enUTM <= t.hasta) {
-      const imp = pensionBruta * t.tasa - (t.rebaja * UTM / 12);
-      return Math.max(0, Math.round(imp));
+    if (pensionBruta <= t.hasta) {
+      return Math.max(0, Math.round(pensionBruta * t.tasa - t.rebaja));
     }
   }
   return 0;
@@ -607,7 +609,10 @@ export function procesarTrabajoPesado({ saldo, edad, sexo, uf, comisionDec, fami
  *
  * SIS (Seguro de Invalidez y Sobrevivencia, tasa 1,54% empleador):
  *   complementa hasta 70% de la renta promedio del decenio,
- *   con tope en 70% × 87,8 UF (tope imponible).
+ *   con tope en 70% × 90,0 UF (tope imponible 2026).
+ *
+ * NOTA: el cálculo saldo/CRU es una estimación simplificada del motor.
+ * Normativamente la pensión de invalidez se basa en ingreso base y SIS (Art. 54 DL 3.500).
  */
 export function procesarInvalidez({ saldo, edad, sexo, uf, comisionDec, anioJubilacion, tipoInvalidez, rentaPromedioInvalidez }) {
   const tipo      = tipoInvalidez || 'total';
@@ -616,7 +621,7 @@ export function procesarInvalidez({ saldo, edad, sexo, uf, comisionDec, anioJubi
   const pensionBruta = tipo === 'parcial' ? brutaBase * 0.5 : brutaBase;
 
   const rentaRef     = rentaPromedioInvalidez || 0;
-  const topeImponible = 87.8 * uf;
+  const topeImponible = calcularTopeImponible(uf);
   const limSIS       = rentaRef > 0 ? Math.min(rentaRef * 0.70, 0.70 * topeImponible) : 0;
   const complementoSIS = rentaRef > 0 ? Math.max(0, Math.round(limSIS - pensionBruta)) : 0;
 
