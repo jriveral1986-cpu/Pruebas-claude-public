@@ -1,0 +1,15 @@
+{
+  "name": "calculadora-previsional-chile",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Calculadora previsional Chile — static site",
+  "scripts": {
+    "update": "node js/update.js",
+    "build": "node js/build.js",
+    "scrape": "node js/scrape.js",
+    "serve": "python -m http.server 3000"
+  },
+  "dependencies": {
+    "playwright": "^1.51.1"
+  }
+}

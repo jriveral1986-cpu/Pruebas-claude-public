@@ -8,15 +8,16 @@ let _afpData = null;
 export async function cargarAFP() {
   if (_afpData) return _afpData;
   const base = location.pathname.includes('/pages/') ? '../' : './';
-  const res  = await fetch(`${base}data/afp.json`);
+  const res  = await fetch(`${base}data/afp.json`, { cache: 'no-store' });
   _afpData = await res.json();
   return _afpData;
 }
 
 /**
- * Returns the annual commission rate (%) for a given AFP id.
+ * Returns the monthly commission rate (%) for a given AFP id.
+ * The rate is applied monthly over remuneración/renta imponible.
  * @param {string} afpId - normalized AFP id, e.g. 'habitat'
- * @returns {number} commission as percentage of taxable salary (e.g. 0.95)
+ * @returns {number} monthly commission as percentage (e.g. 1.44)
  */
 export function getComision(afpId) {
   if (!_afpData) return 0;
@@ -26,13 +27,14 @@ export function getComision(afpId) {
 
 /**
  * Monthly commission deducted from salary for AFP admin fee.
- * Formula: salario * (comisionAnual / 100) / 12
- * @param {number} salario - gross monthly taxable salary
+ * Formula: salario * (comisionMensual / 100)
+ * The commission rate is already monthly (not annual).
+ * @param {number} salario - gross monthly taxable salary (imponible)
  * @param {string} afpId
  * @returns {number} monthly CLP amount
  */
 export function calcularDescuentoMensual(salario, afpId) {
-  return salario * (getComision(afpId) / 100) / 12;
+  return salario * (getComision(afpId) / 100);
 }
 
 /**

@@ -5,7 +5,7 @@
 
 import { actualizarTodo, getValorCuota } from './api.js';
 import { Store }                          from './store.js';
-import { cargarAFP, getAfps, getFondos }  from './comisiones.js';
+import { cargarAFP, getAfps, getFondos }  from './comisiones.js?v=3';
 
 /* ── Formatting helpers ─────────────────────────────── */
 
@@ -137,8 +137,8 @@ export function initBtnActualizar() {
     btn.className   = 'btn-actualizar cargando';
     try {
       const res  = await actualizarTodo();
-      // Update tope imponible (87.8 × UF) and store indicators
-      const tope = Math.round(87.8 * res.uf.valor);
+      // Update tope imponible (90.0 × UF — tope imponible 2026, Regla 4.1)
+      const tope = Math.round(90.0 * res.uf.valor);
       Store.guardar({ uf: res.uf.valor, utm: res.utm.valor, topeImponible: tope, _ultimaAct: res.timestamp });
 
       // If AFP + Fondo are known, update valor cuota too

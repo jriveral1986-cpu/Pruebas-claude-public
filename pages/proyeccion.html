@@ -60,6 +60,48 @@
         <!-- Condiciones de acceso -->
         <div id="panelAcceso" class="card" style="margin-bottom:20px;"></div>
 
+        <!-- Invalidez (solo visible cuando tipoJubilacion === 'invalidez') -->
+        <div id="panelInvalidezResultado" class="card card--highlight" style="display:none;margin-bottom:20px;">
+          <h3 style="margin-bottom:16px;">Pensión de Invalidez</h3>
+          <div class="resultado">
+            <div class="resultado__item">
+              <span class="resultado__label">Grado de invalidez</span>
+              <span class="resultado__valor" id="invTipo">—</span>
+            </div>
+            <div class="resultado__item">
+              <span class="resultado__label">Pensión bruta</span>
+              <span class="resultado__valor" id="invBruta">—</span>
+            </div>
+            <div class="resultado__item">
+              <span class="resultado__label">(-) Comisión AFP</span>
+              <span class="resultado__valor" id="invDescComision" style="color:var(--color-error);">—</span>
+            </div>
+            <div class="resultado__item">
+              <span class="resultado__label">(-) Cotización salud 7%</span>
+              <span class="resultado__valor" id="invDescSalud" style="color:var(--color-error);">—</span>
+            </div>
+            <div class="resultado__item">
+              <span class="resultado__label">(-) Impuesto renta 2ª cat.</span>
+              <span class="resultado__valor" id="invDescImpuesto" style="color:var(--color-error);">—</span>
+            </div>
+            <div class="resultado__item" style="border-top:2px solid var(--color-border);padding-top:8px;margin-top:4px;">
+              <span class="resultado__label" style="font-weight:700;">Pensión neta (después de descuentos)</span>
+              <span class="resultado__valor resultado__valor--highlight" id="invNeta">—</span>
+            </div>
+            <div class="resultado__item">
+              <span class="resultado__label">(+) Complemento SIS (empleador)</span>
+              <span class="resultado__valor" id="invSIS" style="color:var(--success);">—</span>
+            </div>
+            <div class="resultado__item" style="background:var(--color-bg-alt,#f8f9fa);border-radius:8px;padding:8px 0;">
+              <span class="resultado__label" style="font-weight:700;">Ingreso total mensual</span>
+              <span class="resultado__valor resultado__valor--highlight" id="invTotal" style="font-size:1.25em;">—</span>
+            </div>
+          </div>
+          <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:8px;">
+            Art. 54 DL 3.500. SIS: 1,54% del salario del empleador — complementa hasta 70% de la renta promedio del decenio (tope: 70% × 87,8 UF).
+          </p>
+        </div>
+
         <div class="grid-2">
           <!-- Retiro Programado -->
           <div class="card card--highlight">
@@ -264,9 +306,9 @@
     import { initBtnActualizar, mostrarDatosCliente, formatCLP, formatUF } from '../js/ui.js';
     import { Store }           from '../js/store.js';
     import { cargarTablas }    from '../js/mortalidad.js';
-    import { calcularPensionRP, calcularPensionRV, proyectarSaldo, calcularPGUInformativa } from '../js/calculos.js';
+    import { calcularPensionRP, calcularPensionRV, proyectarSaldo, calcularPGUInformativa, procesarInvalidez } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
-    import { cargarAFP, getComision } from '../js/comisiones.js';
+    import { cargarAFP, getComision } from '../js/comisiones.js?v=3';
 
     initBtnActualizar();
 
@@ -287,7 +329,8 @@
       await cargarTablas();
       await cargarAFP();
       const uf  = d.uf || 39717;
-      const comisionPct = getComision(d.afp || '') || 1.27;
+      const _fresh = Store.leer();
+      const comisionPct = _fresh.comisionPct || getComision(d.afp || '') || 1.27;
       const comisionDec = comisionPct / 100;
       const familia = {
         tienePareja:         d.tienePareja         || false,
@@ -305,6 +348,38 @@
       const saldoEfectivo = d.saldoTotal + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
       const rp = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, familia, anioJub);
       const rv = calcularPensionRV(saldoEfectivo, d.edad, d.sexo, uf, familia, anioJub);
+
+      // ── Invalidez ────────────────────────────────────
+      const esInvalidez = d.tipoJubilacion === 'invalidez';
+      const panelInv    = document.getElementById('panelInvalidezResultado');
+      const gridRP_RV   = panelInv.nextElementSibling; // .grid-2 con RP y RV
+      panelInv.style.display  = esInvalidez ? '' : 'none';
+      gridRP_RV.style.display = esInvalidez ? 'none' : '';
+
+      if (esInvalidez) {
+        const inv = procesarInvalidez({
+          saldo: saldoEfectivo, edad: d.edad, sexo: d.sexo, uf, comisionDec,
+          anioJubilacion: anioJub,
+          tipoInvalidez:          d.tipoInvalidez || 'total',
+          rentaPromedioInvalidez: d.rentaPromedioInvalidez || 0,
+        });
+        document.getElementById('invTipo').textContent        = inv.tipo === 'total'
+          ? 'Total (pérdida ≥ 2/3 de capacidad laboral)'
+          : 'Parcial (pérdida ≥ 50% < 2/3)';
+        document.getElementById('invBruta').textContent       = formatCLP(inv.pensionBruta);
+        document.getElementById('invDescComision').textContent = `-${formatCLP(inv.desglose.descComision)} (${comisionPct}%)`;
+        document.getElementById('invDescSalud').textContent   = `-${formatCLP(inv.desglose.descSalud)}`;
+        document.getElementById('invDescImpuesto').textContent = inv.desglose.descImpuesto > 0
+          ? `-${formatCLP(inv.desglose.descImpuesto)}`
+          : '$0 (exento)';
+        document.getElementById('invNeta').textContent        = formatCLP(inv.pensionNeta);
+        document.getElementById('invSIS').textContent         = inv.complementoSIS > 0
+          ? `+${formatCLP(inv.complementoSIS)} (70% × ${formatCLP(inv.rentaRef)} − pensión bruta)`
+          : inv.rentaRef > 0 ? '$0 (pensión cubre el umbral SIS)' : '— (ingresa renta promedio para calcular)';
+        document.getElementById('invTotal').textContent       = formatCLP(inv.pensionTotal);
+        renderPanelAcceso(rp, rv, uf);
+        return;
+      }
 
       // RP
       document.getElementById('rpPension').textContent      = formatCLP(rp.pension);
@@ -459,6 +534,14 @@
           <span class="resultado__valor" style="color:${cumple ? 'var(--success)' : 'var(--color-error)'};">
             ${cumple ? '✓ Cumple ambos requisitos para pensión anticipada' : '✗ No cumple — ambas condiciones son obligatorias simultáneamente'}
           </span></div>`;
+
+      } else if (tipo === 'invalidez') {
+        html += row('Modalidad', 'Invalidez del afiliado (Art. 54 DL 3.500)');
+        html += row('Grado declarado', d.tipoInvalidez === 'parcial'
+          ? 'Parcial — pérdida ≥ 50% &lt; 2/3 de capacidad laboral'
+          : 'Total — pérdida ≥ 2/3 de capacidad laboral');
+        html += row('Requisito de edad', 'Sin mínimo de edad — dictamen de Comisión Médica SP', 'var(--color-text-muted)');
+        html += row('CRU base utilizado', rp.cnuDetalle?.cnuAfiliado?.toFixed(2) ?? '—');
 
       } else if (tipo === 'trabajo_pesado') {
         const tipoTP    = parseInt(d.tipoTrabajoPesado) || 2;

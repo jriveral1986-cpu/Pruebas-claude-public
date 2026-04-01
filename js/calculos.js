@@ -4,7 +4,7 @@
  * All monetary values in CLP.
  */
 
-import { getCRU, getCRUExtrapolado, getCRURentaVitalicia, getCNUConyuge, calcularCNUConMejoramiento, esperanzaVida } from './mortalidad.js';
+import { getCRU, getCRUExtrapolado, getCRURentaVitalicia, getCNUConyuge, calcularCNUConMejoramiento, calcularCRU_RP, esperanzaVida } from './mortalidad.js';
 
 // ============================================================
 // CONSTANTES VIGENTES — SP Chile, marzo 2026
@@ -16,9 +16,9 @@ export const TASA_RP = 0.0331 / 12;
 /** Tasa de mercado RV — vejez, promedio feb 2026 (SP Chile, spensiones.cl/apps/tasas/tasasRentasVitalicias.php) */
 export const TASA_RV = 0.0276 / 12;
 
-/** Tope imponible = 87.8 × UF */
+/** Tope imponible mensual 2026 = 90,0 × UF (SP Chile, vigente feb-2026) */
 export function calcularTopeImponible(uf) {
-  return Math.round(87.8 * uf);
+  return Math.round(90.0 * uf);
 }
 
 /** PGU — Pensión Garantizada Universal (Ley 21.419 + Reforma 21.735, feb 2026) */
@@ -32,16 +32,20 @@ export const PGU = {
 /** UTM marzo 2026 — SII Chile */
 export const UTM = 69889;
 
-/** Tabla impuesto 2ª categoría 2026 (SII) — tramos en UTM */
+/**
+ * Tabla impuesto 2ª categoría — marzo 2026 (SII Chile).
+ * Tramos en CLP, rebaja en CLP. Fórmula: max(0, renta × factor − rebaja).
+ * UTM marzo 2026: $69.889. Fuente: tabla mensual SII vigente mar-2026.
+ */
 const TRAMOS_IMP = [
-  { hasta: 13.5,     tasa: 0,     rebaja: 0       },
-  { hasta: 30,       tasa: 0.04,  rebaja: 0        },
-  { hasta: 50,       tasa: 0.08,  rebaja: 2772     },
-  { hasta: 70,       tasa: 0.135, rebaja: 5126     },
-  { hasta: 90,       tasa: 0.23,  rebaja: 11771    },
-  { hasta: 120,      tasa: 0.304, rebaja: 18427    },
-  { hasta: 150,      tasa: 0.355, rebaja: 24537    },
-  { hasta: Infinity, tasa: 0.40,  rebaja: 31287    },
+  { hasta: 943501,   tasa: 0,     rebaja: 0        },
+  { hasta: 2096670,  tasa: 0.04,  rebaja: 37740    },
+  { hasta: 3494450,  tasa: 0.08,  rebaja: 121607   },
+  { hasta: 4892230,  tasa: 0.135, rebaja: 313802   },
+  { hasta: 6290010,  tasa: 0.23,  rebaja: 778563   },
+  { hasta: 8386680,  tasa: 0.304, rebaja: 1244024  },
+  { hasta: 21665590, tasa: 0.35,  rebaja: 1629811  },
+  { hasta: Infinity, tasa: 0.40,  rebaja: 2713091  },
 ];
 
 // ============================================================
@@ -54,11 +58,9 @@ const TRAMOS_IMP = [
  * @returns {number} impuesto mensual en pesos
  */
 export function calcularImpuesto(pensionBruta) {
-  const enUTM = pensionBruta / UTM;
   for (const t of TRAMOS_IMP) {
-    if (enUTM <= t.hasta) {
-      const imp = pensionBruta * t.tasa - (t.rebaja * UTM / 12);
-      return Math.max(0, Math.round(imp));
+    if (pensionBruta <= t.hasta) {
+      return Math.max(0, Math.round(pensionBruta * t.tasa - t.rebaja));
     }
   }
   return 0;
@@ -113,6 +115,77 @@ export function calcularPGU(pensionBase, edad = 65) {
  */
 export function calcularPGUInformativa(pensionBase) {
   return calcularPGU(pensionBase, 65);
+}
+
+// ============================================================
+// BAC — BENEFICIO POR AÑOS COTIZADOS (Ley 21.735, Título XIX)
+// ============================================================
+
+/**
+ * Beneficio por Años Cotizados (BAC) — Seguro Social Previsional.
+ * Tipo: Heurística — simplificación stock 2026, rotulada como estimación.
+ * Fórmula: BAC = (mesesCotizados / 12) × 0,1 UF, tope 2,5 UF/mes.
+ *
+ * Reglas normativas: requisito mínimo mujeres 120 meses, hombres 240 meses (año 2026).
+ * Fuente: Compendio SP — Libro III, Título XIX, Letra B.
+ *
+ * @param {number} mesesCotizados - meses efectivamente cotizados
+ * @param {number} uf             - valor UF vigente
+ * @param {string} sexo           - 'M' | 'F'
+ * @returns {{ monto, montoUF, anosCotizados, elegible, razonNoElegible }}
+ */
+export function calcularBAC(mesesCotizados, uf, sexo = 'M') {
+  const minMeses = sexo === 'F' ? 120 : 240;
+  if (!mesesCotizados || mesesCotizados < minMeses) {
+    return {
+      monto: 0, montoUF: 0, anosCotizados: (mesesCotizados || 0) / 12,
+      elegible: false,
+      razonNoElegible: `Requiere mínimo ${minMeses} meses cotizados (${sexo === 'F' ? '10' : '20'} años)`,
+    };
+  }
+  const anosCotizados = mesesCotizados / 12;
+  const montoUF = Math.min(anosCotizados * 0.1, 2.5);
+  return { monto: Math.round(montoUF * uf), montoUF, anosCotizados, elegible: true, razonNoElegible: null };
+}
+
+// ============================================================
+// CEV — COMPENSACIÓN POR DIFERENCIAS DE EXPECTATIVA DE VIDA (Ley 21.735, Título XIX)
+// ============================================================
+
+/**
+ * Compensación por Diferencias de Expectativa de Vida (CEV) — Seguro Social Previsional.
+ * Solo aplica a mujeres ≥ 65 años (stock simplificado 2026).
+ * Tipo: Heurística — porcentajes por tramo de edad simplificados, rotulada como estimación.
+ *
+ * Fórmula: CEV = PAFE × porcentaje_según_edad
+ * - PAFE = pensión autofinanciada (aprox. con pensión RP/RV del motor), máximo 18 UF
+ * - Porcentaje: 65–69 → 50%; 70–74 → 75%; ≥75 → 100%
+ * - Monto mínimo: 0,25 UF
+ * - Mujeres con vejez anticipada (art. 68 DL 3.500) no tienen derecho a CEV.
+ *
+ * Fuente: Compendio SP — Libro III, Título XIX, Letra C.
+ *
+ * @param {string} sexo          - 'M' | 'F'
+ * @param {number} edad          - edad al momento de pensionarse
+ * @param {number} pafeClp       - pensión autofinanciada en CLP (RP o RV bruta)
+ * @param {number} uf            - valor UF vigente
+ * @param {boolean} esAnticipada - true si es vejez anticipada (excluye CEV)
+ * @returns {{ monto, montoUF, porcentaje, elegible, razonNoElegible }}
+ */
+export function calcularCEV(sexo, edad, pafeClp, uf, esAnticipada = false) {
+  if (sexo !== 'F') {
+    return { monto: 0, montoUF: 0, porcentaje: 0, elegible: false, razonNoElegible: 'Solo aplica a mujeres' };
+  }
+  if (edad < 65) {
+    return { monto: 0, montoUF: 0, porcentaje: 0, elegible: false, razonNoElegible: 'Requiere edad ≥ 65 años' };
+  }
+  if (esAnticipada) {
+    return { monto: 0, montoUF: 0, porcentaje: 0, elegible: false, razonNoElegible: 'Vejez anticipada excluye CEV (art. 68 DL 3.500)' };
+  }
+  const pafeUF = uf > 0 ? Math.min(pafeClp / uf, 18) : 0;
+  const pct    = edad >= 75 ? 1.0 : edad >= 70 ? 0.75 : 0.5;
+  const montoUF = Math.max(pafeUF * pct, 0.25);
+  return { monto: Math.round(montoUF * uf), montoUF, porcentaje: pct * 100, elegible: true, razonNoElegible: null };
 }
 
 // ============================================================
@@ -267,12 +340,10 @@ export function calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0, anio
     numHijosInvalidos   = 0,
   } = familia || {};
 
-  // CRU con mejoramiento AAx (NCG N°306): aplica factores de mejora desde 2020 al año de jubilación.
-  // El SCOMP de SP Chile sí aplica AAx — verificado empíricamente contra SCOMP Q1-2026.
+  // CRU según sexo: hombre aplica AAx (NCG N°306), mujer usa tabla oficial directa.
+  // Ver calcularCRU_RP en mortalidad.js para el fundamento técnico.
   const cnuSinMejora = getCRU(sexo, edad);
-  const cnuBase      = anioJubilacion
-    ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
-    : cnuSinMejora;
+  const cnuBase      = calcularCRU_RP(sexo, edad, TASA_RP, anioJubilacion);
   const pctAumentoMejora = cnuSinMejora > 0 ? ((cnuBase - cnuSinMejora) / cnuSinMejora) * 100 : 0;
 
   // factorTabla: 1.0 = B-2020 (RP), 1.08 = aproximación RV-2020 (RV)
@@ -309,6 +380,7 @@ export function calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0, anio
     cnuSinMejora: cnuSinMejora * factorTabla,
     pctAumentoMejora,
     anioJubilacion,
+    usaAAx: sexo === 'M' && !!anioJubilacion,
   };
 }
 
@@ -346,15 +418,14 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0,
     cnu = cnuDetalle.cnuTotal;
   } else {
     const cruBase = getCRU(sexo, edad);
-    cnu = anioJubilacion
-      ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
-      : cruBase;
+    cnu = calcularCRU_RP(sexo, edad, TASA_RP, anioJubilacion);
     cnuDetalle = {
       cnuTotal: cnu, cnuAfiliado: cnu, cnuConyuge: 0, cnuHijos: 0,
       factorFamilia: 1, tieneImpacto: false,
       cnuSinMejora: cruBase,
       pctAumentoMejora: cruBase > 0 ? ((cnu - cruBase) / cruBase) * 100 : 0,
       anioJubilacion,
+      usaAAx: sexo === 'M' && !!anioJubilacion,
     };
   }
 
@@ -368,11 +439,9 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0,
     : (tasaMens > 0 ? saldo * tasaMens / (1 - Math.pow(1 + tasaMens, -mesesEspe)) : 0);
   const pension = uf > 0 ? Math.round((_pensionExacta / uf) * 100) / 100 * uf : _pensionExacta;
 
-  // Pensión sin familia (solo CRU del afiliado, con mejoramiento) para mostrar el impacto
+  // Pensión sin familia (solo CRU del afiliado) para mostrar el impacto
   const cruSoloBase = getCRU(sexo, edad);
-  const cruSolo = anioJubilacion
-    ? calcularCNUConMejoramiento(sexo, edad, TASA_RP, anioJubilacion)
-    : cruSoloBase;
+  const cruSolo = calcularCRU_RP(sexo, edad, TASA_RP, anioJubilacion);
   const pensionSinFamilia = cruSolo > 0 ? saldo / cruSolo : pension;
   const impactoFamilia = pensionSinFamilia - pension; // cuánto menos recibe por tener familia
 
@@ -518,6 +587,160 @@ export function calcularAportacionNecesaria(saldoActual, pensionObjetivo, edad, 
   if (faltante <= 0) return 0;
   const aporte = faltante * r / (Math.pow(1 + r, n) - 1);
   return Math.max(0, Math.round(aporte));
+}
+
+// ============================================================
+// SCORE PREVISIONAL (0–100)
+// ============================================================
+
+// ============================================================
+// PROCESADORES POR TIPO DE JUBILACIÓN
+// ============================================================
+
+/**
+ * Vejez normal (Art. 3 DL 3.500).
+ * Edad legal: 65 hombres / 60 mujeres.
+ */
+export function procesarVejezNormal({ saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion }) {
+  const edadLegal = sexo === 'F' ? 60 : 65;
+  const acceso = {
+    cumple:     edad >= edadLegal,
+    edadAcceso: edadLegal,
+    edadActual: edad,
+    faltan:     Math.max(0, edadLegal - edad),
+  };
+  return {
+    acceso,
+    rp: calcularPensionRP(saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion),
+    rv: calcularPensionRV(saldo, edad, sexo, uf, familia, anioJubilacion),
+  };
+}
+
+/**
+ * Pensión anticipada (Art. 68 DL 3.500).
+ * Requiere: RP bruta ≥ 12 UF Y ≥ 70% del promedio de renta imponible del decenio.
+ */
+export function procesarAnticipada({ saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion, rentaPromedioDecenio, rentaImponible }) {
+  const rp    = calcularPensionRP(saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion);
+  const rv    = calcularPensionRV(saldo, edad, sexo, uf, familia, anioJubilacion);
+  const pension = rp.pension;
+  const pensUF  = uf > 0 ? pension / uf : 0;
+  const renta   = rentaPromedioDecenio || rentaImponible || 0;
+  const req12uf = pensUF >= 12;
+  const req70   = renta > 0 ? pension >= renta * 0.70 : null;
+  return {
+    acceso: {
+      cumple:      req12uf && req70 !== false,
+      rpBruta:     pension,
+      pensUF,
+      umbral12UF:  12 * uf,
+      umbral70pct: renta > 0 ? Math.round(renta * 0.70) : null,
+      req12uf,
+      req70,
+      renta,
+    },
+    rp,
+    rv,
+  };
+}
+
+/**
+ * Trabajo pesado (Ley 19.404).
+ * Rebaja la edad de acceso según tipo de puesto y meses cotizados en trabajo calificado.
+ */
+export function procesarTrabajoPesado({ saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion, tipoTrabajoPesado, mesesTrabajoPesado }) {
+  const tipoTP    = parseInt(tipoTrabajoPesado) || 2;
+  const mesesTP   = mesesTrabajoPesado || 0;
+  const factor    = tipoTP === 1 ? 0.4 : 0.2;
+  const maxRebaja = tipoTP === 1 ? 10  : 5;
+  const edadMin   = tipoTP === 1 ? 55  : 60;
+  const edadLegal = sexo === 'F' ? 60  : 65;
+  const rebaja    = Math.min((mesesTP / 12) * factor, maxRebaja);
+  const edadAcceso = Math.max(edadMin, Math.round(edadLegal - rebaja));
+  return {
+    acceso: {
+      cumple:      edad >= edadAcceso,
+      edadAcceso,
+      edadActual:  edad,
+      faltan:      Math.max(0, edadAcceso - edad),
+      tipoTP,
+      rebaja:      Math.round(rebaja * 10) / 10,
+      factor,
+      maxRebaja,
+      edadLegal,
+    },
+    rp: calcularPensionRP(saldo, edad, sexo, uf, comisionDec, familia, anioJubilacion),
+    rv: calcularPensionRV(saldo, edad, sexo, uf, familia, anioJubilacion),
+  };
+}
+
+/**
+ * Invalidez del afiliado (Art. 54 DL 3.500).
+ *
+ * Total (pérdida ≥ 2/3):  pensión = saldo / CRU
+ * Parcial (≥ 50% < 2/3):  pensión = 0,50 × (saldo / CRU)
+ *
+ * SIS (Seguro de Invalidez y Sobrevivencia, tasa 1,54% empleador):
+ *   complementa hasta 70% de la renta promedio del decenio,
+ *   con tope en 70% × 90,0 UF (tope imponible 2026).
+ *
+ * NOTA: el cálculo saldo/CRU es una estimación simplificada del motor.
+ * Normativamente la pensión de invalidez se basa en ingreso base y SIS (Art. 54 DL 3.500).
+ */
+export function procesarInvalidez({ saldo, edad, sexo, uf, comisionDec, anioJubilacion, tipoInvalidez, rentaPromedioInvalidez }) {
+  const tipo      = tipoInvalidez || 'total';
+  const cruBase   = calcularCRU_RP(sexo, edad, TASA_RP, anioJubilacion);
+  const brutaBase = cruBase > 0 ? saldo / cruBase : 0;
+  const pensionBruta = tipo === 'parcial' ? brutaBase * 0.5 : brutaBase;
+
+  const rentaRef     = rentaPromedioInvalidez || 0;
+  const topeImponible = calcularTopeImponible(uf);
+  const limSIS       = rentaRef > 0 ? Math.min(rentaRef * 0.70, 0.70 * topeImponible) : 0;
+  const complementoSIS = rentaRef > 0 ? Math.max(0, Math.round(limSIS - pensionBruta)) : 0;
+
+  const desglose    = calcularPensionLiquida(pensionBruta, comisionDec);
+  return {
+    tipo,
+    pensionBruta:    Math.round(pensionBruta),
+    pensionNeta:     desglose.liquida,
+    complementoSIS,
+    pensionTotal:    desglose.liquida + complementoSIS,
+    cruBase,
+    desglose,
+    rentaRef,
+    limSIS:          Math.round(limSIS),
+  };
+}
+
+/**
+ * Dispatcher: selecciona el procesador según `d.tipoJubilacion`.
+ * Retorna `{ acceso, rp, rv }` para tipos de vejez, o `{ invalidez }` para invalidez.
+ * @param {object} d            — datos del store
+ * @param {number} uf
+ * @param {number} comisionDec
+ * @param {object} familia
+ */
+export function procesarPension(d, uf, comisionDec, familia) {
+  const tipo       = d.tipoJubilacion || 'vejez_normal';
+  const anioActual = new Date().getFullYear();
+  const edadJub    = d.edadJubilacion || d.edad;
+  const anioJub    = anioActual + Math.max(0, Math.round(edadJub - d.edad));
+  const saldoEfectivo = d.saldoTotal + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
+
+  const base = { saldo: saldoEfectivo, edad: d.edad, sexo: d.sexo, uf, comisionDec, familia, anioJubilacion: anioJub };
+
+  switch (tipo) {
+    case 'vejez_normal':
+      return procesarVejezNormal(base);
+    case 'anticipada':
+      return procesarAnticipada({ ...base, rentaPromedioDecenio: d.rentaPromedioDecenio || 0, rentaImponible: d.rentaImponible || 0 });
+    case 'trabajo_pesado':
+      return procesarTrabajoPesado({ ...base, tipoTrabajoPesado: d.tipoTrabajoPesado || 2, mesesTrabajoPesado: d.mesesTrabajoPesado || 0 });
+    case 'invalidez':
+      return procesarInvalidez({ ...base, tipoInvalidez: d.tipoInvalidez || 'total', rentaPromedioInvalidez: d.rentaPromedioInvalidez || 0 });
+    default:
+      return procesarVejezNormal(base);
+  }
 }
 
 // ============================================================

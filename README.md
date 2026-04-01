@@ -85,7 +85,7 @@ Botón "Actualizar"
 
 - **Tablas de mortalidad**: RV-2020 (Renta Vitalicia) y B-2020 (Retiro Programado) — SP Chile
 - **Tasa técnica**: 3% real anual (regulatoria)
-- **Tope imponible**: 87.8 × UF
+- **Tope imponible 2026**: 90.0 × UF
 - **Cotización obligatoria**: 10% remuneración imponible
 - **Sin framework, sin bundler**: Vanilla ES modules, funciona en GitHub Pages sin build step
 
