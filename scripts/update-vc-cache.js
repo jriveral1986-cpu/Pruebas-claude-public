@@ -12,7 +12,7 @@
  * Tabla 3 contiene: AFP | Valor Cuota | Valor Patrimonio  (última fila = más reciente)
  */
 
-import { writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -100,6 +100,14 @@ function parseFechaChilena(str) {
 }
 
 async function main() {
+  // Load existing cache to preserve AFP values not returned by SP Chile
+  let existing = {};
+  try {
+    existing = JSON.parse(readFileSync(OUTPUT, 'utf8'));
+  } catch {
+    // No existing cache — start fresh
+  }
+
   const cache  = {
     _fecha:  new Date().toISOString().slice(0, 10),
     _fuente: 'SP Chile — fetch automático',
@@ -109,13 +117,17 @@ async function main() {
   for (const fondo of FONDOS) {
     try {
       process.stdout.write(`Fondo ${fondo}... `);
-      const html  = await fetchFondo(fondo);
-      cache[fondo] = parseHtml(html);
+      const html     = await fetchFondo(fondo);
+      const fresh    = parseHtml(html);
+      // Merge: keep existing AFP entries, overwrite with fresh data where available
+      cache[fondo] = { ...(existing[fondo] ?? {}), ...fresh };
       const afps  = Object.keys(cache[fondo]);
-      const fecha = cache[fondo][afps[0]]?.fecha ?? '?';
-      console.log(`OK (${afps.length} AFPs, fecha: ${fecha})`);
+      const fecha = fresh[Object.keys(fresh)[0]]?.fecha ?? '?';
+      console.log(`OK (${Object.keys(fresh).length} nuevas / ${afps.length} total, fecha: ${fecha})`);
     } catch (err) {
       console.error(`ERROR: ${err.message}`);
+      // Keep existing data for this fund on error
+      if (existing[fondo]) cache[fondo] = existing[fondo];
       errors++;
     }
   }
@@ -129,7 +141,7 @@ async function main() {
   console.log(`\nCache actualizado → ${OUTPUT}`);
 
   if (errors > 0) {
-    console.warn(`Advertencia: ${errors} fondo(s) no se pudieron actualizar.`);
+    console.warn(`Advertencia: ${errors} fondo(s) con errores — se conservaron valores anteriores.`);
     process.exit(1);
   }
 }
