@@ -1162,7 +1162,152 @@ Este documento queda apto como base de:
 - diseño técnico del motor;
 - plan de QA;
 - revisión de deuda normativa;
-- implementación de BAC y CEV;
 - auditoría de separación entre cálculo legal y simulación.
 
 No debe ser usado como sustituto automático de una resolución oficial de pensión o de un certificado de oferta formal.
+
+---
+
+## 35. Pensión de invalidez — porcentajes normativos
+
+**Tipo:** Normativa — DL N° 3.500 art. 54 y siguientes.
+
+### 35.1 Invalidez parcial
+- Porcentaje base: **50%** del ingreso base (promedio de remuneraciones imponibles del afiliado).
+- Aplica: grado de invalidez ≥ 50% y < 66,6% según dictamen de COMPIN/COMUN.
+- Transitoria: hasta segundo dictamen. Definitiva: tras segundo dictamen o único dictamen con porcentaje de pérdida ≥ 50%.
+
+### 35.2 Invalidez total
+- Porcentaje base: **70%** del ingreso base.
+- Aplica: grado de invalidez ≥ 66,6% según dictamen.
+
+### 35.3 Ingreso base
+- Promedio de remuneraciones imponibles de los últimos 120 meses anteriores al siniestro (o período menor si corresponde).
+- Se indexa a UF para normalizar.
+
+### 35.4 Aporte adicional (SIS)
+- El Seguro de Invalidez y Sobrevivencia (SIS) financia el complemento entre el saldo acumulado del afiliado y el capital necesario para financiar la pensión de referencia (50% o 70% del ingreso base).
+- Tasa SIS vigente 2026: **1,54%** de la remuneración imponible (pagada por el empleador).
+
+### 35.5 Regla de simulación recomendada
+- En modo simulación: usar promedio de rentabilidad imponible ingresada por el usuario como proxy del ingreso base.
+- Rotular como **heurística** cuando el ingreso base se aproxima desde el campo de renta imponible actual.
+
+**Fuente:** DL N° 3.500 art. 54-58; Compendio SP, Libro I, Título IV; SP www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9923.html
+
+---
+
+## 36. Descuento de salud — tasa de simulación
+
+**Tipo:** Paramétrica — obligación legal art. 85 DL N° 3.500 / Ley ISAPRE / Ley FONASA.
+
+### 36.1 Tasa Fonasa (default de simulación)
+- Los pensionados cotizantes de FONASA descuentan el **7%** de su pensión bruta (con tope de 7% × 80,8 UF).
+- En simulaciones sin contrato ISAPRE, usar **7%** como tasa de descuento de salud.
+
+### 36.2 Isapre
+- La tasa varía según el plan contratado (puede ser superior al 7%).
+- No parametrizable automáticamente sin datos del contrato.
+- Para simulaciones con ISAPRE: informar al usuario que la tasa real puede diferir.
+
+### 36.3 Regla de implementación
+- El sistema ya aplica `descSalud = baseImp × 0.07` en `calcularPensionLiquida()`.
+- Este valor es correcto como proxy Fonasa. Para ISAPRE, requiere parámetro adicional en el futuro.
+
+**Fuente:** DL N° 3.500 art. 85; Ley N° 18.469 (FONASA); Ley N° 18.933 (ISAPRE).
+
+---
+
+## 37. Bonificación por hijo nacido vivo
+
+**Tipo:** Normativa — Ley N° 20.255 art. 74-75, vigente desde julio 2009.
+
+### 37.1 Descripción
+- Las mujeres reciben una **bonificación de 18 UF por cada hijo nacido vivo** al momento de pensionarse.
+- También aplica para hijos adoptados, bajo ciertas condiciones normativas.
+
+### 37.2 Requisitos
+- Ser mujer afiliada al sistema AFP (DL N° 3.500).
+- Tener al menos 1 hijo nacido vivo registrado en el Registro Civil.
+- Pensionarse por vejez normal o anticipada (no necesariamente por vejez edad).
+
+### 37.3 Ingreso al saldo
+- El bono ingresa a la cuenta de capitalización individual **al momento de la pensión** como aporte adicional al saldo.
+- Se valoriza en UF a la fecha de acreditación.
+- Incrementa el saldo efectivo antes del cálculo de la pensión.
+
+### 37.4 Regla de implementación recomendada
+```txt
+saldoConBono = saldoTotal + (numHijosNacidosVivos × 18 × UF)
+```
+- Rotular como **normativa** (no heurística) ya que el monto es fijo por ley.
+- Agregar campo `numHijosNacidosVivos` al formulario de entrada solo para mujeres.
+
+**Fuente:** Ley N° 20.255 art. 74-75; SP www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9921.html
+
+---
+
+## 38. Tabla impuesto único de 2ª categoría — vigencia 2026
+
+**Tipo:** Paramétrica — SII Chile, tabla mensual vigente marzo 2026.
+
+| Desde (CLP) | Hasta (CLP) | Tasa | Rebaja (CLP) |
+|---|---|---|---|
+| 0 | 943.501 | 0% | 0 |
+| 943.501 | 2.096.670 | 4% | 37.740 |
+| 2.096.670 | 3.494.450 | 8% | 121.607 |
+| 3.494.450 | 4.892.230 | 13,5% | 313.802 |
+| 4.892.230 | 6.290.010 | 23% | 778.563 |
+| 6.290.010 | 8.386.680 | 30,4% | 1.244.024 |
+| 8.386.680 | 21.665.590 | 35% | 1.629.811 |
+| 21.665.590 | ∞ | 40% | 2.713.091 |
+
+- **UTM referencia:** $69.889 (marzo 2026, SII Chile).
+- **Fórmula:** `max(0, pensionBruta × tasa − rebaja)`.
+- Esta tabla ya está implementada en `calculos.js` como `TRAMOS_IMP`.
+- Actualizar cada vez que el SII publique nueva tabla mensual.
+
+**Fuente:** SII Chile, tabla impuesto mensual segunda categoría marzo 2026. www.sii.cl
+
+---
+
+## 39. BAC implementado — resumen de reglas operacionales
+
+**Tipo:** Normativa (elegibilidad) + Heurística (simplificación stock/flujo para simulación).
+
+Esta sección complementa la sección 22 con las reglas operacionales ya implementadas en el motor (2026):
+
+### 39.1 Implementación en calculos.js
+- Función: `calcularBAC(mesesCotizados, uf, sexo)`
+- Fórmula: `BAC = min((mesesCotizados / 12) × 0,1 UF, 2,5 UF)` mensual.
+- Mínimo para elegibilidad: 120 meses (mujeres) / 240 meses (hombres).
+- Retorna `{ monto, montoUF, anosCotizados, elegible, razonNoElegible }`.
+
+### 39.2 Dato de entrada requerido
+- Campo `mesesCotizados` en el formulario de datos del afiliado.
+
+### 39.3 Etiqueta obligatoria en UI
+- "Estimado — sujeto a elegibilidad oficial (Seguro Social Previsional)"
+
+**Fuente:** Ley N° 21.735; Compendio SP, Libro III, Título XIX, Letra B.
+
+---
+
+## 40. CEV implementado — resumen de reglas operacionales
+
+**Tipo:** Normativa (elegibilidad) + Heurística (porcentajes por tramo simplificados para simulación).
+
+Esta sección complementa la sección 23 con las reglas operacionales ya implementadas en el motor (2026):
+
+### 40.1 Implementación en calculos.js
+- Función: `calcularCEV(sexo, edad, pafeClp, uf, esAnticipada)`
+- PAFE aproximada desde la pensión bruta de RP/RV del motor (máx. 18 UF).
+- Porcentajes stock simplificados: 65–69 años → 50%; 70–74 → 75%; ≥75 → 100%.
+- Monto mínimo: 0,25 UF.
+- Mujeres con vejez anticipada (art. 68 DL 3.500) excluidas.
+- Retorna `{ monto, montoUF, porcentaje, elegible, razonNoElegible }`.
+
+### 40.2 Etiqueta obligatoria en UI
+- "Estimado — sujeto a elegibilidad oficial (Seguro Social Previsional)"
+
+**Fuente:** Ley N° 21.735; Compendio SP, Libro III, Título XIX, Letra C.

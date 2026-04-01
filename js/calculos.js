@@ -118,6 +118,77 @@ export function calcularPGUInformativa(pensionBase) {
 }
 
 // ============================================================
+// BAC — BENEFICIO POR AÑOS COTIZADOS (Ley 21.735, Título XIX)
+// ============================================================
+
+/**
+ * Beneficio por Años Cotizados (BAC) — Seguro Social Previsional.
+ * Tipo: Heurística — simplificación stock 2026, rotulada como estimación.
+ * Fórmula: BAC = (mesesCotizados / 12) × 0,1 UF, tope 2,5 UF/mes.
+ *
+ * Reglas normativas: requisito mínimo mujeres 120 meses, hombres 240 meses (año 2026).
+ * Fuente: Compendio SP — Libro III, Título XIX, Letra B.
+ *
+ * @param {number} mesesCotizados - meses efectivamente cotizados
+ * @param {number} uf             - valor UF vigente
+ * @param {string} sexo           - 'M' | 'F'
+ * @returns {{ monto, montoUF, anosCotizados, elegible, razonNoElegible }}
+ */
+export function calcularBAC(mesesCotizados, uf, sexo = 'M') {
+  const minMeses = sexo === 'F' ? 120 : 240;
+  if (!mesesCotizados || mesesCotizados < minMeses) {
+    return {
+      monto: 0, montoUF: 0, anosCotizados: (mesesCotizados || 0) / 12,
+      elegible: false,
+      razonNoElegible: `Requiere mínimo ${minMeses} meses cotizados (${sexo === 'F' ? '10' : '20'} años)`,
+    };
+  }
+  const anosCotizados = mesesCotizados / 12;
+  const montoUF = Math.min(anosCotizados * 0.1, 2.5);
+  return { monto: Math.round(montoUF * uf), montoUF, anosCotizados, elegible: true, razonNoElegible: null };
+}
+
+// ============================================================
+// CEV — COMPENSACIÓN POR DIFERENCIAS DE EXPECTATIVA DE VIDA (Ley 21.735, Título XIX)
+// ============================================================
+
+/**
+ * Compensación por Diferencias de Expectativa de Vida (CEV) — Seguro Social Previsional.
+ * Solo aplica a mujeres ≥ 65 años (stock simplificado 2026).
+ * Tipo: Heurística — porcentajes por tramo de edad simplificados, rotulada como estimación.
+ *
+ * Fórmula: CEV = PAFE × porcentaje_según_edad
+ * - PAFE = pensión autofinanciada (aprox. con pensión RP/RV del motor), máximo 18 UF
+ * - Porcentaje: 65–69 → 50%; 70–74 → 75%; ≥75 → 100%
+ * - Monto mínimo: 0,25 UF
+ * - Mujeres con vejez anticipada (art. 68 DL 3.500) no tienen derecho a CEV.
+ *
+ * Fuente: Compendio SP — Libro III, Título XIX, Letra C.
+ *
+ * @param {string} sexo          - 'M' | 'F'
+ * @param {number} edad          - edad al momento de pensionarse
+ * @param {number} pafeClp       - pensión autofinanciada en CLP (RP o RV bruta)
+ * @param {number} uf            - valor UF vigente
+ * @param {boolean} esAnticipada - true si es vejez anticipada (excluye CEV)
+ * @returns {{ monto, montoUF, porcentaje, elegible, razonNoElegible }}
+ */
+export function calcularCEV(sexo, edad, pafeClp, uf, esAnticipada = false) {
+  if (sexo !== 'F') {
+    return { monto: 0, montoUF: 0, porcentaje: 0, elegible: false, razonNoElegible: 'Solo aplica a mujeres' };
+  }
+  if (edad < 65) {
+    return { monto: 0, montoUF: 0, porcentaje: 0, elegible: false, razonNoElegible: 'Requiere edad ≥ 65 años' };
+  }
+  if (esAnticipada) {
+    return { monto: 0, montoUF: 0, porcentaje: 0, elegible: false, razonNoElegible: 'Vejez anticipada excluye CEV (art. 68 DL 3.500)' };
+  }
+  const pafeUF = uf > 0 ? Math.min(pafeClp / uf, 18) : 0;
+  const pct    = edad >= 75 ? 1.0 : edad >= 70 ? 0.75 : 0.5;
+  const montoUF = Math.max(pafeUF * pct, 0.25);
+  return { monto: Math.round(montoUF * uf), montoUF, porcentaje: pct * 100, elegible: true, razonNoElegible: null };
+}
+
+// ============================================================
 // PENSIÓN DE SOBREVIVENCIA — DL 3.500 art. 58
 // ============================================================
 

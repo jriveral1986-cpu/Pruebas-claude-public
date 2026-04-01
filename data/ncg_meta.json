@@ -1,8 +1,10 @@
 {
-  "last_updated": "2026-03-23T00:00:00Z",
-  "total_records": 360,
-  "max_num": 360,
+  "last_updated": "2026-04-01T02:08:28.921Z",
+  "total_records": 361,
+  "max_num": 361,
   "source_url": "https://www.spensiones.cl/apps/normativaSP/getNormativa.php?id=ncgsp",
-  "new_since_last": [],
-  "checksum": ""
+  "new_since_last": [
+    "361"
+  ],
+  "checksum": "sha256:bed5c763b99b6ccf"
 }

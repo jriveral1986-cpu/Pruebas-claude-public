@@ -244,6 +244,7 @@
     import { cargarAFP, getAfps, getComision } from '../js/comisiones.js?v=3';
     import {
       calcularPensionRP, calcularBrecha, calcularAportacionNecesaria, calcularScore, calcularPGUInformativa,
+      calcularBAC, calcularCEV,
     } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
 
@@ -385,15 +386,20 @@
       const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
       const rp            = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, getFamilia(), anioJub2);
       rpResult          = rp;
-      pensionEstimada   = rp.pensionTotal;
+      const bac = calcularBAC(d.mesesCotizados || 0, uf, d.sexo);
+      const cev = calcularCEV(d.sexo, d.edad, rp.pension, uf, d.tipoJubilacion === 'anticipada');
+      const pensionConBeneficios = rp.pensionTotal + (bac.elegible ? bac.monto : 0) + (cev.elegible ? cev.monto : 0);
+      pensionEstimada   = pensionConBeneficios;
 
-      const { brecha_abs, brecha_pct, suficiente } = calcularBrecha(rp.pensionTotal, objetivo);
-      const pct = Math.min(100, Math.max(0, (rp.pensionTotal / objetivo) * 100));
+      const { brecha_abs, brecha_pct, suficiente } = calcularBrecha(pensionConBeneficios, objetivo);
+      const pct = Math.min(100, Math.max(0, (pensionConBeneficios / objetivo) * 100));
 
-      document.getElementById('brPensionRP').textContent  = formatCLP(rp.pensionTotal);
+      document.getElementById('brPensionRP').textContent  = formatCLP(pensionConBeneficios);
       const pguInfo65 = d.edad < 65 ? calcularPGUInformativa(rp.pensionLiquida) : 0;
+      const bacDetalle = bac.elegible ? ` · BAC: +${formatCLP(bac.monto)} est.` : '';
+      const cevDetalle = cev.elegible ? ` · CEV: +${formatCLP(cev.monto)} est.` : '';
       document.getElementById('brPensionRPDetalle').innerHTML =
-        `Bruta: ${formatCLP(rp.pension)} · Líquida: ${formatCLP(rp.pensionLiquida)}${rp.pgu > 0 ? ` · PGU: +${formatCLP(rp.pgu)}` : ''}${pguInfo65 > 0 ? ` <span style="color:var(--color-text-muted);font-size:0.85em">(+${formatCLP(pguInfo65)} PGU desde los 65 años)</span>` : ''}`;
+        `Bruta: ${formatCLP(rp.pension)} · Líquida: ${formatCLP(rp.pensionLiquida)}${rp.pgu > 0 ? ` · PGU: +${formatCLP(rp.pgu)}` : ''}${bacDetalle}${cevDetalle}${pguInfo65 > 0 ? ` <span style="color:var(--color-text-muted);font-size:0.85em">(+${formatCLP(pguInfo65)} PGU desde los 65 años)</span>` : ''}${(bac.elegible || cev.elegible) ? ` <span style="color:var(--color-text-muted);font-size:0.85em;font-style:italic">· Estimado Seguro Social Previsional</span>` : ''}`;
       document.getElementById('brPensionObj').textContent = formatCLP(objetivo);
       document.getElementById('brechaAbs').textContent    = suficiente ? 'Sin brecha' : formatCLP(brecha_abs);
       document.getElementById('brechaPct').textContent    = suficiente ? '—' : brecha_pct.toFixed(1) + '%';

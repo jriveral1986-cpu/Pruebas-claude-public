@@ -269,7 +269,7 @@
     import { initBtnActualizar, mostrarDatosCliente, formatCLP, formatUF } from '../js/ui.js';
     import { Store }        from '../js/store.js';
     import { cargarTablas } from '../js/mortalidad.js';
-    import { calcularPensionRP, calcularPensionRV, calcularPensionSobrevivencia, recomendarModalidadFamiliar, TASA_RP, calcularPGUInformativa } from '../js/calculos.js';
+    import { calcularPensionRP, calcularPensionRV, calcularPensionSobrevivencia, recomendarModalidadFamiliar, TASA_RP, calcularPGUInformativa, calcularBAC, calcularCEV } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
     import { cargarAFP, getComision } from '../js/comisiones.js?v=3';
 
@@ -315,6 +315,22 @@
       rpPension = rp.pension;
       rvPension = rv.pension;
 
+      // BAC y CEV — Seguro Social Previsional (Ley 21.735)
+      const mesesCot = d.mesesCotizados || 0;
+      const esAnticipada = d.tipoJubilacion === 'anticipada';
+      const bac = calcularBAC(mesesCot, uf, d.sexo);
+      const cev = calcularCEV(d.sexo, d.edad, rp.pension, uf, esAnticipada);
+
+      const bacLine = bac.elegible
+        ? `<br><span style="font-size:var(--text-xs);color:var(--color-primary);">+${formatCLP(bac.monto)} BAC est. (${bac.anosCotizados.toFixed(1)} años cot.)</span>`
+        : '';
+      const cevLine = cev.elegible
+        ? `<br><span style="font-size:var(--text-xs);color:var(--color-primary);">+${formatCLP(cev.monto)} CEV est. (${cev.porcentaje}%)</span>`
+        : '';
+      const seguroSocialNota = (bac.elegible || cev.elegible)
+        ? `<br><span style="font-size:var(--text-xs);color:var(--color-text-muted);font-style:italic;">Estimado — sujeto a elegibilidad oficial (Seguro Social Previsional)</span>`
+        : '';
+
       // Mostrar pensión bruta + líquida
       const pguInfo65RP = d.edad < 65 ? calcularPGUInformativa(rp.pensionLiquida) : 0;
       const pguInfo65RV = d.edad < 65 ? calcularPGUInformativa(rv.pensionLiquida) : 0;
@@ -325,14 +341,16 @@
          <span style="font-size:var(--text-xs);color:var(--color-text-muted);"> líquida</span>
          ${rp.pgu > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--success);">+${formatCLP(rp.pgu)} PGU = ${formatCLP(rp.pensionTotal)} total</span>` : ''}
          ${pguInfo65RP > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--color-text-muted);">(+${formatCLP(pguInfo65RP)} PGU desde los 65 años)</span>` : ''}
-         ${rp.cnuDetalle?.tieneImpacto ? `<br><span style="font-size:var(--text-xs);color:var(--color-warning,#b45309);">↓ ${formatCLP(rp.impactoFamilia)} por grupo familiar (${((rp.impactoFamilia/rp.pensionSinFamilia)*100).toFixed(1)}%)</span>` : ''}`;
+         ${rp.cnuDetalle?.tieneImpacto ? `<br><span style="font-size:var(--text-xs);color:var(--color-warning,#b45309);">↓ ${formatCLP(rp.impactoFamilia)} por grupo familiar (${((rp.impactoFamilia/rp.pensionSinFamilia)*100).toFixed(1)}%)</span>` : ''}
+         ${bacLine}${cevLine}${seguroSocialNota}`;
       document.getElementById('rvPensionDisplay').innerHTML =
         `${formatCLP(rv.pension)} <span style="font-size:var(--text-sm);color:var(--color-text-muted);">bruta</span><br>
          <span style="font-size:var(--text-lg);color:var(--color-primary);">${formatCLP(rv.pensionLiquida)}</span>
          <span style="font-size:var(--text-xs);color:var(--color-text-muted);"> líquida</span>
          ${rv.pgu > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--success);">+${formatCLP(rv.pgu)} PGU = ${formatCLP(rv.pensionTotal)} total</span>` : ''}
          ${pguInfo65RV > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--color-text-muted);">(+${formatCLP(pguInfo65RV)} PGU desde los 65 años)</span>` : ''}
-         ${rv.cnuDetalle?.tieneImpacto ? `<br><span style="font-size:var(--text-xs);color:var(--color-warning,#b45309);">↓ ${formatCLP(rv.impactoFamilia)} por grupo familiar (${((rv.impactoFamilia/rv.pensionSinFamilia)*100).toFixed(1)}%)</span>` : ''}`;
+         ${rv.cnuDetalle?.tieneImpacto ? `<br><span style="font-size:var(--text-xs);color:var(--color-warning,#b45309);">↓ ${formatCLP(rv.impactoFamilia)} por grupo familiar (${((rv.impactoFamilia/rv.pensionSinFamilia)*100).toFixed(1)}%)</span>` : ''}
+         ${bacLine}${cevLine}${seguroSocialNota}`;
       document.getElementById('rpUFDisplay').textContent  = formatUF(rp.pensionUF);
       document.getElementById('rvUFDisplay').textContent  = formatUF(rv.pensionUF);
       document.getElementById('rpTablaValor').textContent = `${formatCLP(rp.pension)} (líq. ${formatCLP(rp.pensionLiquida)})`;
