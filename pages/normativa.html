@@ -106,18 +106,6 @@
               transition: background .2s; }
     .btn-sp:hover { background: var(--color-primary); }
 
-    /* ── Actualizar NCG ── */
-    .btn-ncg-update { display: inline-flex; align-items: center; gap: 6px;
-                      background: none; border: 1.5px solid var(--color-border); color: var(--color-text-muted);
-                      font-size: var(--text-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
-                      padding: 6px 14px; border-radius: 4px; cursor: pointer; transition: all .2s; min-height: 32px; }
-    .btn-ncg-update:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
-    .btn-ncg-update:disabled { opacity: .5; cursor: not-allowed; }
-    .ncg-update-msg { font-size: var(--text-xs); padding: 6px 12px; border-radius: 4px;
-                      margin-top: 8px; display: none; }
-    .ncg-update-msg.ok  { background: #edfdf5; color: #0d7a4e; display: block; }
-    .ncg-update-msg.err { background: #fdecea; color: #b91c1c; display: block; }
-
     @media (max-width: 640px) {
       .ncg-toolbar { flex-direction: column; align-items: flex-start; }
       .laws-grid { grid-template-columns: 1fr; }
@@ -136,7 +124,6 @@
     <a href="modalidades.html"        class="nav__link">Modalidades</a>
     <a href="brechas.html"            class="nav__link">Brechas</a>
     <a href="normativa.html"          class="nav__link">Normativa</a>
-    <a href="informe.html"            class="nav__link">Informe</a>
   </nav>
 
   <div class="header-bar">
@@ -193,14 +180,8 @@
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13.7 8A5.7 5.7 0 1 1 8 2.3c1.7 0 3.2.7 4.3 1.8L14 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2.5V6h-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Ver en SP
             </a>
-            <button id="btn-ncg-update" class="btn-ncg-update" aria-label="Actualizar tabla NCG desde SP Chile">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M14 8A6 6 0 1 1 8 2c1.7 0 3.2.7 4.3 1.8L14 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v4h-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Actualizar NCG
-            </button>
           </div>
         </div>
-
-        <div id="ncg-update-msg" class="ncg-update-msg" role="status" aria-live="polite"></div>
 
         <div class="ncg-status">
           <span><span class="dot-ok" aria-hidden="true"></span>361 NCGs · caché 2026-04-01</span>
@@ -248,10 +229,10 @@
           <div class="law-card">
             <div class="law-year" aria-hidden="true">2022</div>
             <span class="law-tag tag-ley">Ley</span>
-            <div class="law-title">Ley 21.419 — Crea la Pensión Garantizada Universal (PGU)</div>
+            <div class="law-title">Ley 21.419 — Cotizaciones Trabajadores Independientes</div>
             <div class="law-code">Ley N° 21.419 · 2022</div>
-            <div class="law-desc">Crea la Pensión Garantizada Universal (PGU), reemplazando al Pilar Solidario (PBS/APS). Beneficio universal para personas de 65+ años con residencia mínima de 20 años y pensión total bajo el tope establecido.</div>
-            <div class="law-footer"><span class="law-source">LeyChile.cl</span><a class="btn-law-web" href="https://www.leychile.cl/Navegar?idNorma=1171923" target="_blank" rel="noopener">Ver en línea ↗</a></div>
+            <div class="law-desc">Moderniza la incorporación previsional de trabajadores con boleta de honorarios. Cotización obligatoria gradual del 17% y ajuste del mecanismo de retención en operación renta.</div>
+            <div class="law-footer"><span class="law-source">LeyChile.cl</span><a class="btn-law-web" href="https://www.leychile.cl/Navegar?idNorma=1167313" target="_blank" rel="noopener">Ver en línea ↗</a></div>
           </div>
 
           <div class="law-card">
@@ -299,7 +280,6 @@
 
   <script type="module">
     import { initBtnActualizar, marcarNavActiva } from '../js/ui.js';
-    import { PROXY_URL } from '../js/api.js';
     marcarNavActiva();
     initBtnActualizar();
 
@@ -394,46 +374,6 @@
     let sd;
     document.getElementById('ncg-search').addEventListener('input', e => {
       clearTimeout(sd); sd = setTimeout(() => { searchTerm = e.target.value.toLowerCase().trim(); applyFilters(); }, 250);
-    });
-
-    // Actualizar NCG desde SP Chile
-    const _btnUpdate = document.getElementById('btn-ncg-update');
-    const _updateSvg = _btnUpdate.innerHTML;
-    _btnUpdate.addEventListener('click', async () => {
-      const msg = document.getElementById('ncg-update-msg');
-      msg.className = 'ncg-update-msg';
-
-      // Detectar proxy sin configurar
-      if (!PROXY_URL || PROXY_URL.includes('TU_USUARIO')) {
-        msg.className = 'ncg-update-msg err';
-        msg.textContent = 'Proxy no configurado. Despliega el Cloudflare Worker y actualiza PROXY_URL en js/api.js con tu subdominio.';
-        return;
-      }
-
-      _btnUpdate.disabled = true;
-      _btnUpdate.textContent = 'Actualizando…';
-      try {
-        const res = await fetch(`${PROXY_URL}/?endpoint=ncg`, { signal: AbortSignal.timeout(20000) });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        if (!json.ncgs || json.ncgs.length === 0) {
-          msg.className = 'ncg-update-msg err';
-          msg.textContent = 'SP Chile carga los datos vía AJAX — no fue posible extraerlos en tiempo real. Los datos locales permanecen sin cambios.';
-        } else {
-          const prev = allNCGs.length;
-          allNCGs = json.ncgs.sort((a, b) => b.num - a.num);
-          applyFilters();
-          const diff = json.ncgs.length - prev;
-          msg.className = 'ncg-update-msg ok';
-          msg.textContent = `Actualizado: ${json.ncgs.length} NCGs desde SP Chile${diff > 0 ? ` (+${diff} nuevas)` : ' (sin cambios)'} — ${json.fecha}.`;
-        }
-      } catch (e) {
-        msg.className = 'ncg-update-msg err';
-        msg.textContent = `No se pudo conectar con el proxy (${e.message}). Verifica que el Cloudflare Worker esté desplegado y activo.`;
-      } finally {
-        _btnUpdate.disabled = false;
-        _btnUpdate.innerHTML = _updateSvg;
-      }
     });
 
     applyFilters();
