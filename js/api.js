@@ -44,7 +44,8 @@ export async function getValorCuota(afp, fondo) {
     const dato  = json.datos[afpKey];
     if (!dato) throw new Error('afp-not-found');
     return { ...dato, fuente: 'sp-chile' };
-  } catch {
+  } catch (err) {
+    console.warn('[api] getValorCuota: proxy falló, usando cache local.', err?.message ?? err);
     // 3. Local JSON fallback (always bundled with site)
     try {
       const base = location.pathname.includes('/pages/') ? '../' : './';
@@ -52,8 +53,8 @@ export async function getValorCuota(afp, fondo) {
       const json = await res.json();
       const dato = json[fondo]?.[afpKey];
       if (dato) return { ...dato, fuente: 'cache-local' };
-    } catch {
-      // silent fail — caller handles null
+    } catch (err2) {
+      console.warn('[api] getValorCuota: cache local también falló.', err2?.message ?? err2);
     }
     return null;
   }
@@ -70,9 +71,11 @@ export async function getUF() {
   try {
     const res  = await fetch(`${MINDICADOR}/uf`, { signal: AbortSignal.timeout(5000) });
     const json = await res.json();
+    if (!json.serie?.length) throw new Error('serie vacía');
     _cache.uf  = { valor: json.serie[0].valor, fecha: json.serie[0].fecha };
     return _cache.uf;
-  } catch {
+  } catch (err) {
+    console.warn('[api] getUF: usando fallback.', err?.message ?? err);
     return { valor: 39717, fecha: 'fallback' };
   }
 }
@@ -108,9 +111,11 @@ export async function getUTM() {
   try {
     const res  = await fetch(`${MINDICADOR}/utm`, { signal: AbortSignal.timeout(5000) });
     const json = await res.json();
+    if (!json.serie?.length) throw new Error('serie vacía');
     _cache.utm = { valor: json.serie[0].valor, fecha: json.serie[0].fecha };
     return _cache.utm;
-  } catch {
+  } catch (err) {
+    console.warn('[api] getUTM: usando fallback.', err?.message ?? err);
     return { valor: 69889, fecha: 'fallback' };
   }
 }
@@ -155,8 +160,17 @@ export async function getValorCuotaFecha(afp, fondo, fecha) {
     const base = location.pathname.includes('/pages/') ? '../' : './';
     const res  = await fetch(`${base}data/vc_historico.json`);
     const json = await res.json();
+    // Exact date
     const valor = json[fondo]?.[fecha]?.[afpKey];
     if (valor !== undefined) return { valor, fecha, fuente: 'historico-local' };
+    // Fallback: fecha anterior más cercana con datos para esta AFP
+    const fechas = Object.keys(json[fondo] ?? {})
+      .filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k) && k <= fecha && json[fondo][k][afpKey] !== undefined)
+      .sort((a, b) => b.localeCompare(a));
+    if (fechas.length) {
+      const nearest = fechas[0];
+      return { valor: json[fondo][nearest][afpKey], fecha: nearest, fuente: 'historico-local-aprox' };
+    }
   } catch { /* silent */ }
   return null;
 }

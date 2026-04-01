@@ -87,15 +87,14 @@ export default {
 
       headers.forEach((afp, idx) => {
         if (idx === 0) return; // skip fecha column
-        const raw = cols[idx] ? cols[idx].trim().replace(',', '.') : '0';
+        // Normalize AFP name: lowercase, strip accents
+        const afpKey = afp.toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+        const raw = cols[idx] ? cols[idx].trim().replace(',', '.') : '';
         const val = parseFloat(raw);
-        if (val > 0) {
-          // Normalize AFP name: lowercase, strip accents
-          const afpKey = afp.toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '');
-          result[afpKey] = { valor: val, fecha };
-        }
+        // Include AFP in result even if no value (null = sin dato en SP Chile ese día)
+        result[afpKey] = val > 0 ? { valor: val, fecha } : null;
       });
       break; // only the last valid row
     }
