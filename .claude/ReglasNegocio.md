@@ -1,95 +1,253 @@
-# Reglas de Negocio — Calculadora Previsional Chile (versión corregida)
+# Reglas de Negocio — Calculadora / Motor Previsional Chile
 
-**Fecha de actualización documental:** 29-03-2026  
-**Estado:** corregido para uso funcional/documental  
-**Objetivo:** dejar separadas las reglas **normativas**, las reglas **paramétricas** y las reglas **heurísticas** del sistema.
-
----
-
-## 1. Criterio de uso del documento
-
-Este documento **sí puede usarse como referencia funcional**, pero con la siguiente convención:
-
-- **Normativa:** regla legal o regulatoria que debe modelarse de forma exacta.
-- **Paramétrica:** valor vigente que debe mantenerse configurable por fecha de vigencia.
-- **Heurística / simulación:** aproximación interna del sistema; **no** debe presentarse como regla legal exacta.
-
-> Regla principal: ninguna aproximación actuarial, visual o comercial debe quedar documentada como si fuera una obligación legal del sistema chileno de pensiones.
+**Versión:** ampliada, revisada y normalizada  
+**Fecha de actualización:** 31-03-2026  
+**Objetivo del documento:** consolidar, corregir y ampliar las reglas funcionales, normativas, paramétricas y técnicas de un sistema previsional chileno, separando explícitamente lo legalmente exigible de lo meramente estimativo.
 
 ---
 
-## 2. Parámetros normativos base del sistema AFP
+## 0. Alcance del documento
 
-### 2.1 Cotización obligatoria
+Este documento está pensado para ser usado como:
 
-| Regla | Valor | Tipo |
-|---|---:|---|
-| Cotización obligatoria cuenta individual | 10% de la remuneración o renta imponible | Normativa |
-| SIS | 1,54% de la remuneración o renta imponible | Paramétrica |
-| Edad legal de pensión vejez hombre | 65 años | Normativa |
-| Edad legal de pensión vejez mujer | 60 años | Normativa |
-| Tope imponible mensual 2026 | 90,0 UF | Paramétrica |
+- referencia funcional;
+- base para desarrollo;
+- insumo para QA;
+- checklist de auditoría interna;
+- guía de parametrización;
+- documento de control de deuda técnica normativa.
 
-### 2.2 Fórmulas base
+No reemplaza:
+
+- la validación jurídica final;
+- la validación actuarial formal;
+- la información oficial emitida por AFP, IPS, CMF, SCOMP o Superintendencia de Pensiones.
+
+---
+
+## 1. Convenciones obligatorias de documentación
+
+Toda regla del sistema debe clasificarse en una de estas categorías:
+
+| Tipo | Definición |
+|---|---|
+| **Normativa** | Regla legal o regulatoria que debe implementarse sin alteración conceptual. |
+| **Paramétrica** | Valor vigente por fecha o período, que debe mantenerse versionado. |
+| **Heurística** | Simplificación interna del sistema para simulación o UX. |
+| **Técnica** | Regla de implementación, persistencia, trazabilidad, auditoría o integración. |
+
+## 1.1 Regla maestra
+
+> Ninguna heurística, factor comparativo, proxy familiar, extrapolación de tablas o aproximación comercial debe presentarse como si fuera una regla legal obligatoria del sistema previsional chileno.
+
+---
+
+## 2. Glosario funcional mínimo
+
+| Sigla / concepto | Definición funcional |
+|---|---|
+| AFP | Administradora de Fondos de Pensiones |
+| IPS | Instituto de Previsión Social |
+| SP | Superintendencia de Pensiones |
+| CMF | Comisión para el Mercado Financiero |
+| SCOMP | Sistema de Consultas y Ofertas de Montos de Pensión |
+| CCICO | Cuenta de Capitalización Individual de Cotizaciones Obligatorias |
+| APV | Ahorro Previsional Voluntario |
+| APVC | Ahorro Previsional Voluntario Colectivo |
+| BR | Bono de Reconocimiento |
+| RP | Retiro Programado |
+| RV | Renta Vitalicia |
+| RT | Renta Temporal |
+| PGU | Pensión Garantizada Universal |
+| PAFE | Pensión Autofinanciada de Referencia |
+| BAC | Beneficio por Años Cotizados |
+| CEV | Compensación por Diferencias de Expectativa de Vida |
+| SIS | Seguro de Invalidez y Sobrevivencia |
+| CNU / CRU | Capital necesario unitario o divisor funcional equivalente del motor |
+| AAx,t | Factor de mejoramiento bidimensional por edad y año de proyección |
+
+## 2.1 Normalización terminológica
+
+Si en el proyecto aparecen nombres como:
+
+- “bono por años de servicio”;
+- “bono por años trabajados”;
+
+deben normalizarse a:
+
+- **Beneficio por Años Cotizados (BAC)**
+
+porque ése es el nombre regulatorio correcto.
+
+Si aparece una etiqueta como:
+
+- “bono expectativa de vida mujer”;
+- “bono expectativa mujer”;
+
+debe normalizarse a:
+
+- **Compensación por Diferencias de Expectativa de Vida (CEV)**
+
+porque ésa es la denominación normativa correcta.
+
+---
+
+## 3. Datos mínimos de entrada del motor previsional
+
+Toda simulación seria debe tener, como mínimo, los siguientes datos:
+
+### 3.1 Identificación previsional del afiliado
+
+- sexo;
+- fecha de nacimiento;
+- edad calculada;
+- tipo de afiliación;
+- AFP actual;
+- estado pensionado / no pensionado;
+- fecha de solicitud o fecha de cálculo;
+- tipo de pensión solicitada;
+- condición de afiliado activo, cesante o pensionado.
+
+### 3.2 Datos económicos
+
+- saldo obligatorio;
+- saldo APV;
+- depósitos convenidos, si corresponde;
+- Bono de Reconocimiento, si existe;
+- valor cuota y fecha;
+- UF y fecha;
+- UTM y fecha;
+- renta imponible actual;
+- histórico de remuneraciones si se evaluará anticipada;
+- cotizaciones válidas por períodos;
+- tipo de comisión AFP aplicable según módulo.
+
+### 3.3 Grupo familiar
+
+- cónyuge / conviviente civil;
+- edad y sexo del cónyuge cuando aplique;
+- hijas/os con derecho;
+- hijas/os estudiantes;
+- hijas/os inválidos;
+- madre o padre de hijas/os de filiación no matrimonial;
+- padres cargas familiares, cuando proceda.
+
+### 3.4 Trazabilidad obligatoria
+
+Todo cálculo debe dejar registrado:
 
 ```txt
-cotizacion_obligatoria = renta_imponible * 0.10
-sis = renta_imponible * 0.0154
+fecha_calculo
+fecha_uf
+fecha_utm
+fecha_valor_cuota
+origen_uf
+origen_utm
+origen_valor_cuota
+afp
+tabla_mortalidad
+version_tabla
+anio_calculo
+tasa_usada
+version_parametros
+modo_calculo
+```
+
+---
+
+## 4. Parámetros base del sistema AFP
+
+## 4.1 Cotización obligatoria
+
+| Parámetro | Valor | Tipo |
+|---|---:|---|
+| Cotización obligatoria a cuenta individual | 10% de la remuneración o renta imponible | Normativa |
+| Tope imponible 2026 | 90,0 UF | Paramétrica |
+| SIS vigente desde enero 2026 | 1,54% | Paramétrica |
+| Edad legal de vejez hombre | 65 años | Normativa |
+| Edad legal de vejez mujer | 60 años | Normativa |
+
+## 4.2 Fórmulas base
+
+```txt
 tope_imponible_clp = round(90.0 * UF)
 renta_imponible_efectiva = min(renta_imponible, tope_imponible_clp)
+cotizacion_obligatoria = renta_imponible_efectiva * 0.10
+sis = renta_imponible_efectiva * 0.0154
 ```
 
-### 2.3 Regla de implementación
+## 4.3 Regla de implementación
 
-- El tope imponible debe quedar **parametrizado por vigencia**, no hardcodeado.
-- El sistema no debe seguir usando `87.8 × UF` como valor general 2026.
-- Si se calcula costo previsional total, debe distinguirse entre:
-  - cotización obligatoria a la cuenta individual,
-  - SIS,
-  - comisión AFP,
-  - otros componentes laborales que no son parte de la pensión autofinanciada.
+- El tope imponible debe estar **versionado por vigencia**.
+- El sistema no debe usar `87.8 * UF` como valor general 2026.
+- El SIS no debe quedar fijo si cambia la tasa oficial.
+- La fórmula debe distinguir claramente entre:
+  - cotización obligatoria;
+  - comisión AFP;
+  - SIS;
+  - otros aportes o cargos del empleador;
+  - beneficios fiscales.
 
 ---
 
-## 3. AFP y comisiones
+## 5. AFP y comisiones
 
-### 3.1 Naturaleza correcta de la comisión
+## 5.1 Comisión sobre cotización obligatoria
 
-La comisión AFP de la cuenta obligatoria se cobra como **porcentaje mensual sobre la remuneración o renta imponible**, no como tasa anual dividida por 12.
+La comisión de la AFP sobre la cuenta obligatoria se cobra como **porcentaje mensual sobre la remuneración o renta imponible**.
 
-### 3.2 Comisiones vigentes documentadas
+### Comisiones de referencia vigentes documentadas
 
-| AFP | Comisión mensual sobre remuneración imponible |
+| AFP | Comisión mensual sobre remuneración o renta imponible |
 |---|---:|
-| Uno | 0,46% |
-| Modelo | 0,58% |
-| Hábitat | 1,27% |
-| PlanVital | 1,16% |
 | Capital | 1,44% |
 | Cuprum | 1,44% |
+| Hábitat | 1,27% |
+| Modelo | 0,58% |
+| PlanVital | 1,16% |
 | Provida | 1,45% |
+| Uno | 0,46% |
 
-### 3.3 Fórmula correcta
+### Fórmula correcta
 
 ```txt
-comision_mensual = renta_imponible_efectiva * (comision_pct / 100)
+comision_afp_cotizacion = renta_imponible_efectiva * (comision_pct / 100)
 ```
 
-### 3.4 Corrección obligatoria
-
-**No usar**:
+### Fórmula incorrecta a eliminar
 
 ```txt
 salario * (comision / 100) / 12
 ```
 
-porque eso supone erróneamente que la comisión publicada fuera anual.
+## 5.2 Comisión sobre pensiones en RP
+
+El motor debe distinguir expresamente entre:
+
+- comisión AFP por **cotización**; y
+- comisión que se descuenta del **monto de pensión en RP**, cuando corresponda al contexto de la simulación o certificado.
+
+Estas no deben mezclarse.
+
+## 5.3 Regla técnica
+
+Nunca almacenar una sola variable ambigua llamada `comision`.  
+Se recomienda separar:
+
+```txt
+comisionCotizacionPct
+comisionCotizacionDec
+comisionPensionRpPct
+comisionPensionRpDec
+origenComision
+fechaVigenciaComision
+```
 
 ---
 
-## 4. Fondos de pensión
+## 6. Fondos de pensiones
 
-| Fondo | Perfil |
+| Fondo | Descripción |
 |---|---|
 | A | Más riesgoso |
 | B | Riesgoso |
@@ -97,557 +255,914 @@ porque eso supone erróneamente que la comisión publicada fuera anual.
 | D | Conservador |
 | E | Más conservador |
 
-> Esta clasificación es informativa y no altera directamente las reglas de cálculo de pensión del sistema, salvo en simulaciones de rentabilidad o perfil de inversión.
+### Regla funcional
+
+La clasificación del fondo afecta principalmente:
+
+- trayectoria de rentabilidad;
+- simulaciones de saldo;
+- análisis de riesgo;
+- valor cuota histórico.
+
+No altera por sí sola la lógica normativa de elegibilidad de una pensión.
 
 ---
 
-## 5. Indicadores económicos y fuentes operativas
+## 7. Indicadores económicos y fuente operativa
 
-| Indicador | Fuente operativa | Observación |
-|---|---|---|
-| UF | API o fuente oficial parametrizable | Debe persistirse con fecha de consulta |
-| UTM | API o fuente oficial parametrizable | Debe persistirse con fecha de consulta |
-| Valor cuota AFP | SP / caché / respaldo local | Debe quedar trazabilidad de fecha y AFP |
+## 7.1 Indicadores mínimos
 
-### Regla técnica
+| Indicador | Uso |
+|---|---|
+| UF | valorización de saldos, pensiones y umbrales |
+| UTM | tributación y topes tributarios |
+| valor cuota AFP | conversión entre cuotas y saldo |
+| tasa RP vigente | recálculo de anualidades y pensiones |
+| tasas de RV de referencia | módulos comparativos o actuariales según corresponda |
+
+## 7.2 Reglas técnicas
 
 Todo cálculo debe registrar:
 
 ```txt
-- fecha_valor_uf
-- fecha_valor_utm
-- fecha_valor_cuota
-- afp_seleccionada
-- fuente_parametro
+valor_uf
+valor_utm
+valor_cuota
+fecha_uf
+fecha_utm
+fecha_valor_cuota
+fecha_tasa
+fuente_parametro
 ```
+
+## 7.3 Fallbacks
+
+Se permiten mecanismos de fallback técnico solo si:
+
+- quedan trazados;
+- tienen fecha de vigencia;
+- el sistema informa que se trata de respaldo o caché;
+- no reemplazan silenciosamente la fuente oficial sin dejar evidencia.
 
 ---
 
-## 6. Saldo efectivo canónico
+## 8. Saldo efectivo canónico
 
-La fuente de verdad del saldo a pensionar debe ser:
+El saldo a pensionar no debe limitarse a una sola variable si existen otras fuentes válidas de financiamiento.
+
+### Fórmula canónica recomendada
 
 ```js
-const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
+const saldoEfectivo =
+  (d.saldoTotal || 0) +
+  (d.saldoAPV || 0) +
+  (d.depositosConvenidos || 0) +
+  (d.bonoReconocimiento || 0);
 ```
 
-| Componente | Campo | Tipo |
-|---|---|---|
-| Saldo obligatorio AFP | `saldoTotal` | Paramétrico |
-| APV acumulado | `saldoAPV` | Paramétrico |
-| Bono de reconocimiento | `bonoReconocimiento` | Paramétrico |
+### Componentes posibles
+
+| Componente | Campo sugerido |
+|---|---|
+| saldo obligatorio | `saldoTotal` |
+| APV | `saldoAPV` |
+| depósitos convenidos | `depositosConvenidos` |
+| bono de reconocimiento | `bonoReconocimiento` |
 
 ### Regla funcional
 
-Nunca debe enviarse solo `saldoTotal` al motor si existe saldo APV y/o bono de reconocimiento disponible para financiar la pensión.
+No enviar solo `saldoTotal` al motor si existe evidencia de APV, depósitos convenidos o BR disponibles para financiar la pensión.
 
 ---
 
-## 7. Retiro Programado (RP)
+## 9. Tablas de mortalidad y factores de mejoramiento
 
-### 7.1 Regla normativa base
+## 9.1 Regla documental
 
-El retiro programado es la modalidad en que la pensión se recalcula periódicamente dividiendo el saldo real por el capital necesario para pagar una unidad de pensión al afiliado y, al fallecimiento de éste, a sus beneficiarios.
+Las tablas 2020 vigentes son insumo técnico-normativo relevante. Debe distinguirse entre:
 
-### 7.2 Tasa de interés 2026
+- tablas de mortalidad base por edad (`qx`);
+- factores de mejoramiento bidimensional `AAx,t`;
+- tablas o divisores precalculados internos del sistema.
 
-Para los cálculos y recálculos que corresponden a partir de enero de 2026, la tasa informada por la SP para nuevos retiros programados y rentas temporales es **3,31%**.
+## 9.2 Regla de cálculo
 
-### 7.3 Fórmula funcional esperada
+Si el motor trabaja con `qx` y `AAx,t`, la probabilidad efectiva para el año de cálculo debe construirse usando ambos componentes.
+
+### Ejemplo de principio de implementación
 
 ```txt
-pension_rp_uf = saldo_real_uf / capital_necesario_unitario
+q(x,anio_calculo) = qx_2020(x) ajustado por factores AAx,t aplicables
+```
+
+## 9.3 Regla de trazabilidad
+
+Se recomienda persistir:
+
+```txt
+tablaBase
+anioBase
+anioCalculo
+usaAAx
+versionAAx
+metodoCNU
+```
+
+## 9.4 Heurísticas que deben quedar rotuladas
+
+Los siguientes mecanismos pueden existir en el motor, pero solo como heurística:
+
+- `getCRUExtrapolado()` para edades fuera de rango;
+- interpolaciones lineales;
+- proxies de edad/sexo para hijos inválidos;
+- factores globales como `1.08`;
+- CNU familiar armado con plazos fijos universales sin distinguir todos los supuestos;
+- **AAx (mejoramiento) solo se aplica para hombres en RP** — para mujeres se usa la tabla pre-computada oficial sin ajuste AAx. Razón técnica: los `qx` raw de `b2020_mujer` tienen ≈6,8% de inconsistencia vs CRU oficial, lo que sesga el ratio AAx y produce CNU incorrecto (~234 en lugar de ~228). Usar la tabla oficial directa da error < 1% vs SCOMP. El campo `usaAAx` en `cnuDetalle` registra este comportamiento para trazabilidad.
+
+---
+
+## 10. Retiro Programado (RP)
+
+## 10.1 Regla normativa base
+
+El RP es la modalidad en que la pensión se recalcula periódicamente dividiendo el saldo real de la cuenta por el capital necesario para pagar una unidad de pensión al afiliado y, fallecido éste, a sus beneficiarios.
+
+## 10.2 Regla funcional general
+
+```txt
+pension_rp_uf = saldo_real_uf / CNU
 pension_rp_clp = pension_rp_uf * UF
 ```
 
-### 7.4 Regla de consistencia obligatoria
+## 10.3 Recálculos
+
+El módulo RP debe contemplar:
+
+- recálculo periódico anual;
+- recálculo extraordinario por ingreso o reliquidación de BR;
+- ingreso de APV / depósitos convenidos / ahorro voluntario;
+- egreso por excedente de libre disposición;
+- cambio en composición o condición de beneficiarios;
+- bonificación por hijo en los casos en que corresponda;
+- actualización de tasa vigente al momento del recálculo.
+
+## 10.4 Regla de consistencia obligatoria
 
 Si el sistema usa:
 
-- tasa RP vigente = **3,31%**, pero
-- tablas CRU pre-calculadas con **3,00%**,
+- una tasa RP vigente para el cálculo normativo; y
+- un `CRU/CNU` precalculado con otra tasa,
 
-entonces el cálculo queda internamente inconsistente.
+entonces debe:
 
-**Acción requerida:** elegir una sola de estas estrategias:
+1. recalcular coherentemente con la misma tasa; o  
+2. declarar explícitamente que la salida es una simulación aproximada.
 
-1. recalcular CRU/CNU con la tasa vigente; o
-2. documentar expresamente que las tablas son una aproximación y no un cálculo normativo exacto.
+## 10.5 Grupo familiar
 
-### 7.5 Con grupo familiar
+La composición del grupo familiar afecta el divisor del RP.  
+El motor debe distinguir entre:
 
-La existencia de beneficiarios sí afecta el divisor del retiro programado. Sin embargo, la construcción del CNU familiar debe distinguir entre:
+- afiliado;
+- cónyuge o conviviente;
+- hijas/os menores;
+- hijas/os estudiantes;
+- hijas/os inválidos;
+- otros beneficiarios admitidos por la normativa.
 
-- parte normativa,
-- supuestos actuariales del motor,
-- simplificaciones de interfaz.
+## 10.6 Regla técnica de separación de capas
+
+Debe separarse:
+
+```txt
+pension_base_actuarial
+descuento_comision_pension
+descuento_salud
+descuento_impuesto
+beneficio_pgu
+beneficio_bac
+beneficio_cev
+monto_final_visible
+```
 
 ---
 
-## 8. Renta Vitalicia (RV)
+## 11. Renta Vitalicia (RV)
 
-### 8.1 Regla documental correcta
+## 11.1 Regla documental
 
-La renta vitalicia es una modalidad contractual con una compañía de seguros y debe documentarse como tal.
+La RV es una modalidad contractual con compañía de seguros y debe describirse como tal.
 
-### 8.2 Corrección importante
+## 11.2 Regla de implementación
 
-El uso de:
+Si el sistema usa algo como:
 
 ```txt
 CRU_RV = CRU_B2020 * 1.08
 ```
 
-o de `factorTabla = 1.08` es una **aproximación interna**, útil para simulación, pero **no debe presentarse como fórmula legal exacta** de renta vitalicia.
+o `factorTabla = 1.08`, ello debe quedar marcado como:
 
-### 8.3 Cómo debe quedar documentado
+- **estimación interna**;
+- **aproximación comparativa**;
+- **no equivalente a fórmula legal exacta**.
 
-- **Normativa:** la RV usa tablas y metodología propias del régimen aplicable.
-- **Motor actual:** si se utiliza un factor 1,08 sobre B-2020, debe rotularse como **estimación comparativa**.
+## 11.3 Recomendación funcional
 
----
+Separar:
 
-## 9. CRU / CNU / tablas de mortalidad
-
-### 9.1 Regla documental
-
-- Las tablas B-2020 y RV-2020 son insumo normativo/técnico.
-- Las tablas pre-calculadas de `CRU` y la interpolación/extrapolación son una **implementación propia del sistema**.
-
-### 9.2 Corrección obligatoria de rotulado
-
-Los siguientes elementos deben quedar marcados como **heurística actuarial** y no como regla legal:
-
-- `getCRUExtrapolado()` para edades fuera de rango,
-- uso de pendientes lineales para edades jóvenes,
-- uso de un sexo/edad proxy fijo para hijos inválidos,
-- anualidad reversional construida desde CRU implícito,
-- cualquier simplificación de tipo `factorTabla = 1.08`.
-
-### 9.3 Regla recomendada
-
-El documento debe distinguir siempre:
-
-```txt
-CRU legal/técnico de referencia != implementación pre-calculada del motor
-```
+- módulo normativo/documental de RV;
+- módulo comparativo comercial;
+- módulo de simulación con factores simplificados.
 
 ---
 
-## 10. Pensión de vejez anticipada
+## 12. Vejez normal
 
-### 10.1 Regla correcta
+## 12.1 Regla normativa
 
-La pensión anticipada requiere cumplir **simultáneamente**:
+Tienen derecho a pensión de vejez:
 
-1. una pensión igual o superior al **70%** del promedio de las remuneraciones imponibles y rentas declaradas, según artículo 63 del DL 3.500; y
-2. una pensión igual o superior a **12 UF**.
+- hombres: desde 65 años;
+- mujeres: desde 60 años.
 
-### 10.2 Requisito adicional de afiliación
+## 12.2 Regla técnica
 
-Debe existir además el requisito de antigüedad/afiliación que corresponda según normativa del sistema.
+No basta con calcular edad. Debe existir validación robusta de:
 
-### 10.3 Fórmula funcional esperada
+- fecha de nacimiento;
+- fecha de solicitud;
+- fecha efectiva de devengamiento;
+- condición especial de trabajo pesado si aplica.
+
+---
+
+## 13. Vejez anticipada
+
+## 13.1 Regla correcta
+
+Para vejez anticipada deben cumplirse copulativamente los requisitos:
+
+1. pensión >= 70% del promedio de remuneraciones imponibles y rentas declaradas del período normativo;
+2. pensión >= 12 UF.
+
+## 13.2 Fórmula funcional
 
 ```txt
 cumple_70pct = pension_referencia >= promedio_120_meses * 0.70
-cumple_12uf  = pension_referencia_uf >= 12
+cumple_12uf = pension_referencia_uf >= 12
 acceso_anticipada = cumple_70pct && cumple_12uf
 ```
 
-### 10.4 Corrección obligatoria
+## 13.3 Reglas técnicas
 
-Eliminar del documento la regla anterior basada en “80% y 80%”, porque **no corresponde a la regla vigente**.
+- parametrizar el período de cálculo del promedio;
+- trazar el origen de remuneraciones y rentas;
+- distinguir monto bruto de referencia y monto visible final;
+- no reutilizar reglas antiguas tipo “80% y 80%”.
 
 ---
 
-## 11. Trabajo pesado
+## 14. Trabajo pesado
 
-### 11.1 Requisitos correctos
+## 14.1 Requisitos
 
-Para acceder a rebaja de edad por trabajo pesado deben verificarse copulativamente:
+Para sistema AFP deben verificarse copulativamente:
 
-1. trabajo calificado como pesado por la CEN,
-2. cotización adicional de **1% o 2%** según corresponda,
-3. al menos **20 años de cotizaciones** en cualquier sistema previsional.
+1. trabajo calificado como pesado por la CEN;
+2. sobrecotización de 1% o 2% del trabajador y aporte equivalente del empleador;
+3. al menos 20 años de cotizaciones o servicios computables.
 
-### 11.2 Rebaja de edad
+## 14.2 Rebaja de edad
 
-| Cotización adicional | Rebaja |
+| Sobre / tasa total | Rebaja |
 |---|---|
-| 1% | 1 año por cada 5 años, tope 5 años |
-| 2% | 2 años por cada 5 años, tope 10 años |
+| 4% total (2% trabajador + 2% empleador) | 2 años por cada 5, tope 10 |
+| 2% total (1% trabajador + 1% empleador) | 1 año por cada 5, tope 5 |
 
-### 11.3 Regla funcional esperada
+### Fracciones
+Las fracciones de períodos de 5 años deben dar derecho a rebaja proporcional.
+
+## 14.3 Regla funcional
 
 ```txt
-años_tp = mesesTrabajoPesado / 12
-rebaja = segun_tasa_adicional(años_tp)
-edad_acceso = edad_legal - rebaja
-acceso = cumple_requisitos_tp && edad >= edad_acceso
+rebaja = calcularRebajaTrabajoPesado(periodos, tasa)
+edadAcceso = edadLegal - rebaja
+acceso = cumpleTrabajoPesado && cumple20Anios && edad >= edadAcceso
 ```
 
-### 11.4 Corrección obligatoria
+## 14.4 Interacciones obligatorias
 
-No basta con calcular solo la rebaja de edad. El motor debe validar además:
+El módulo debe contemplar interacción con:
 
-- existencia de trabajo pesado reconocido,
-- tasa adicional correcta,
-- total de años cotizados.
+- BAC;
+- CEV;
+- edad de devengamiento del beneficio;
+- BR cuando corresponda cobro anticipado o análisis específico.
 
 ---
 
-## 12. Pensión de invalidez
+## 15. Invalidez
 
-### 12.1 Regla normativa base
+## 15.1 Regla normativa base
 
-La invalidez se define por pérdida permanente de capacidad de trabajo y utiliza como base el **ingreso base** y la cobertura del SIS, no simplemente `saldo / CRU` como regla legal general.
+La invalidez se determina con reglas propias del sistema y no debe simplificarse documentalmente como un mero `saldo / CRU`.
 
-### 12.2 Pensiones de referencia
+## 15.2 Conceptos que el sistema debe manejar
 
-| Tipo | Referencia normativa |
-|---|---:|
-| Invalidez total | 70% del ingreso base |
-| Invalidez parcial | 50% del ingreso base |
+- invalidez parcial transitoria;
+- invalidez parcial definitiva;
+- invalidez total definitiva;
+- único dictamen;
+- cobertura / no cobertura SIS;
+- ingreso base;
+- pensión de referencia;
+- aporte adicional.
 
-### 12.3 Corrección obligatoria
+## 15.3 Regla documental
 
-La documentación **no debe afirmar** como regla legal que:
+Si el motor usa una fórmula simplificada basada en saldo y divisor actuarial, debe rotularse como:
 
-```txt
-invalidez total = 100% de saldo / CRU
-invalidez parcial = 50% de saldo / CRU
-```
-
-Eso puede usarse como **simulación interna**, pero no como descripción normativa del sistema.
-
-### 12.4 Regla documental correcta
-
-- **Normativa:** el beneficio depende de ingreso base, dictamen y cobertura del SIS.
-- **Motor interno:** si se usa saldo/CRU como aproximación base, debe quedar expresamente rotulado como **estimación simplificada**.
+- simulación interna;
+- estimación orientativa;
+- no descripción normativa exacta.
 
 ---
 
-## 13. Pensión de sobrevivencia
+## 16. Sobrevivencia
 
-### 13.1 Porcentajes correctos a documentar
+## 16.1 Porcentajes de referencia que el sistema debe conocer
 
-| Beneficiario/a | Porcentaje |
+| Beneficiario | Porcentaje |
 |---|---:|
 | Cónyuge | 60% |
 | Cónyuge con hijos con derecho | 50% |
-| Hijo/a menor de 18 años | 15% |
-| Hijo/a estudiante menor de 24 años | 15% |
-| Hijo/a inválido parcial mayor de 24 años | 11% |
-| Padre o madre de hijo/a de filiación no matrimonial | 36% |
-| Padre o madre de hijo/a de filiación no matrimonial con hijos con derecho | 30% |
-| Padres reconocidos como cargas familiares | 50% |
+| Hija/o menor de 18 | 15% |
+| Hija/o estudiante menor de 24 | 15% |
+| Hija/o inválido parcial mayor de 24 | 11% |
+| Padre o madre de hija/o de filiación no matrimonial | 36% |
+| Padre o madre de hija/o de filiación no matrimonial con hijos con derecho | 30% |
+| Padres causantes de asignación familiar, a falta de otros beneficiarios | 50% |
 
-### 13.2 Requisitos que deben quedar documentados
+## 16.2 Requisitos a documentar
 
-- Cónyuge: plazos mínimos de matrimonio según si el causante estaba activo o pensionado, salvo excepciones legales.
-- Hijos/as: requisitos etarios, de estudios o invalidez.
-- Padres del causante: solo a falta de otros beneficiarios y si eran cargas reconocidas.
+- condición y acreditación de beneficiarios;
+- estudios;
+- invalidez;
+- matrimonio o convivencia civil según corresponda;
+- prioridad y exclusión de beneficiarios incompatibles.
 
-### 13.3 Corrección obligatoria
+## 16.3 Regla técnica
 
-La documentación anterior estaba **incompleta**. No debe limitarse solo a:
-
-- cónyuge 60/50,
-- hijos 15%,
-- tope 100%.
-
-Debe incluir también:
-
-- 36% / 30% para padre o madre de hijo/a de filiación no matrimonial,
-- 11% para hijos inválidos parciales mayores de 24,
-- 50% para padres reconocidos como carga, a falta de otros beneficiarios.
-
-### 13.4 Regla de implementación
-
-Si el motor realiza prorrateo cuando la suma supera 100%, debe documentarse como **mecánica de distribución del sistema/modelo**, no como sustituto de los requisitos de elegibilidad.
+El prorrateo o tope máximo del sistema no reemplaza la validación de elegibilidad.  
+Primero se determina **quién tiene derecho**, luego **cuánto corresponde**.
 
 ---
 
-## 14. PGU — Pensión Garantizada Universal
+## 17. PGU
 
-### 14.1 Parámetros 2026 documentados
+## 17.1 Parámetros 2026 documentables
 
 | Parámetro | Valor |
 |---|---:|
-| PGU personas menores de 82 años | $231.732 |
-| PGU personas de 82 años o más | $250.275 |
+| PGU menores de 82 años desde 01-02-2026 | $231.732 |
+| PGU de 82 años y más desde 01-02-2026 | $250.275 |
 | Pensión inferior | $789.139 |
 | Pensión superior | $1.252.602 |
 
-### 14.2 Regla documental correcta
+## 17.2 Regla de negocio
 
-La PGU debe modelarse con parámetros vigentes y con la base normativa que corresponda según la regulación aplicable.
+La PGU no debe modelarse como una suma fija universal sin validar:
 
-### 14.3 Corrección obligatoria
+- edad;
+- residencia;
+- tramo socioeconómico;
+- pensión base;
+- régimen aplicable;
+- vigencia de parámetros.
 
-No dejar documentado de forma categórica que:
+## 17.3 Regla documental importante
+
+No equiparar automáticamente:
 
 ```txt
 pension_base_pgu = pension_liquida
 ```
 
-como si fuera la regla universal del beneficio. Si el motor usa ese valor como simplificación, debe quedar rotulado como **aproximación funcional** y no como exactitud normativa.
+como si fuera regla universal del sistema.  
+Si se usa como aproximación interna, debe quedar marcado como simplificación.
 
-### 14.4 Regla de implementación recomendada
+## 17.4 Recomendación de implementación
 
-- parametrizar montos por fecha de vigencia,
-- aislar el cálculo de PGU en un módulo propio,
-- documentar explícitamente cuándo se usa cálculo simplificado versus cálculo normativo completo.
-
----
-
-## 15. Impuesto Único de Segunda Categoría
-
-### 15.1 Regla documental correcta
-
-El impuesto debe calcularse usando la **tabla mensual vigente del SII** para el mes de cálculo, sobre la renta líquida imponible que corresponda.
-
-### 15.2 UTM marzo 2026
+Tener módulo autónomo PGU con:
 
 ```txt
-UTM marzo 2026 = $69.889
+determinarElegibilidadPGU()
+calcularPensionBasePGU()
+calcularMontoPGU()
+versionParametrosPGU
 ```
-
-### 15.3 Tabla mensual marzo 2026 (SII)
-
-| Tramo mensual | Factor | Rebaja |
-|---|---:|---:|
-| Hasta $943.501,50 | Exento | - |
-| $943.501,51 a $2.096.670,00 | 0,04 | $37.740,06 |
-| $2.096.670,01 a $3.494.450,00 | 0,08 | $121.606,86 |
-| $3.494.450,01 a $4.892.230,00 | 0,135 | $313.801,61 |
-| $4.892.230,01 a $6.290.010,00 | 0,23 | $778.563,46 |
-| $6.290.010,01 a $8.386.680,00 | 0,304 | $1.244.024,20 |
-| $8.386.680,01 a $21.665.590,00 | 0,35 | $1.629.811,48 |
-| Desde $21.665.590,01 | 0,40 | $2.713.090,98 |
-
-### 15.4 Fórmula
-
-```txt
-impuesto = max(0, renta_liquida_imponible * factor - rebaja)
-```
-
-### 15.5 Corrección obligatoria
-
-No usar una tabla simplificada basada solo en UTM si no coincide exactamente con la tabla mensual vigente del SII.
 
 ---
 
-## 16. Pensión mínima garantizada / referencias mínimas
+## 18. APV
 
-### Corrección obligatoria
+## 18.1 Régimen A
 
-Eliminar o dejar como **obsoleto/no aplicable** el texto:
+- bonificación estatal de 15% del ahorro anual;
+- tope anual de bonificación: 6 UTM.
 
-```txt
-pension_minima_garantizada = $214.000
-```
+## 18.2 Régimen B
 
-si se presenta como piso general vigente del sistema.
+- rebaja tributaria según base imponible y régimen aplicable.
 
-### Regla documental correcta
+## 18.3 Regla funcional
 
-- No usar ese valor como regla general de cálculo previsional 2026.
-- Si se necesita mantener un campo histórico en `tablas.json`, debe quedar marcado como:
-  - `deprecated`,
-  - `no usar en cálculos vigentes`,
-  - `solo referencia histórica`.
+Distinguir:
 
----
-
-## 17. APV
-
-### 17.1 Régimen A
-
-| Regla | Valor |
-|---|---:|
-| Bonificación estatal | 15% del ahorro anual |
-| Tope anual de bonificación | 6 UTM |
-
-### 17.2 Régimen B
-
-- El ahorro se rebaja de la base imponible tributaria según corresponda.
-
-### 17.3 Regla documental
-
-El APV sí puede mantenerse como se encontraba documentado, pero distinguiendo correctamente entre:
-
-- efecto tributario,
-- efecto en saldo final para pensión,
-- sugerencias de interfaz (que no son norma).
+- efecto tributario;
+- efecto en saldo final;
+- efecto en pensión proyectada;
+- recomendaciones de ahorro que son solo UX o comercial.
 
 ---
 
-## 18. Beneficios de la reforma 2026 que faltaba documentar
+## 19. Depósitos convenidos
 
-### 18.1 Beneficio por Años Cotizados (BAC)
+Los depósitos convenidos deben tratarse como fuente diferenciada de financiamiento previsional, especialmente en:
 
-Debe incorporarse como módulo/documentación vigente 2026.
+- pensión anticipada;
+- excedente de libre disposición;
+- saldo efectivo;
+- trazabilidad del origen de fondos.
 
-Regla general documentable:
+---
+
+## 20. Bono de Reconocimiento (BR)
+
+## 20.1 Regla general
+
+El BR no genera una “comisión AFP especial”.  
+Debe tratarse como componente del saldo o como flujo especial del proceso previsional, según el caso.
+
+## 20.2 Efectos funcionales
+
+- puede ingresar por liquidación o reliquidación;
+- puede gatillar recálculo extraordinario en RP;
+- puede influir en elegibilidad y monto;
+- requiere trazabilidad del estado del bono;
+- su tratamiento no debe confundirse con una comisión adicional.
+
+## 20.3 Trabajo pesado y BR
+
+Si el sistema modela casos de trabajo pesado con BR, debe separar claramente:
+
+- rebaja de edad por trabajo pesado en AFP;
+- reglas de eventual cobro anticipado del BR cuando la normativa lo permita;
+- ausencia de comisión AFP adicional por el solo hecho de existir BR.
+
+---
+
+## 21. Bonificación por hijo nacido vivo
+
+## 21.1 Regla documental
+
+Debe existir como módulo o al menos como componente funcional del sistema, no como nota marginal.
+
+## 21.2 Efectos en negocio
+
+- puede ingresar como recurso que afecta saldo o recálculo;
+- puede modificar anualidad y monto de pensión en escenarios específicos;
+- requiere fecha, elegibilidad y trazabilidad del ingreso del beneficio.
+
+---
+
+## 22. Beneficio por Años Cotizados (BAC)
+
+## 22.1 Nombre correcto
+
+La denominación normativa correcta es **Beneficio por Años Cotizados (BAC)**.  
+No se recomienda dejarlo documentado como “bono por años de servicio”.
+
+## 22.2 Requisitos base
+
+Las personas beneficiarias deben cumplir copulativamente, al menos, con:
+
+- estar pensionadas por vejez o invalidez en el sistema del D.L. N° 3.500, o caer en la categoría normativa equivalente;
+- no ser titulares de pensión de retiro en Capredena o Dipreca, salvo excepciones de montepío;
+- tener 65 años o más, sin perjuicio de reglas especiales por trabajos pesados;
+- contar con el mínimo de cotizaciones exigidas en el Fondo Autónomo de Protección Previsional.
+
+## 22.3 Requisito de cotizaciones mínimas
+
+### 2026
+- mujeres: **120 meses**
+- hombres: **240 meses**
+
+### Escalamiento para mujeres
+El mínimo aumenta gradualmente hasta completar 180 meses en las fechas definidas por la normativa.
+
+## 22.4 Fórmula general documentable
 
 ```txt
 BAC = años_cotizados * 0,1 UF
 ```
 
-con tope de **2,5 UF** y reglas especiales según stock/flujo, fecha de pensión y anualidad BAC cuando corresponda.
+con estas advertencias:
 
-### 18.2 Compensación por Diferencias de Expectativa de Vida (CEV)
+- tope mensual de **2,5 UF**;
+- existen reglas diferenciadas para stock y flujo;
+- puede existir **anualidad BAC** en ciertos casos de flujo;
+- el cálculo no es idéntico en todos los escenarios.
 
-Debe incorporarse como beneficio vigente 2026 para mujeres que cumplan los requisitos legales. No debe omitirse si la calculadora se presenta como actualizada a 2026.
+## 22.5 Reglas que debe soportar el sistema
+
+- stock pensionado al 01-01-2026;
+- pensionados menores de 65 al 31-07-2025;
+- no pensionados stock con 65 o más;
+- flujo desde 01-08-2025 en adelante;
+- consideración de licencias médicas;
+- cotizaciones como afiliado voluntario;
+- cotizaciones incluidas en BR;
+- trabajo pesado para edad de devengamiento;
+- cálculo proporcional por fracciones de año.
+
+## 22.6 Implementación recomendada
+
+Separar al menos:
+
+```txt
+determinarElegibilidadBAC()
+contarCotizacionesBAC()
+calcularBACStock()
+calcularBACFlujo()
+calcularAnualidadBAC()
+fechaDevengamientoBAC
+montoBACUF
+montoBACCLP
+```
 
 ---
 
-## 19. Heurísticas y simulaciones del sistema (permitidas, pero no normativas)
+## 23. Compensación por Diferencias de Expectativa de Vida (CEV)
 
-Las siguientes reglas **pueden mantenerse en el producto**, pero deben rotularse como estimaciones o ayudas de decisión:
+## 23.1 Nombre correcto
 
-| Regla | Clasificación |
-|---|---|
-| `factorTabla = 1.08` para RV | Heurística actuarial |
-| Comparativa por AFP con factor `0.5` | Heurística comparativa |
-| Simulador de longevidad con factor `0.75` para RP | Heurística visual |
-| Score previsional 0–100 | Heurística UX |
-| Semáforo verde/amarillo/rojo | Heurística UX |
-| Recomendación automática de modalidad familiar | Heurística comercial/UX |
-| Proxy fijo para hijos inválidos | Heurística actuarial |
-| Rentas temporales de hijos como 108/36 meses planas | Simplificación actuarial |
+La denominación normativa correcta es **Compensación por Diferencias de Expectativa de Vida (CEV)**.  
+No se recomienda documentarla como “bono expectativa de vida mujer”.
 
-### Regla de rotulado obligatorio
+## 23.2 Requisitos base
 
-Cada una de estas piezas debe aparecer en documentación y UI como una de estas dos etiquetas:
+Acceden las mujeres que cumplan copulativamente, al menos, con:
 
-- `Estimación interna`
+- 65 años o más, con reglas especiales por trabajo pesado;
+- pensionadas por vejez desde los 60 años o por invalidez no cubierta por SIS, según corresponda;
+- incorporación al Seguro Social Previsional y cotización mínima al FAPP antes de los 50 años, sin perjuicio de reglas especiales de incorporación por transición.
+
+## 23.3 Regla de exclusión relevante
+
+Las mujeres pensionadas anticipadamente conforme al artículo 68 del D.L. N° 3.500 no tienen derecho a CEV.
+
+## 23.4 Porcentaje según edad
+
+La normativa distingue porcentajes por edad para stock y flujo. La lógica general 2026 considera tramos crecientes desde 60 años hasta llegar a 100% a los 65 o más, e invalidez con 100% cuando corresponda.
+
+## 23.5 Fórmula general documentable
+
+### Caso stock
+```txt
+CEV = [PAFE * factor_correccion] * porcentaje_según_edad
+```
+
+### Reglas relevantes
+- PAFE máxima considerada: **18 UF**
+- monto mínimo del beneficio: **0,25 UF**
+- la edad y el grupo familiar pueden requerir ajustes especiales;
+- para trabajo pesado se considera edad reajustada con rebaja reconocida;
+- no corresponde recálculo futuro por simplemente cumplir más años en flujo, salvo lo que disponga la norma.
+
+## 23.6 Regla funcional
+
+El sistema debe modelar, al menos:
+
+```txt
+determinarElegibilidadCEV()
+determinarPorcentajeCEV()
+calcularFactorCorreccionCEV()
+calcularPAFEBaseCEV()
+calcularMontoCEV()
+```
+
+## 23.7 Integración con PGU
+
+La definición de pensión base para PGU considera beneficios del Seguro Social Previsional, entre ellos BAC y CEV, por lo que estos módulos no deben tratarse como accesorios desconectados.
+
+---
+
+## 24. Impuesto único de segunda categoría
+
+## 24.1 Regla documental
+
+El impuesto debe calcularse con la tabla mensual vigente del SII para el mes de cálculo.
+
+## 24.2 Regla técnica
+
+No usar tablas aproximadas si el sistema pretende entregar líquido estimado con pretensión de exactitud.
+
+## 24.3 Fórmula general
+
+```txt
+impuesto = max(0, base_imponible * factor - rebaja)
+```
+
+## 24.4 Parámetros
+
+- UTM vigente del mes;
+- tramo mensual;
+- factor;
+- rebaja;
+- fecha de vigencia.
+
+---
+
+## 25. Pensión líquida y descuentos
+
+## 25.1 Orden recomendado
+
+```txt
+pension_bruta
+- descuento_comision
+= pension_post_comision
+
+- descuento_salud
+= pension_post_salud
+
+- descuento_impuesto
+= pension_liquida
+```
+
+## 25.2 Beneficios posteriores
+
+Luego, si el producto lo muestra así, pueden sumarse:
+
+- PGU;
+- BAC;
+- CEV;
+- otros beneficios externos trazados.
+
+## 25.3 Regla técnica
+
+Nunca sumar un beneficio fiscal o contributivo adicional sin dejar evidencia de:
+
+- módulo que lo calculó;
+- elegibilidad;
+- fecha de vigencia;
+- monto;
+- si fue cálculo normativo o simulación.
+
+---
+
+## 26. Persistencia y almacenamiento
+
+## 26.1 Datos que pueden mantenerse en store
+
+Pueden persistirse datos de sesión, pero con clasificación clara:
+
+- identificadores;
+- entradas del usuario;
+- parámetros usados;
+- salidas brutas;
+- salidas netas;
+- trazas de debug;
+- marcas de simplificación.
+
+## 26.2 Campos recomendados adicionales
+
+```txt
+fechaVigenciaParametros
+tablaMortalidadUsada
+usaAAx
+origenTasaRP
+origenComisionCotizacion
+origenComisionPension
+usaModeloSimplificadoPGU
+usaModeloSimplificadoRV
+usaCruPrecalculado
+versionCruPrecalculado
+fechaCalculoBAC
+fechaCalculoCEV
+```
+
+---
+
+## 27. Integraciones externas recomendadas
+
+El sistema debería contemplar integración o al menos preparación para:
+
+- SP;
+- SII;
+- IPS;
+- valores cuota AFP;
+- certificación o consulta de cotizaciones;
+- archivos de intercambio;
+- SCOMP o procesos asociados;
+- servicios internos de negocio.
+
+---
+
+## 28. Separación obligatoria entre cálculo normativo y simulación
+
+## 28.1 Modo normativo
+
+Debe usar:
+
+- parámetros vigentes;
+- reglas legales correctas;
+- tablas y tasas coherentes;
+- trazabilidad completa;
+- validación de elegibilidad.
+
+## 28.2 Modo simulación
+
+Puede usar:
+
+- factores comparativos;
+- scoring;
+- semáforos;
+- recomendaciones UX;
+- aproximaciones de RV;
+- proxies familiares.
+
+## 28.3 Regla de UI
+
+Toda salida heurística debe aparecer etiquetada como:
+
+- `Estimación interna`; o
 - `Simulación orientativa`
 
 Nunca como:
 
-- `regla legal`,
-- `resultado oficial`,
-- `cálculo normativo exacto`.
+- `monto oficial`;
+- `resultado normativo exacto`;
+- `equivalente a certificado oficial`.
 
 ---
 
-## 20. Dispatcher por tipo de jubilación
+## 29. Heurísticas permitidas, pero rotuladas
 
-### 20.1 Estructura recomendada
+Se pueden mantener, siempre que no se oculten como norma:
 
-```txt
-vejez_normal
-anticipada
-trabajo_pesado
-invalidez
+| Regla | Clasificación |
+|---|---|
+| factor fijo comparativo para RV | Heurística |
+| score previsional | Heurística UX |
+| semáforo verde/amarillo/rojo | Heurística UX |
+| simulador de longevidad | Heurística visual |
+| recomendación automática de modalidad | Heurística comercial/UX |
+| proxy de edad/sexo de hijo inválido | Heurística actuarial |
+| anualidades limitadas planas para menores/estudiantes | Simplificación |
+
+---
+
+## 30. Reglas de QA y auditoría
+
+## 30.1 Pruebas mínimas por módulo
+
+### AFP / cotización
+- comisión mensual correcta;
+- sin división por 12;
+- tope imponible por vigencia.
+
+### RP
+- separación entre CNU y descuentos posteriores;
+- recálculo por cambio de beneficiarios;
+- ingreso de BR/APV;
+- consistencia de tasa.
+
+### RV
+- distinguir estimación vs cálculo contractual real.
+
+### anticipada
+- validar 70% + 12 UF;
+- promedio 120 meses;
+- trazabilidad de base utilizada.
+
+### trabajo pesado
+- validar CEN;
+- validar sobrecotización;
+- validar 20 años;
+- rebaja proporcional.
+
+### invalidez
+- distinguir cobertura SIS;
+- tipo de dictamen;
+- ingreso base.
+
+### sobrevivencia
+- reglas de elegibilidad;
+- porcentajes correctos;
+- transición de porcentajes cuando hijos pierden derecho.
+
+### PGU
+- pensión base correcta;
+- vigencia de parámetros;
+- elegibilidad.
+
+### BAC / CEV
+- stock vs flujo;
+- trabajo pesado;
+- edad de devengamiento;
+- trazabilidad.
+
+## 30.2 Salidas de debug recomendadas
+
+```json
+{
+  "modo": "normativo|simulacion",
+  "tabla": "RV-M-2020|B-M-2020|...",
+  "usaAAx": true,
+  "tasa": 0.0,
+  "saldoEfectivo": 0.0,
+  "cnu": 0.0,
+  "pensionBruta": 0.0,
+  "descuentoComision": 0.0,
+  "descuentoSalud": 0.0,
+  "descuentoImpuesto": 0.0,
+  "pensionLiquida": 0.0,
+  "pgu": 0.0,
+  "bac": 0.0,
+  "cev": 0.0,
+  "montoFinal": 0.0
+}
 ```
 
-### 20.2 Corrección funcional mínima
+---
 
-- `vejez_normal`: correcto si valida edad legal.
-- `anticipada`: debe reemplazarse por regla **70% + 12 UF**.
-- `trabajo_pesado`: debe validar requisitos completos, no solo edad rebajada.
-- `invalidez`: no debe documentarse como simple derivación de `saldo / CRU`.
+## 31. Advertencia legal sugerida
+
+> Esta calculadora y/o motor es de uso informativo, técnico o de simulación. Algunos resultados pueden depender de parámetros vigentes, trazas internas, reglas de elegibilidad y modelos simplificados. Los montos oficiales de pensión y beneficios deben validarse con la documentación oficial emitida por AFP, IPS, compañías de seguros, SCOMP y la normativa vigente de la Superintendencia de Pensiones.
 
 ---
 
-## 21. Persistencia / store
+## 32. Resumen ejecutivo de correcciones críticas
 
-Los campos del `localStorage` pueden mantenerse, pero con las siguientes correcciones:
-
-### 21.1 Corregir campos dependientes de parámetros vigentes
-
-- `topeImponible` debe pasar a **90.0 × UF** para 2026.
-- `comisionDec` debe derivarse desde una comisión **mensual**.
-- `pguRP` / `pguRV` no deben depender de una simplificación mal rotulada como normativa.
-
-### 21.2 Nuevos campos sugeridos
-
-```txt
-fechaVigenciaParametros
-origenComisionAFP
-origenTopeImponible
-origenPGU
-usaModeloSimplificadoPGU
-usaModeloSimplificadoRV
-```
+1. Comisión AFP sobre cotización: **mensual sobre imponible**, no anual/12.  
+2. Tope imponible 2026: **90,0 UF**.  
+3. SIS desde enero 2026: **1,54%**.  
+4. Vejez anticipada: **70% + 12 UF**.  
+5. Trabajo pesado: validar **CEN + sobrecotización + 20 años**.  
+6. Invalidez: no describirla legalmente como simple `saldo / CRU`.  
+7. Sobrevivencia: incluir porcentajes completos y reglas de elegibilidad.  
+8. PGU: no reducirla a una resta o suma simplista sobre “pensión líquida”.  
+9. BAC: incorporarlo como módulo real, no como nota marginal.  
+10. CEV: incorporarlo como módulo real para mujeres, no como “bono” genérico.  
+11. Separar cálculos normativos de simulaciones.  
+12. Versionar todos los parámetros por vigencia.
 
 ---
 
-## 22. Advertencia legal recomendada
-
-> Esta calculadora es de uso informativo y de simulación. Algunos resultados corresponden a estimaciones internas basadas en parámetros vigentes y modelos simplificados. Las decisiones de pensión deben validarse con información oficial de AFP, IPS, compañías de seguros, SCOMP y normativa vigente de la Superintendencia de Pensiones.
-
----
-
-## 23. Resumen ejecutivo de correcciones obligatorias
-
-### Corregir sí o sí
-
-1. Comisión AFP: pasar de “anual/12” a **mensual sobre imponible**.
-2. Tope imponible: pasar de **87,8 UF** a **90,0 UF** para 2026.
-3. Pensión anticipada: reemplazar por **70% + 12 UF**.
-4. Trabajo pesado: validar además **CEN + 1%/2% + 20 años cotizados**.
-5. Invalidez: no documentar `saldo/CRU` como regla legal general.
-6. Sobrevivencia: incorporar porcentajes faltantes (36%, 30%, 11%, 50%).
-7. PGU: no equiparar automáticamente “pensión base” con “pensión líquida” como regla universal.
-8. Impuesto: usar tabla mensual oficial SII vigente.
-9. Pensión mínima garantizada `$214.000`: eliminar como regla general vigente.
-10. Marcar todas las heurísticas como **simulación**.
-
-### Mantener, pero bien rotulado
-
-- score previsional,
-- semáforos,
-- comparativas AFP,
-- simulador de longevidad,
-- recomendación de modalidad,
-- aproximación RV con factor 1,08.
-
----
-
-## 24. Fuentes oficiales utilizadas para esta corrección
+## 33. Fuentes oficiales sugeridas
 
 ### Superintendencia de Pensiones
+- https://www.spensiones.cl
+- Compendio de Normas del Sistema de Pensiones
+- BAC: Libro III, Título XIX, Letra B
+- CEV: Libro III, Título XIX, Letra C
+- PGU
+- trabajo pesado
+- vejez anticipada
+- pensión de sobrevivencia
+- Seguro de Invalidez y Sobrevivencia
+- topes imponibles 2026
+- comisiones AFP
 
-- Comisiones AFP: https://www.spensiones.cl/portal/institucional/594/w3-article-2810.html
-- Sistema AFP / parámetros generales: https://www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9893.html
-- Tope imponible 2026: https://www.spensiones.cl/portal/institucional/594/w3-article-16921.html
-- Pensión de vejez / anticipada: https://www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9921.html
-- Requisitos anticipada (compendio): https://www.spensiones.cl/portal/compendio/596/w3-propertyvalue-3200.html
-- Excedente de libre disposición / pensión mínima requerida: https://www.spensiones.cl/portal/compendio/596/w3-propertyvalue-3226.html
-- Trabajo pesado: https://www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9918.html
-- Rebaja por trabajo pesado: https://www.spensiones.cl/portal/institucional/594/w3-article-2903.html
-- Pensión de invalidez: https://www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9923.html
-- Pensiones de referencia invalidez/sobrevivencia: https://www.spensiones.cl/portal/institucional/594/w3-article-2959.html
-- Pensión de sobrevivencia: https://www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9922.html
-- Tasa RP 2026: https://www.spensiones.cl/apps/tasas/tasdescto.php
-- Circular 2407: https://www.spensiones.cl/apps/GetFile.php?id=001&namefile=CAFP2407.pdf
-- PGU 2026: https://www.spensiones.cl/portal/institucional/594/w3-article-16886.html
-- PGU general: https://www.spensiones.cl/portal/institucional/594/w3-propertyvalue-10531.html
-- BAC: https://www.spensiones.cl/portal/compendio/596/w3-propertyvalue-10829.html
-- CEV: https://www.spensiones.cl/portal/compendio/596/w3-propertyvalue-10834.html
-- CEV cálculo: https://www.spensiones.cl/portal/compendio/596/w3-propertyvalue-10835.html
+### SII
+- impuesto único de segunda categoría
+- UTM
+- criterios tributarios vigentes
 
-### Servicio de Impuestos Internos
+### CMF
+- rentas vitalicias
+- documentos técnicos y regulatorios de seguros previsionales
 
-- Impuesto único segunda categoría 2026: https://www.sii.cl/valores_y_fechas/impuesto_2da_categoria/impuesto2026.htm
-- UTM 2026: https://www.sii.cl/valores_y_fechas/utm/utm2026.htm
+### BCN
+- texto actualizado de leyes base
+
+### IPS / ChileAtiende
+- operación y pago de beneficios
 
 ---
 
-## 25. Estado final del documento
+## 34. Estado final del documento
 
-**Conclusión funcional:**
+Este documento queda apto como base de:
 
-Este documento reemplaza la versión anterior como referencia recomendada para:
+- documentación funcional;
+- backlog de correcciones;
+- diseño técnico del motor;
+- plan de QA;
+- revisión de deuda normativa;
+- implementación de BAC y CEV;
+- auditoría de separación entre cálculo legal y simulación.
 
-- ajuste del motor de cálculo,
-- revisión de reglas de negocio,
-- documentación técnica/funcional,
-- priorización de correcciones.
-
-**No reemplaza** la validación jurídica o actuarial final si el sistema será usado para decisiones reales de pensión, oferta comercial o entrega de montos con pretensión oficial.
+No debe ser usado como sustituto automático de una resolución oficial de pensión o de un certificado de oferta formal.

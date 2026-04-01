@@ -309,6 +309,7 @@ export function calcularCNUFamiliar(edad, sexo, familia, factorTabla = 1.0, anio
     cnuSinMejora: cnuSinMejora * factorTabla,
     pctAumentoMejora,
     anioJubilacion,
+    usaAAx: sexo === 'M' && !!anioJubilacion,
   };
 }
 
@@ -353,6 +354,7 @@ export function calcularPensionRP(saldo, edad, sexo, uf, comisionAfpDecimal = 0,
       cnuSinMejora: cruBase,
       pctAumentoMejora: cruBase > 0 ? ((cnu - cruBase) / cruBase) * 100 : 0,
       anioJubilacion,
+      usaAAx: sexo === 'M' && !!anioJubilacion,
     };
   }
 

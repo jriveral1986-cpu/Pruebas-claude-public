@@ -8,7 +8,7 @@ let _afpData = null;
 export async function cargarAFP() {
   if (_afpData) return _afpData;
   const base = location.pathname.includes('/pages/') ? '../' : './';
-  const res  = await fetch(`${base}data/afp.json`);
+  const res  = await fetch(`${base}data/afp.json`, { cache: 'no-store' });
   _afpData = await res.json();
   return _afpData;
 }

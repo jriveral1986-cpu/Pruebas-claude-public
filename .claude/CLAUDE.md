@@ -1,5 +1,6 @@
 @import Importante.md
 @import ReglasNegocio.md
+@import Anexo.md
 
 # CLAUDE.md
 
@@ -113,7 +114,7 @@ const base = location.pathname.includes('/pages/') ? '../' : './';
 
 ## Regulatory Constants
 
-- Tope imponible: `87.8 × UF`
+- Tope imponible 2026: `90.0 × UF`
 - Mandatory contribution: 10% of remuneración imponible
 - Technical rate: 3% real annual
 - Retirement age defaults: 65 (men), 60 (women)

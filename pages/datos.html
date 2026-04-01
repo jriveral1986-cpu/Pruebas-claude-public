@@ -473,6 +473,7 @@
     import { getValorCuota, getValorCuotaFecha, getFechasDisponibles, getUF, getUFFecha, getUTMFecha } from '../js/api.js';
     import { Store }                  from '../js/store.js';
     import { calcularSaldoDesdeNumCuotas } from '../js/calculos.js';
+    import { getComision, cargarAFP as _cargarAFP } from '../js/comisiones.js?v=3';
 
     // ── Init ─────────────────────────────────────────
     initBtnActualizar();
@@ -794,7 +795,7 @@
     document.getElementById('rentaImponible').addEventListener('input', function() {
       const hint = document.getElementById('hintRenta');
       const uf   = parseFloat(Store.leer().uf) || 39717;
-      const tope = Math.round(87.8 * uf);
+      const tope = Math.round(90.0 * uf);
       const val  = parseFloat(this.value) || 0;
       if (val > tope) {
         hint.textContent = `⚠️ Supera el tope imponible de ${formatCLP(tope)}. Se usará el tope en los cálculos.`;
@@ -814,7 +815,7 @@
       ]);
       // Si hay valor manual, sobreescribe el de la API
       const ufValor = ufManualVal ?? ufDato.valor;
-      const tope = Math.round(87.8 * ufValor);
+      const tope = Math.round(90.0 * ufValor);
       const fechaLabel = fecha ? ` (${fecha})` : '';
       const manualLabel = ufManualVal ? ' [manual BCCh]' : '';
       document.getElementById('statusUF').textContent =
@@ -848,7 +849,7 @@
     });
 
     // ── Form submit ──────────────────────────────────
-    document.getElementById('formDatos').addEventListener('submit', e => {
+    document.getElementById('formDatos').addEventListener('submit', async e => {
       e.preventDefault();
 
       const afp         = document.getElementById('selectAFP').value;
@@ -882,13 +883,17 @@
         : montoTotal;
 
       const uf          = parseFloat(Store.leer().uf) || 39717;
-      const tope        = Math.round(87.8 * uf);
+      const tope        = Math.round(90.0 * uf);
       const rentaBruta  = parseFloat(document.getElementById('rentaImponible').value) || 0;
       const estadoCivil = document.getElementById('estadoCivil').value;
       const tienePareja = estadoCivil === 'casado' || estadoCivil === 'conviviente';
+      await _cargarAFP();
+      const comisionPct = getComision(afp) || 1.27;
 
       Store.guardar({
         afp,
+        comisionPct,
+        comisionDec: comisionPct / 100,
         fondo,
         valorCuota,
         numCuotas:        metodo === 'cuotas' ? numCuotas : null,
@@ -932,7 +937,7 @@
         rentaPromedioInvalidez:  parseFloat(document.getElementById('rentaPromedioInvalidez').value) || 0,
       });
 
-      window.location.href = 'proyeccion.html';
+      window.location.href = `proyeccion.html?_=${Date.now()}`;
     });
 
     // ── Limpiar ──────────────────────────────────────
