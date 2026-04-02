@@ -99,12 +99,12 @@
           </div>
           <div class="form-group" id="grupoBonificacionHijo" style="display:none;">
             <label for="numHijosNacidosVivos">Hijos nacidos vivos
-              <span aria-label="Bonificación de 18 UF por cada hijo nacido vivo, ingresa al saldo al momento de pensionarse. Solo para mujeres afiliadas AFP (Ley 20.255 art. 74-75).">
+              <span aria-label="Bonificación por hijo nacido vivo (Ley 20.255 art. 74-75): 1,8 × IMM de referencia capitalizado con rentabilidad Fondo C hasta los 65 años. Solo mujeres afiliadas AFP.">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               </span>
             </label>
             <input type="number" id="numHijosNacidosVivos" value="0" min="0" max="20" step="1">
-            <span class="hint">18 UF por hijo se suman al saldo al pensionarte (Ley 20.255). Solo mujeres AFP.</span>
+            <span class="hint">Bonificación = 1,8 × IMM capitalizado con rentabilidad Fondo C hasta los 65 años (Ley 20.255). Solo mujeres AFP.</span>
           </div>
         </div>
       </div>
@@ -492,7 +492,7 @@
     import { getValorCuota, getValorCuotaFecha, getFechasDisponibles, getUF, getUFFecha, getUTMFecha } from '../js/api.js';
     import { Store }                  from '../js/store.js';
     import { calcularSaldoDesdeNumCuotas } from '../js/calculos.js';
-    import { getComision, cargarAFP as _cargarAFP } from '../js/comisiones.js?v=3';
+    import { getComision, getComisionPensionado, cargarAFP as _cargarAFP } from '../js/comisiones.js?v=3';
 
     // ── Init ─────────────────────────────────────────
     initBtnActualizar();
@@ -916,12 +916,15 @@
       const estadoCivil = document.getElementById('estadoCivil').value;
       const tienePareja = estadoCivil === 'casado' || estadoCivil === 'conviviente';
       await _cargarAFP();
-      const comisionPct = getComision(afp) || 1.27;
+      const comisionPct           = getComision(afp) || 1.27;
+      const comisionPensionadoPct = getComisionPensionado(afp);
 
       Store.guardar({
         afp,
         comisionPct,
-        comisionDec: comisionPct / 100,
+        comisionDec:           comisionPct / 100,
+        comisionPensionadoPct,
+        comisionPensionadoDec: comisionPensionadoPct / 100,
         fondo,
         valorCuota,
         numCuotas:        metodo === 'cuotas' ? numCuotas : null,

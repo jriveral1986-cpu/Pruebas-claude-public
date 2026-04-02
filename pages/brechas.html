@@ -242,7 +242,7 @@
     import { initBtnActualizar, mostrarDatosCliente, formatCLP, formatPct } from '../js/ui.js';
     import { Store }           from '../js/store.js';
     import { cargarTablas }    from '../js/mortalidad.js';
-    import { cargarAFP, getAfps, getComision } from '../js/comisiones.js?v=3';
+    import { cargarAFP, getAfps, getComision, getComisionPensionado } from '../js/comisiones.js?v=3';
     import {
       calcularPensionRP, calcularBrecha, calcularAportacionNecesaria, calcularScore, calcularPGUInformativa,
       calcularBAC, calcularCEV, calcularBonificacionHijo,
@@ -281,7 +281,7 @@
       await cargarTablas();
       await cargarAFP();
       const uf          = d.uf || 39717;
-      const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
+      const comisionDec = d.comisionPensionadoDec ?? (getComisionPensionado(d.afp || '') / 100);
       const anioActual    = new Date().getFullYear();
       const edadJub       = d.edadJubilacion || d.edad;
       const anioJub       = anioActual + Math.max(0, Math.round(edadJub - d.edad));
@@ -379,7 +379,7 @@
 
       await cargarTablas();
       const uf          = d.uf || 39717;
-      const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
+      const comisionDec = d.comisionPensionadoDec ?? (getComisionPensionado(d.afp || '') / 100);
       const anioActual2   = new Date().getFullYear();
       const edadJub2      = d.edadJubilacion || d.edad;
       const anioJub2      = anioActual2 + Math.max(0, Math.round(edadJub2 - d.edad));

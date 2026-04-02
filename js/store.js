@@ -31,6 +31,6 @@ export const Store = {
    */
   tieneResultados() {
     const d = this.leer();
-    return !!(d.saldoTotal && d.uf && d.utm);
+    return !!(d.saldoTotal && d.uf && d.utm && d.afp && d.fondo);
   }
 };

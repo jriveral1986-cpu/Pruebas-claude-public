@@ -1226,27 +1226,62 @@ No debe ser usado como sustituto automático de una resolución oficial de pensi
 **Tipo:** Normativa — Ley N° 20.255 art. 74-75, vigente desde julio 2009.
 
 ### 37.1 Descripción
-- Las mujeres reciben una **bonificación de 18 UF por cada hijo nacido vivo** al momento de pensionarse.
-- También aplica para hijos adoptados, bajo ciertas condiciones normativas.
+- Es un beneficio previsional exclusivo para **mujeres** afiliadas al sistema AFP.
+- Se otorga por **cada hijo nacido vivo o legalmente adoptado**.
+- **NO es un monto fijo en UF.** Es un monto base en pesos (IMM) que se **capitaliza** con la rentabilidad nominal promedio del Fondo C hasta que la madre cumpla 65 años.
 
 ### 37.2 Requisitos
 - Ser mujer afiliada al sistema AFP (DL N° 3.500).
-- Tener al menos 1 hijo nacido vivo registrado en el Registro Civil.
-- Pensionarse por vejez normal o anticipada (no necesariamente por vejez edad).
+- Tener al menos 1 hijo nacido vivo o adoptado registrado en el Registro Civil.
+- Pensionarse por vejez normal o anticipada.
 
-### 37.3 Ingreso al saldo
-- El bono ingresa a la cuenta de capitalización individual **al momento de la pensión** como aporte adicional al saldo.
-- Se valoriza en UF a la fecha de acreditación.
-- Incrementa el saldo efectivo antes del cálculo de la pensión.
+### 37.3 Cálculo del monto base por hijo
 
-### 37.4 Regla de implementación recomendada
-```txt
-saldoConBono = saldoTotal + (numHijosNacidosVivos × 18 × UF)
+**Fórmula base:**
 ```
-- Rotular como **normativa** (no heurística) ya que el monto es fijo por ley.
-- Agregar campo `numHijosNacidosVivos` al formulario de entrada solo para mujeres.
+base_por_hijo = 10% × 18 × IMM_referencia
+             = 1,8 × IMM_referencia
+```
 
-**Fuente:** Ley N° 20.255 art. 74-75; SP www.spensiones.cl/portal/institucional/594/w3-propertyvalue-9921.html
+**IMM de referencia según fecha de nacimiento:**
+
+| Fecha de nacimiento del hijo | IMM que se usa |
+|---|---|
+| Antes del 1-jul-2009 | IMM vigente en **julio de 2009** |
+| Desde el 1-jul-2009 en adelante | IMM vigente en el **mes de nacimiento** |
+
+### 37.4 Capitalización hasta los 65 años
+
+Al monto base se aplica la **rentabilidad nominal anual promedio de los Fondos Tipo C**, descontadas las comisiones de administración de las AFP, acumulada desde la fecha de referencia hasta que la madre cumpla **65 años**.
+
+```
+bonificacion_final_hijo_i =
+  1,8 × IMM_ref_i × (1 + r_C)^n_i
+
+donde:
+  r_C = rentabilidad nominal anual promedio Fondo C (neta de comisiones AFP)
+  n_i = años entre fecha de referencia e ingreso al sistema (cuando la madre cumple 65)
+```
+
+### 37.5 Total cuando hay múltiples hijos
+
+El beneficio total es la **suma independiente** de cada hijo:
+```
+beneficio_total = Σ bonificacion_final_hijo_i  (i = 1..n_hijos)
+```
+Cada hijo tiene su propio `IMM_ref` y su propio período de capitalización `n_i`.
+
+### 37.6 Ingreso al saldo
+- La bonificación se acredita en la cuenta de capitalización individual **al momento de la pensión** como aporte adicional al saldo.
+- Incrementa el saldo efectivo antes del cálculo de la pensión RP o para financiar RV.
+
+### 37.7 Regla de implementación
+- Agregar campo `numHijosNacidosVivos` y, para cálculo exacto, `fechasNacimientoHijos[]` al formulario (solo para mujeres).
+- Si solo se dispone del número de hijos (sin fechas exactas), usar una aproximación con la rentabilidad histórica promedio del Fondo C.
+- Rotular como **normativa** (Ley N° 20.255).
+- **Error a evitar:** No usar "18 UF por hijo" — la unidad base es IMM (pesos), no UF, y el monto se capitaliza con rendimiento real del Fondo C.
+
+**Fuente:** Ley N° 20.255 art. 74-75; SP Chile — Compendio de Normas, Bonificación por hijo nacido vivo; ChileAtiende "Bono por Hijo".
 
 ---
 
