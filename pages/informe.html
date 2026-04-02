@@ -371,6 +371,7 @@
   <a href="brechas.html"             class="nav__link">Brechas</a>
   <a href="normativa.html"           class="nav__link">Normativa</a>
   <a href="informe.html"             class="nav__link active" aria-current="page">Informe</a>
+  <a href="parametros.html"          class="nav__link">Parámetros</a>
 </nav>
 
 <div id="loading">Cargando informe previsional…</div>
@@ -555,7 +556,7 @@
             <tr>
               <th>Edad</th>
               <th>Año</th>
-              <th>Saldo (UF)</th>
+              <th>Saldo inicio año (UF)</th>
               <th>CNU</th>
               <th>Pensión Bruta</th>
               <th>(-) Comisión</th>
@@ -764,16 +765,21 @@
   }
 
   // ─── Projection builders ─────────────────────────────────────
-  function buildProyeccionRP(d, uf, utm, comisionDec) {
+  function buildProyeccionRP(d, uf, utm, comisionDec, saldoInicial) {
     const rows = [];
-    let saldoUF = d.saldoTotal / uf;
+    let saldoUF  = (saldoInicial || d.saldoTotal) / uf;
     const edadBase = Math.floor(d.edad);
     const anioBase = new Date().getFullYear() + 1;
 
     for (let i = 0; edadBase + i <= 104; i++) {
+      if (saldoUF <= 0) break;                        // fondo agotado
+
       const edad = edadBase + i;
       const cnu  = getCRU(d.sexo, edad);
-      if (!cnu || cnu <= 0) { saldoUF *= 1.02; continue; }
+      if (!cnu || cnu <= 0) {
+        saldoUF = Math.max(0, saldoUF * 1.02);
+        continue;
+      }
 
       const bruta    = (saldoUF / cnu) * uf;
       const comision = Math.round(bruta * comisionDec);
@@ -791,7 +797,9 @@
         comision, salud, afecta, imp, liquida, pgu,
         total:    Math.round(liquida + pgu),
       });
-      saldoUF *= 1.02;
+
+      // Saldo siguiente año: rentabilidad 2% anual menos pensión bruta pagada (12 meses)
+      saldoUF = Math.max(0, saldoUF * 1.02 - (bruta * 12) / uf);
     }
     return rows;
   }
@@ -854,7 +862,7 @@
       saldoActual: saldoEfectivo, edad: d.edad,
     });
 
-    const proyRP = buildProyeccionRP(d, uf, utm, comisionDec);
+    const proyRP = buildProyeccionRP(d, uf, utm, comisionDec, saldoEfectivo);
     const proyRV = buildProyeccionRV(rv, d, uf, utm);
 
     render(d, uf, utm, comisionPct, comisionDec, rp, rv, score, proyRP, proyRV, saldoEfectivo, saldoAPVNum, br);
