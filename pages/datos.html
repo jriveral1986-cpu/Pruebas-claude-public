@@ -482,7 +482,7 @@
     import { getValorCuota, getValorCuotaFecha, getFechasDisponibles, getUF, getUFFecha, getUTMFecha } from '../js/api.js';
     import { Store }                  from '../js/store.js';
     import { calcularSaldoDesdeNumCuotas } from '../js/calculos.js';
-    import { getComision, cargarAFP as _cargarAFP } from '../js/comisiones.js?v=3';
+    import { getComision, getComisionPensionado, cargarAFP as _cargarAFP } from '../js/comisiones.js?v=3';
 
     // ── Init ─────────────────────────────────────────
     initBtnActualizar();
@@ -898,12 +898,15 @@
       const estadoCivil = document.getElementById('estadoCivil').value;
       const tienePareja = estadoCivil === 'casado' || estadoCivil === 'conviviente';
       await _cargarAFP();
-      const comisionPct = getComision(afp) || 1.27;
+      const comisionPct           = getComision(afp) || 1.27;
+      const comisionPensionadoPct = getComisionPensionado(afp);
 
       Store.guardar({
         afp,
         comisionPct,
-        comisionDec: comisionPct / 100,
+        comisionDec:           comisionPct / 100,
+        comisionPensionadoPct,
+        comisionPensionadoDec: comisionPensionadoPct / 100,
         fondo,
         valorCuota,
         numCuotas:        metodo === 'cuotas' ? numCuotas : null,

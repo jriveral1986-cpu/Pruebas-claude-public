@@ -15,7 +15,7 @@ export async function cargarAFP() {
 
 /**
  * Returns the monthly commission rate (%) for a given AFP id.
- * The rate is applied monthly over remuneración/renta imponible.
+ * Applied over remuneración/renta imponible (cotizantes activos).
  * @param {string} afpId - normalized AFP id, e.g. 'habitat'
  * @returns {number} monthly commission as percentage (e.g. 1.44)
  */
@@ -23,6 +23,26 @@ export function getComision(afpId) {
   if (!_afpData) return 0;
   const afp = _afpData.afps.find(a => a.id === afpId);
   return afp ? afp.comision : 0;
+}
+
+/**
+ * Returns the commission rate (%) applied to the monthly pension for
+ * pensioners under Retiro Programado or Renta Temporal modalities.
+ * Source: Circular N°2402, SP Chile, vigente desde 01-oct-2025.
+ *
+ * Fallback chain (never returns undefined):
+ *   1. afp.comisionPensionado if present in afp.json
+ *   2. afp.comision (active-worker rate) as conservative proxy
+ *   3. 1.25 (market maximum) if AFP not found
+ *
+ * @param {string} afpId - normalized AFP id, e.g. 'planvital'
+ * @returns {number} commission as percentage (e.g. 1.25); 0.00 for PlanVital
+ */
+export function getComisionPensionado(afpId) {
+  if (!_afpData) return 1.25;
+  const afp = _afpData.afps.find(a => a.id === afpId);
+  if (!afp) return 1.25;
+  return afp.comisionPensionado ?? afp.comision;
 }
 
 /**
@@ -39,12 +59,12 @@ export function calcularDescuentoMensual(salario, afpId) {
 
 /**
  * Monthly SIS (Seguro de Invalidez y Sobrevivencia) amount.
- * Rate is 1.54% paid by employer (shown for transparency).
+ * Rate is 1.88% paid by employer, vigente desde julio 2025.
  * @param {number} salario
  * @returns {number}
  */
 export function calcularSIS(salario) {
-  return salario * 0.0154;
+  return salario * 0.0188;
 }
 
 /**

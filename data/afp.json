@@ -1,13 +1,14 @@
 {
-  "_nota": "Comisiones mensuales sobre remuneración o renta imponible. Fuente: SP Chile, vigentes oct-2025 en adelante.",
+  "_nota": "comision = % mensual sobre remuneración/renta imponible (cotizantes activos). comisionPensionado = % sobre pensión mensual (retiro programado y renta temporal).",
+  "_fuente": "Circular N°2402, Superintendencia de Pensiones, 29-sep-2025, vigente desde 01-oct-2025.",
   "afps": [
-    { "id": "capital",   "nombre": "Capital",   "comision": 1.44 },
-    { "id": "cuprum",    "nombre": "Cuprum",    "comision": 1.44 },
-    { "id": "habitat",   "nombre": "Hábitat",   "comision": 1.27 },
-    { "id": "modelo",    "nombre": "Modelo",    "comision": 0.58 },
-    { "id": "planvital", "nombre": "PlanVital", "comision": 1.16 },
-    { "id": "provida",   "nombre": "Provida",   "comision": 1.45 },
-    { "id": "uno",       "nombre": "Uno",       "comision": 0.46 }
+    { "id": "capital",   "nombre": "Capital",   "comision": 1.44, "comisionPensionado": 1.25 },
+    { "id": "cuprum",    "nombre": "Cuprum",    "comision": 1.44, "comisionPensionado": 1.25 },
+    { "id": "habitat",   "nombre": "Hábitat",   "comision": 1.27, "comisionPensionado": 0.95 },
+    { "id": "modelo",    "nombre": "Modelo",    "comision": 0.58, "comisionPensionado": 1.20 },
+    { "id": "planvital", "nombre": "PlanVital", "comision": 1.16, "comisionPensionado": 0.00 },
+    { "id": "provida",   "nombre": "Provida",   "comision": 1.45, "comisionPensionado": 1.25 },
+    { "id": "uno",       "nombre": "Uno",       "comision": 0.46, "comisionPensionado": 1.20 }
   ],
   "fondos": [
     { "id": "A", "descripcion": "Más Riesgoso" },

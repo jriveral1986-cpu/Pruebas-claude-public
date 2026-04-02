@@ -271,7 +271,7 @@
     import { cargarTablas } from '../js/mortalidad.js';
     import { calcularPensionRP, calcularPensionRV, calcularPensionSobrevivencia, recomendarModalidadFamiliar, TASA_RP, calcularPGUInformativa, calcularBAC, calcularCEV } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
-    import { cargarAFP, getComision } from '../js/comisiones.js?v=3';
+    import { cargarAFP, getComision, getComisionPensionado } from '../js/comisiones.js?v=3';
 
     initBtnActualizar();
 
@@ -295,7 +295,7 @@
       await cargarTablas();
       await cargarAFP();
       const uf          = d.uf || 39717;
-      const comisionDec = d.comisionDec || (getComision(d.afp || '') / 100) || 0.0127;
+      const comisionDec = d.comisionPensionadoDec ?? (getComisionPensionado(d.afp || '') / 100);
       const familia = {
         tienePareja:         d.tienePareja         || false,
         edadConyuge:         d.edadConyuge         || 40,

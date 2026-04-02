@@ -308,7 +308,7 @@
     import { cargarTablas }    from '../js/mortalidad.js';
     import { calcularPensionRP, calcularPensionRV, proyectarSaldo, calcularPGUInformativa, procesarInvalidez } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
-    import { cargarAFP, getComision } from '../js/comisiones.js?v=3';
+    import { cargarAFP, getComision, getComisionPensionado } from '../js/comisiones.js?v=3';
 
     initBtnActualizar();
 
@@ -330,7 +330,7 @@
       await cargarAFP();
       const uf  = d.uf || 39717;
       const _fresh = Store.leer();
-      const comisionPct = _fresh.comisionPct || getComision(d.afp || '') || 1.27;
+      const comisionPct = _fresh.comisionPensionadoPct ?? getComisionPensionado(d.afp || '');
       const comisionDec = comisionPct / 100;
       const familia = {
         tienePareja:         d.tienePareja         || false,
