@@ -139,7 +139,7 @@ export function initBtnActualizar() {
       const res  = await actualizarTodo();
       // Update tope imponible (90.0 × UF — tope imponible 2026, Regla 4.1)
       const tope = Math.round(90.0 * res.uf.valor);
-      Store.guardar({ uf: res.uf.valor, utm: res.utm.valor, topeImponible: tope, _ultimaAct: res.timestamp });
+      Store.guardar({ uf: res.uf.valor, ufFecha: res.uf.fecha, utm: res.utm.valor, utmFecha: res.utm.fecha, topeImponible: tope, _ultimaAct: res.timestamp });
 
       // If AFP + Fondo are known, update valor cuota too
       const d = Store.leer();
@@ -157,8 +157,8 @@ export function initBtnActualizar() {
       const hora = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
       if (info) info.textContent = `${hora} · UF ${formatCLP(res.uf.valor)}`;
 
-      // Notify pages that have live results to re-compute
-      if (Store.tieneResultados()) window.dispatchEvent(new CustomEvent('datos-actualizados'));
+      // Notify all pages that indicators updated (always), plus pages with results
+      window.dispatchEvent(new CustomEvent('datos-actualizados'));
 
       setTimeout(() => {
         btn.textContent = 'Actualizar';

@@ -648,14 +648,17 @@
       const uf  = d.uf  || 0;
       const utm = d.utm || 0;
 
-      // Fecha de cálculo (hoy)
-      const hoy = new Date();
-      const fmtHoy = hoy.toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
-      document.getElementById('fecha-calculo').textContent = `Al ${fmtHoy}`;
+      // Fecha del indicador UF: usa fechaUF del store (guardado por datos.html)
+      // o _ultimaAct como fallback, o la fecha de hoy si nada disponible
+      const rawFechaUF = d.fechaUF || (d._ultimaAct ? d._ultimaAct.slice(0, 10) : null);
+      const fechaUFLabel = rawFechaUF
+        ? new Date(rawFechaUF).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })
+        : new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
+      document.getElementById('fecha-calculo').textContent = `Al ${fechaUFLabel}`;
 
       // UF
       document.getElementById('val-uf').textContent  = uf  ? `$${fmtUF(uf)}` : '—';
-      document.getElementById('sub-uf').textContent  = uf  ? `Valor al día de hoy · mindicador.cl` : 'Haz clic en Actualizar para cargar';
+      document.getElementById('sub-uf').textContent  = uf  ? `${rawFechaUF || 'Hoy'} · mindicador.cl` : 'Haz clic en Actualizar para cargar';
 
       // UTM
       document.getElementById('val-utm').textContent  = utm ? fmt(utm) : '—';
