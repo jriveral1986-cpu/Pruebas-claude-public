@@ -313,11 +313,13 @@ El saldo a pensionar no debe limitarse a una sola variable si existen otras fuen
 ### Fórmula canónica recomendada
 
 ```js
+const bonoHijo      = calcularBonificacionHijo(d.numHijosNacidosVivos, d.uf, d.sexo);
 const saldoEfectivo =
   (d.saldoTotal || 0) +
   (d.saldoAPV || 0) +
   (d.depositosConvenidos || 0) +
-  (d.bonoReconocimiento || 0);
+  (d.bonoReconocimiento || 0) +
+  bonoHijo.monto;   // solo mujeres con hijos registrados — Ley 20.255
 ```
 
 ### Componentes posibles
@@ -328,6 +330,7 @@ const saldoEfectivo =
 | APV | `saldoAPV` |
 | depósitos convenidos | `depositosConvenidos` |
 | bono de reconocimiento | `bonoReconocimiento` |
+| bonificación por hijo nacido vivo | `numHijosNacidosVivos × 18 UF` (solo mujeres) |
 
 ### Regla funcional
 
@@ -1311,3 +1314,33 @@ Esta sección complementa la sección 23 con las reglas operacionales ya impleme
 - "Estimado — sujeto a elegibilidad oficial (Seguro Social Previsional)"
 
 **Fuente:** Ley N° 21.735; Compendio SP, Libro III, Título XIX, Letra C.
+
+---
+
+## 41. Bonificación por hijo nacido vivo — implementación operacional
+
+**Tipo:** Normativa — Ley N° 20.255 art. 74-75, vigente desde julio 2009.
+
+Esta sección complementa la sección 21 y 37 con las reglas operacionales implementadas en el motor (2026):
+
+### 41.1 Implementación en calculos.js
+- Función: `calcularBonificacionHijo(numHijosNacidosVivos, uf, sexo)`
+- Fórmula: `monto = numHijosNacidosVivos × 18 × UF`
+- Solo aplica si `sexo === 'F'` y `numHijosNacidosVivos > 0`.
+- El monto se **suma al saldo efectivo** antes del cálculo de RP y RV (no es un aumento mensual de pensión).
+- Retorna `{ monto, montoUF, numHijos, elegible, razonNoElegible }`.
+
+### 41.2 Efectos en el motor
+- Aumenta el saldo inicial: `saldoEfectivo += bonoHijo.monto`
+- El saldo mayor produce una pensión RP/RV más alta al dividir por el mismo CNU.
+- Aplica en módulos: `modalidades.html` y `brechas.html`.
+
+### 41.3 Dato de entrada requerido
+- Campo `numHijosNacidosVivos` visible solo para mujeres (`sexo === 'F'`) en el formulario de datos del afiliado.
+- Se muestra/oculta dinámicamente según el sexo seleccionado.
+
+### 41.4 Etiqueta en UI
+- "Bonif. hijo (N × 18 UF en saldo)" — indica que es un incremento al saldo, no a la pensión mensual directamente.
+- No se etiqueta como estimado porque el monto es fijo por ley (18 UF/hijo).
+
+**Fuente:** Ley N° 20.255 art. 74-75; SP Chile.

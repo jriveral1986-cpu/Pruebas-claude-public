@@ -244,7 +244,7 @@
     import { cargarAFP, getAfps, getComision } from '../js/comisiones.js?v=3';
     import {
       calcularPensionRP, calcularBrecha, calcularAportacionNecesaria, calcularScore, calcularPGUInformativa,
-      calcularBAC, calcularCEV,
+      calcularBAC, calcularCEV, calcularBonificacionHijo,
     } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
 
@@ -284,7 +284,8 @@
       const anioActual    = new Date().getFullYear();
       const edadJub       = d.edadJubilacion || d.edad;
       const anioJub       = anioActual + Math.max(0, Math.round(edadJub - d.edad));
-      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
+      const bonoHijo0     = calcularBonificacionHijo(d.numHijosNacidosVivos, uf, d.sexo);
+      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0) + bonoHijo0.monto;
       const rp            = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, getFamilia(), anioJub);
       rpResult          = rp;
       pensionEstimada   = rp.pensionTotal; // líquida + PGU
@@ -383,7 +384,8 @@
       const anioActual2   = new Date().getFullYear();
       const edadJub2      = d.edadJubilacion || d.edad;
       const anioJub2      = anioActual2 + Math.max(0, Math.round(edadJub2 - d.edad));
-      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
+      const bonoHijo      = calcularBonificacionHijo(d.numHijosNacidosVivos, uf, d.sexo);
+      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0) + bonoHijo.monto;
       const rp            = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, getFamilia(), anioJub2);
       rpResult          = rp;
       const bac = calcularBAC(d.mesesCotizados || 0, uf, d.sexo);
@@ -396,10 +398,11 @@
 
       document.getElementById('brPensionRP').textContent  = formatCLP(pensionConBeneficios);
       const pguInfo65 = d.edad < 65 ? calcularPGUInformativa(rp.pensionLiquida) : 0;
+      const bonoHijoDetalle = bonoHijo.elegible ? ` · Bonif. hijo: +${formatCLP(bonoHijo.monto)} (${bonoHijo.numHijos} × 18 UF en saldo)` : '';
       const bacDetalle = bac.elegible ? ` · BAC: +${formatCLP(bac.monto)} est.` : '';
       const cevDetalle = cev.elegible ? ` · CEV: +${formatCLP(cev.monto)} est.` : '';
       document.getElementById('brPensionRPDetalle').innerHTML =
-        `Bruta: ${formatCLP(rp.pension)} · Líquida: ${formatCLP(rp.pensionLiquida)}${rp.pgu > 0 ? ` · PGU: +${formatCLP(rp.pgu)}` : ''}${bacDetalle}${cevDetalle}${pguInfo65 > 0 ? ` <span style="color:var(--color-text-muted);font-size:0.85em">(+${formatCLP(pguInfo65)} PGU desde los 65 años)</span>` : ''}${(bac.elegible || cev.elegible) ? ` <span style="color:var(--color-text-muted);font-size:0.85em;font-style:italic">· Estimado Seguro Social Previsional</span>` : ''}`;
+        `Bruta: ${formatCLP(rp.pension)} · Líquida: ${formatCLP(rp.pensionLiquida)}${rp.pgu > 0 ? ` · PGU: +${formatCLP(rp.pgu)}` : ''}${bonoHijoDetalle}${bacDetalle}${cevDetalle}${pguInfo65 > 0 ? ` <span style="color:var(--color-text-muted);font-size:0.85em">(+${formatCLP(pguInfo65)} PGU desde los 65 años)</span>` : ''}${(bac.elegible || cev.elegible) ? ` <span style="color:var(--color-text-muted);font-size:0.85em;font-style:italic">· Estimado Seguro Social Previsional</span>` : ''}`;
       document.getElementById('brPensionObj').textContent = formatCLP(objetivo);
       document.getElementById('brechaAbs').textContent    = suficiente ? 'Sin brecha' : formatCLP(brecha_abs);
       document.getElementById('brechaPct').textContent    = suficiente ? '—' : brecha_pct.toFixed(1) + '%';

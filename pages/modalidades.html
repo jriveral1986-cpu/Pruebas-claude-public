@@ -269,7 +269,7 @@
     import { initBtnActualizar, mostrarDatosCliente, formatCLP, formatUF } from '../js/ui.js';
     import { Store }        from '../js/store.js';
     import { cargarTablas } from '../js/mortalidad.js';
-    import { calcularPensionRP, calcularPensionRV, calcularPensionSobrevivencia, recomendarModalidadFamiliar, TASA_RP, calcularPGUInformativa, calcularBAC, calcularCEV } from '../js/calculos.js';
+    import { calcularPensionRP, calcularPensionRV, calcularPensionSobrevivencia, recomendarModalidadFamiliar, TASA_RP, calcularPGUInformativa, calcularBAC, calcularCEV, calcularBonificacionHijo } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
     import { cargarAFP, getComision } from '../js/comisiones.js?v=3';
 
@@ -308,7 +308,8 @@
       const anioActual    = new Date().getFullYear();
       const edadJub       = d.edadJubilacion || d.edad;
       const anioJub       = anioActual + Math.max(0, Math.round(edadJub - d.edad));
-      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
+      const bonoHijo      = calcularBonificacionHijo(d.numHijosNacidosVivos, uf, d.sexo);
+      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0) + bonoHijo.monto;
 
       const rp = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, familia, anioJub);
       const rv = calcularPensionRV(saldoEfectivo, d.edad, d.sexo, uf, familia, anioJub);
@@ -321,6 +322,9 @@
       const bac = calcularBAC(mesesCot, uf, d.sexo);
       const cev = calcularCEV(d.sexo, d.edad, rp.pension, uf, esAnticipada);
 
+      const bonoHijoLine = bonoHijo.elegible
+        ? `<br><span style="font-size:var(--text-xs);color:var(--color-primary);">+${formatCLP(bonoHijo.monto)} Bonif. hijo (${bonoHijo.numHijos} × 18 UF en saldo)</span>`
+        : '';
       const bacLine = bac.elegible
         ? `<br><span style="font-size:var(--text-xs);color:var(--color-primary);">+${formatCLP(bac.monto)} BAC est. (${bac.anosCotizados.toFixed(1)} años cot.)</span>`
         : '';
@@ -342,7 +346,7 @@
          ${rp.pgu > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--success);">+${formatCLP(rp.pgu)} PGU = ${formatCLP(rp.pensionTotal)} total</span>` : ''}
          ${pguInfo65RP > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--color-text-muted);">(+${formatCLP(pguInfo65RP)} PGU desde los 65 años)</span>` : ''}
          ${rp.cnuDetalle?.tieneImpacto ? `<br><span style="font-size:var(--text-xs);color:var(--color-warning,#b45309);">↓ ${formatCLP(rp.impactoFamilia)} por grupo familiar (${((rp.impactoFamilia/rp.pensionSinFamilia)*100).toFixed(1)}%)</span>` : ''}
-         ${bacLine}${cevLine}${seguroSocialNota}`;
+         ${bonoHijoLine}${bacLine}${cevLine}${seguroSocialNota}`;
       document.getElementById('rvPensionDisplay').innerHTML =
         `${formatCLP(rv.pension)} <span style="font-size:var(--text-sm);color:var(--color-text-muted);">bruta</span><br>
          <span style="font-size:var(--text-lg);color:var(--color-primary);">${formatCLP(rv.pensionLiquida)}</span>
@@ -350,7 +354,7 @@
          ${rv.pgu > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--success);">+${formatCLP(rv.pgu)} PGU = ${formatCLP(rv.pensionTotal)} total</span>` : ''}
          ${pguInfo65RV > 0 ? `<br><span style="font-size:var(--text-xs);color:var(--color-text-muted);">(+${formatCLP(pguInfo65RV)} PGU desde los 65 años)</span>` : ''}
          ${rv.cnuDetalle?.tieneImpacto ? `<br><span style="font-size:var(--text-xs);color:var(--color-warning,#b45309);">↓ ${formatCLP(rv.impactoFamilia)} por grupo familiar (${((rv.impactoFamilia/rv.pensionSinFamilia)*100).toFixed(1)}%)</span>` : ''}
-         ${bacLine}${cevLine}${seguroSocialNota}`;
+         ${bonoHijoLine}${bacLine}${cevLine}${seguroSocialNota}`;
       document.getElementById('rpUFDisplay').textContent  = formatUF(rp.pensionUF);
       document.getElementById('rvUFDisplay').textContent  = formatUF(rv.pensionUF);
       document.getElementById('rpTablaValor').textContent = `${formatCLP(rp.pension)} (líq. ${formatCLP(rp.pensionLiquida)})`;

@@ -189,6 +189,35 @@ export function calcularCEV(sexo, edad, pafeClp, uf, esAnticipada = false) {
 }
 
 // ============================================================
+// BONIFICACIÓN POR HIJO NACIDO VIVO (Ley 20.255 art. 74-75)
+// ============================================================
+
+/**
+ * Bonificación por hijo nacido vivo — Ley N° 20.255 art. 74-75 (vigente desde julio 2009).
+ * Tipo: Normativa — monto fijo por ley (18 UF × hijo nacido vivo).
+ * Ingresa al saldo de capitalización individual al momento de pensionarse.
+ * Solo aplica a mujeres afiliadas al sistema AFP (D.L. N° 3.500).
+ *
+ * Fuente: Ley N° 20.255 art. 74-75; SP Chile.
+ *
+ * @param {number} numHijosNacidosVivos - número de hijos nacidos vivos
+ * @param {number} uf                  - valor UF vigente
+ * @param {string} sexo                - 'M' | 'F'
+ * @returns {{ monto, montoUF, numHijos, elegible, razonNoElegible }}
+ */
+export function calcularBonificacionHijo(numHijosNacidosVivos, uf, sexo = 'F') {
+  if (sexo !== 'F') {
+    return { monto: 0, montoUF: 0, numHijos: 0, elegible: false, razonNoElegible: 'Solo aplica a mujeres (Ley 20.255)' };
+  }
+  const n = Math.max(0, Math.round(numHijosNacidosVivos || 0));
+  if (n === 0) {
+    return { monto: 0, montoUF: 0, numHijos: 0, elegible: false, razonNoElegible: 'Sin hijos registrados' };
+  }
+  const montoUF = n * 18;
+  return { monto: Math.round(montoUF * uf), montoUF, numHijos: n, elegible: true, razonNoElegible: null };
+}
+
+// ============================================================
 // PENSIÓN DE SOBREVIVENCIA — DL 3.500 art. 58
 // ============================================================
 
@@ -725,7 +754,8 @@ export function procesarPension(d, uf, comisionDec, familia) {
   const anioActual = new Date().getFullYear();
   const edadJub    = d.edadJubilacion || d.edad;
   const anioJub    = anioActual + Math.max(0, Math.round(edadJub - d.edad));
-  const saldoEfectivo = d.saldoTotal + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
+  const bonoHijo      = d.sexo === 'F' ? calcularBonificacionHijo(d.numHijosNacidosVivos, d.uf || 0, 'F').monto : 0;
+  const saldoEfectivo = d.saldoTotal + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0) + bonoHijo;
 
   const base = { saldo: saldoEfectivo, edad: d.edad, sexo: d.sexo, uf, comisionDec, familia, anioJubilacion: anioJub };
 

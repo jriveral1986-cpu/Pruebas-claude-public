@@ -96,6 +96,15 @@
             <input type="number" id="mesesCotizados" value="0" min="0" max="600" step="1">
             <span class="hint">Ej: 20 años = 240 meses. Mínimo para BAC: 120 meses (mujeres) / 240 meses (hombres).</span>
           </div>
+          <div class="form-group" id="grupoBonificacionHijo" style="display:none;">
+            <label for="numHijosNacidosVivos">Hijos nacidos vivos
+              <span aria-label="Bonificación de 18 UF por cada hijo nacido vivo, ingresa al saldo al momento de pensionarse. Solo para mujeres afiliadas AFP (Ley 20.255 art. 74-75).">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </span>
+            </label>
+            <input type="number" id="numHijosNacidosVivos" value="0" min="0" max="20" step="1">
+            <span class="hint">18 UF por hijo se suman al saldo al pensionarte (Ley 20.255). Solo mujeres AFP.</span>
+          </div>
         </div>
       </div>
 
@@ -523,7 +532,8 @@
     if (d.numHijosMenores     != null) document.getElementById('numHijosMenores').value     = d.numHijosMenores;
     if (d.numHijosEstudiantes != null) document.getElementById('numHijosEstudiantes').value = d.numHijosEstudiantes;
     if (d.numHijosInvalidos   != null) document.getElementById('numHijosInvalidos').value   = d.numHijosInvalidos;
-    if (d.mesesCotizados     != null) document.getElementById('mesesCotizados').value     = d.mesesCotizados;
+    if (d.mesesCotizados          != null) document.getElementById('mesesCotizados').value          = d.mesesCotizados;
+    if (d.numHijosNacidosVivos    != null) document.getElementById('numHijosNacidosVivos').value    = d.numHijosNacidosVivos;
     toggleCamposConyuge();
     if (d.tipoJubilacion)              document.getElementById('tipoJubilacion').value           = d.tipoJubilacion;
     if (d.tipoTrabajoPesado)           { const r = document.querySelector(`input[name="tipoTrabajoPesado"][value="${d.tipoTrabajoPesado}"]`); if (r) r.checked = true; }
@@ -566,12 +576,19 @@
       if (sexo === 'F' && val === EDAD_JUB_HOMBRE) input.value = EDAD_JUB_MUJER;
       if (sexo === 'M' && val === EDAD_JUB_MUJER)  input.value = EDAD_JUB_HOMBRE;
     }
+    function toggleBonificacionHijo(sexo) {
+      document.getElementById('grupoBonificacionHijo').style.display = sexo === 'F' ? '' : 'none';
+    }
     document.querySelectorAll('input[name="sexo"]').forEach(r =>
-      r.addEventListener('change', e => ajustarEdadJubilacionPorSexo(e.target.value))
+      r.addEventListener('change', e => {
+        ajustarEdadJubilacionPorSexo(e.target.value);
+        toggleBonificacionHijo(e.target.value);
+      })
     );
     // Aplica al cargar si ya hay sexo guardado
     const sexoGuardado = document.querySelector('input[name="sexo"]:checked')?.value;
     if (sexoGuardado && !d.edadJubilacion) ajustarEdadJubilacionPorSexo(sexoGuardado);
+    toggleBonificacionHijo(sexoGuardado || 'M');
 
     // ── Tipo de jubilación ────────────────────────────
     function calcularRebajaTP() {
@@ -936,7 +953,8 @@
         numHijosMenores:      parseInt(document.getElementById('numHijosMenores').value) || 0,
         numHijosEstudiantes:  parseInt(document.getElementById('numHijosEstudiantes').value) || 0,
         numHijosInvalidos:    parseInt(document.getElementById('numHijosInvalidos').value) || 0,
-        mesesCotizados:       parseInt(document.getElementById('mesesCotizados').value) || 0,
+        mesesCotizados:         parseInt(document.getElementById('mesesCotizados').value) || 0,
+        numHijosNacidosVivos:   parseInt(document.getElementById('numHijosNacidosVivos').value) || 0,
         // campo unificado para compatibilidad con código existente
         numHijos: (parseInt(document.getElementById('numHijosMenores').value) || 0)
                 + (parseInt(document.getElementById('numHijosEstudiantes').value) || 0),
