@@ -734,7 +734,7 @@
     calcularAportacionNecesaria, PGU, UTM
   }                                                               from '../js/calculos.js';
   import { cargarTablas, getCRU }                                 from '../js/mortalidad.js';
-  import { getComision, getComisionPensionado }                   from '../js/comisiones.js?v=3';
+  import { cargarAFP, getComision, getComisionPensionado }        from '../js/comisiones.js?v=3';
 
   // ─── Formatters ──────────────────────────────────────────────
   const fmt     = n => '$' + Math.round(n).toLocaleString('es-CL');
@@ -826,7 +826,7 @@
     const d = getStore();
     if (!d || !d.saldoTotal) { window.location.href = 'datos.html'; return; }
 
-    await cargarTablas();
+    await Promise.all([cargarTablas(), cargarAFP()]);
 
     const uf          = d.uf  || 39717;
     const utm         = d.utm || UTM;
