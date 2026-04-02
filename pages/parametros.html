@@ -181,6 +181,7 @@
       <h2 class="section__title">
         Indicadores Económicos
         <span class="badge badge--live">En vivo</span>
+        <span id="fecha-actualizacion" style="font-size:var(--text-xs);font-weight:400;color:var(--color-text-muted);margin-left:12px;"></span>
       </h2>
       <div class="params-grid">
         <div class="param-card param-card--live">
@@ -646,6 +647,17 @@
       const d = Store.leer();
       const uf  = d.uf  || 0;
       const utm = d.utm || 0;
+
+      // Fecha de actualización
+      const fechaEl = document.getElementById('fecha-actualizacion');
+      if (d._ultimaAct) {
+        const fecha = new Date(d._ultimaAct);
+        const fmtFecha = fecha.toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
+        const fmtHora  = fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+        fechaEl.textContent = `Actualizado el ${fmtFecha} a las ${fmtHora}`;
+      } else {
+        fechaEl.textContent = '';
+      }
 
       // UF
       document.getElementById('val-uf').textContent  = uf  ? `$${fmtUF(uf)}` : '—';
