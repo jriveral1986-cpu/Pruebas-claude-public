@@ -198,14 +198,14 @@
     <div class="section" id="seccionAFPs" style="display:none;">
       <h2 class="section__title">Comparativa: Pensión por AFP</h2>
       <p style="font-size:var(--text-sm);color:var(--color-text-muted);margin-bottom:16px;">
-        ¿Cuánto obtendrías con el mismo saldo en cada AFP? (las comisiones afectan el fondo acumulado a largo plazo)
+        ¿Cuánto obtendrías con el mismo saldo en cada AFP? La comisión de pensionado se descuenta directamente de cada pago mensual RP.
       </p>
       <div class="tabla-wrap">
         <table class="tabla-comparativa" id="tablaAFPs">
           <thead>
             <tr>
               <th>AFP</th>
-              <th>Comisión anual</th>
+              <th>Comisión pensionado</th>
               <th>Pensión RP estimada</th>
               <th>vs. tu AFP actual</th>
             </tr>
@@ -300,13 +300,14 @@
 
       afps.forEach(afp => {
         const esMiAFP = afp.id === d.afp;
-        const rpAFP   = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, afp.comision / 100, getFamilia(), anioJub);
-        const pensAFP = rpAFP.pension;
-        const diff    = pensAFP - rp.pension;
+        const comPens = getComisionPensionado(afp.id) / 100;
+        const rpAFP   = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comPens, getFamilia(), anioJub);
+        const pensAFP = rpAFP.pensionLiquida;
+        const diff    = pensAFP - rp.pensionLiquida;
         const tr      = document.createElement('tr');
         tr.innerHTML = `
           <td>${afp.nombre}${esMiAFP ? ' <span class="badge badge--info">Tu AFP</span>' : ''}</td>
-          <td>${afp.comision.toFixed(2)}%</td>
+          <td>${getComisionPensionado(afp.id).toFixed(2)}%</td>
           <td class="col-num ${esMiAFP ? 'col-highlight' : ''}">${formatCLP(pensAFP)}</td>
           <td class="col-num" style="color:${diff >= 0 ? 'var(--success)' : 'var(--color-error)'}">
             ${diff >= 0 ? '+' : ''}${formatCLP(diff)}
@@ -397,7 +398,7 @@
 
       document.getElementById('brPensionRP').textContent  = formatCLP(pensionConBeneficios);
       const pguInfo65 = d.edad < 65 ? calcularPGUInformativa(rp.pensionLiquida) : 0;
-      const bonoHijoDetalle = bonoHijo.elegible ? ` · Bonif. hijo: +${formatCLP(bonoHijo.monto)} (${bonoHijo.numHijos} × 18 UF en saldo)` : '';
+      const bonoHijoDetalle = bonoHijo.elegible ? ` · Bonif. hijo: +${formatCLP(bonoHijo.monto)} (${bonoHijo.numHijos} hijo(s) · 1,8×IMM en saldo)` : '';
       const bacDetalle = bac.elegible ? ` · BAC: +${formatCLP(bac.monto)} est.` : '';
       const cevDetalle = cev.elegible ? ` · CEV: +${formatCLP(cev.monto)} est.` : '';
       document.getElementById('brPensionRPDetalle').innerHTML =
