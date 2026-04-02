@@ -213,7 +213,7 @@
         </table>
       </div>
       <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:8px;">
-        *Diferencia estimada sobre 20 años de cotización. El efecto de las comisiones es mayor con más años de cotización.
+        *Pensión RP calculada con tu saldo actual y la comisión de cada AFP. Muestra el impacto real de la comisión sobre la pensión mensual con el mismo saldo.
       </p>
     </div>
 
@@ -298,13 +298,11 @@
       tbody.innerHTML = '';
 
       afps.forEach(afp => {
-        const esMiAFP     = afp.id === d.afp;
-        const comActual   = getComision(d.afp || 'modelo');
-        const comDif      = afp.comision - comActual;
-        const impacto     = Math.round(rp.pension * (-comDif / 100) * 0.5);
-        const pensAFP     = Math.round(rp.pension - impacto);
-        const diff        = pensAFP - rp.pension;
-        const tr          = document.createElement('tr');
+        const esMiAFP = afp.id === d.afp;
+        const rpAFP   = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, afp.comision / 100, getFamilia(), anioJub);
+        const pensAFP = rpAFP.pension;
+        const diff    = pensAFP - rp.pension;
+        const tr      = document.createElement('tr');
         tr.innerHTML = `
           <td>${afp.nombre}${esMiAFP ? ' <span class="badge badge--info">Tu AFP</span>' : ''}</td>
           <td>${afp.comision.toFixed(2)}%</td>
