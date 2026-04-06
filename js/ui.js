@@ -5,7 +5,7 @@
 
 import { actualizarTodo, getValorCuota } from './api.js';
 import { Store }                          from './store.js';
-import { cargarAFP, getAfps, getFondos }  from './comisiones.js?v=3';
+import { cargarAFP, getAfps, getFondos }  from './comisiones.js?v=4';
 
 /* ── Formatting helpers ─────────────────────────────── */
 
