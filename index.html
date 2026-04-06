@@ -4,52 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calculadora Previsional Chile</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/print.css" media="print">
   <style>
-    /* ── Homepage overrides (IBM Plex Sans + design system) ── */
+    /* ── Homepage overrides ── */
     :root {
-      --font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
-      --color-primary:    #1E3A5F;
-      --color-primary-lt: #2563EB;
-      --color-accent:     #F97316;
-      --accent:           #F97316;
-      --color-bg:         #F8FAFC;
-      --color-surface:    #ffffff;
-      --color-border:     #E2E8F0;
-      --color-text:       #1E293B;
-      --color-text-muted: #64748B;
-      --navy:             #1E3A5F;
-      --shadow-card:      0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(30,58,95,.08);
-      --shadow-card-hover:0 8px 32px rgba(37,99,235,.14), 0 2px 8px rgba(0,0,0,.06);
+      --color-accent:      #d9a05b;
+      --accent:            #d9a05b;
+      --shadow-card:       0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(15,23,42,.08);
+      --shadow-card-hover: 0 8px 32px rgba(29,78,216,.14), 0 2px 8px rgba(0,0,0,.06);
       --radius-xl: 16px;
       --transition: 200ms cubic-bezier(.4,0,.2,1);
-    }
-
-    /* ── Nav enhanced ── */
-    .nav {
-      background: var(--navy);
-      border-bottom: 1px solid rgba(255,255,255,.06);
-      padding: 0 24px;
-      min-height: 60px;
-      gap: 2px;
-    }
-    .nav__logo {
-      font-size: 1.0625rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      margin-right: 24px;
-    }
-    .nav__logo span { color: var(--accent); }
-    .nav__link {
-      font-size: 0.8125rem;
-      font-weight: 500;
-      padding: 6px 14px;
-      border-radius: 6px;
-      letter-spacing: 0.01em;
     }
 
     /* ── Hero redesign ── */
@@ -120,14 +85,14 @@
       margin-bottom: 48px;
     }
     .btn--hero {
-      background: #2563EB;
+      background: var(--color-gold);
       color: #fff;
       border: 2px solid transparent;
       padding: 12px 28px;
       font-size: 1rem;
       font-weight: 600;
       border-radius: 10px;
-      box-shadow: 0 4px 16px rgba(37,99,235,.4);
+      box-shadow: 0 4px 16px rgba(217,160,91,.35);
       transition: all var(--transition);
       cursor: pointer;
       text-decoration: none;
@@ -136,9 +101,9 @@
       gap: 8px;
     }
     .btn--hero:hover {
-      background: #1D4ED8;
+      background: #c48c47;
       transform: translateY(-1px);
-      box-shadow: 0 6px 24px rgba(37,99,235,.5);
+      box-shadow: 0 6px 24px rgba(217,160,91,.5);
       text-decoration: none;
       color: #fff;
     }
@@ -236,7 +201,7 @@
     .card-nav-item:hover {
       box-shadow: var(--shadow-card-hover);
       transform: translateY(-3px);
-      border-color: rgba(37,99,235,.25);
+      border-color: var(--color-gold);
       text-decoration: none;
     }
     .card-nav-item__icon-wrap {
@@ -266,7 +231,7 @@
     }
     .card-nav-item__arrow {
       margin-top: auto;
-      color: var(--color-primary-lt);
+      color: var(--color-blue);
       display: flex;
       align-items: center;
       gap: 4px;
