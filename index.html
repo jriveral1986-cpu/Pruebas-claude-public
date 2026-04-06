@@ -184,6 +184,9 @@
       gap: 16px;
       margin-top: 0;
     }
+    @media (min-width: 900px) {
+      .cards-nav { grid-template-columns: repeat(3, 1fr); }
+    }
     .card-nav-item {
       border-radius: var(--radius-xl);
       padding: 24px 22px;
@@ -516,6 +519,18 @@
           <div class="card-nav-item__desc">Genera un estudio de pensión profesional listo para imprimir o guardar como PDF. Proyecciones RP y RV año a año, PGU, impuestos y APV.</div>
           <div class="card-nav-item__arrow" aria-hidden="true">
             Ver informe
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </a>
+
+        <a href="pages/parametros.html" class="card-nav-item card-nav-item--navy" role="listitem" aria-label="Parámetros: indicadores, tasas y constantes del sistema">
+          <div class="card-nav-item__icon-wrap" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+          </div>
+          <div class="card-nav-item__title">Parámetros</div>
+          <div class="card-nav-item__desc">UF, UTM, tasas RP/RV, comisiones AFP, PGU, tabla de impuestos y todas las constantes del sistema.</div>
+          <div class="card-nav-item__arrow" aria-hidden="true">
+            Ver parámetros
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
         </a>
