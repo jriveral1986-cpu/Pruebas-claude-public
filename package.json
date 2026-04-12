@@ -4,6 +4,7 @@
   "type": "module",
   "description": "Calculadora previsional Chile — static site",
   "scripts": {
+    "test": "node --import ./test/setup.mjs --test test/*.test.mjs",
     "update": "node js/update.js",
     "build": "node js/build.js",
     "scrape": "node js/scrape.js",
