@@ -218,6 +218,66 @@ export function calcularBonificacionHijo(numHijosNacidosVivos, uf, sexo = 'F') {
 }
 
 // ============================================================
+// APV — BENEFICIO TRIBUTARIO (Art. 42 bis LIR — Ley N° 19.768)
+// ============================================================
+
+/**
+ * Calcula el beneficio tributario mensual del APV según régimen elegido.
+ *
+ * Régimen A (crédito directo):
+ *   - Crédito del 15% sobre el monto aportado, con tope de 6 UTM/año (0,5 UTM/mes).
+ *   - El crédito se descuenta del impuesto a pagar (o se devuelve si es superior).
+ *   Fórmula: min(aporte × 15%, 0.5 × UTM/mes)
+ *
+ * Régimen B (deducción de base imponible):
+ *   - El aporte APV se resta de la renta imponible antes de calcular el impuesto.
+ *   - Beneficio = impuesto(renta) − impuesto(renta − aporte)
+ *   - Tope anual: 600 UF (50 UF/mes).
+ *
+ * Fuente: Art. 42 bis LIR; SII Chile; Compendio SP Libro I Título I.
+ *
+ * @param {number} aporteMensual   - aporte APV mensual en CLP
+ * @param {string} regimen         - 'A' | 'B'
+ * @param {number} rentaImponible  - renta imponible mensual en CLP
+ * @param {number} utm             - valor UTM vigente en CLP
+ * @param {number} uf              - valor UF vigente en CLP
+ * @returns {{ beneficioMensual, beneficioAnual, regimen, descripcion }}
+ */
+export function calcularBeneficioTributarioAPV(aporteMensual, regimen, rentaImponible, utm, uf) {
+  const aporte = Math.max(0, aporteMensual || 0);
+  const renta  = Math.max(0, rentaImponible || 0);
+  if (aporte === 0) return { beneficioMensual: 0, beneficioAnual: 0, regimen, descripcion: 'Sin aporte APV' };
+
+  if (regimen === 'A') {
+    const tope        = 0.5 * utm;                          // 6 UTM/año → 0,5 UTM/mes
+    const credito     = Math.min(aporte * 0.15, tope);
+    const beneficioMensual = Math.round(credito);
+    return {
+      beneficioMensual,
+      beneficioAnual:  beneficioMensual * 12,
+      regimen:         'A',
+      descripcion:     `Crédito 15% sobre aporte (tope 0,5 UTM/mes = ${Math.round(tope).toLocaleString('es-CL')})`,
+    };
+  }
+
+  if (regimen === 'B') {
+    const topeUFMes   = 50 * uf;                            // 600 UF/año → 50 UF/mes
+    const aporteEfec  = Math.min(aporte, topeUFMes);
+    const impSinAPV   = calcularImpuesto(renta);
+    const impConAPV   = calcularImpuesto(Math.max(0, renta - aporteEfec));
+    const beneficioMensual = Math.max(0, Math.round(impSinAPV - impConAPV));
+    return {
+      beneficioMensual,
+      beneficioAnual:  beneficioMensual * 12,
+      regimen:         'B',
+      descripcion:     `Deducción base imponible (tope 50 UF/mes = ${Math.round(topeUFMes).toLocaleString('es-CL')})`,
+    };
+  }
+
+  return { beneficioMensual: 0, beneficioAnual: 0, regimen, descripcion: 'Régimen no reconocido' };
+}
+
+// ============================================================
 // PENSIÓN DE SOBREVIVENCIA — DL 3.500 art. 58
 // ============================================================
 

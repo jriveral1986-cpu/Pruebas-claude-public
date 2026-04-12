@@ -219,6 +219,17 @@
       </div>
     </div>
 
+    <!-- APV beneficio tributario (visible solo si hay aporte APV) -->
+    <div id="panelAPV" class="card" style="display:none; border-left: 4px solid var(--color-success, #16a34a); background: #f0fdf4;">
+      <div style="display:flex; align-items:flex-start; gap:12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <div>
+          <strong id="apvTitulo">APV activo</strong>
+          <div id="apvDetalle" style="font-size:var(--text-sm, 0.875rem); margin-top:4px; color: var(--color-text-muted, #6b7280);"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Proyección de saldo ── -->
     <div class="section" id="seccionProyeccion" style="display:none;">
       <h2 class="section__title">Proyección de Saldo</h2>
@@ -356,7 +367,7 @@
     import { initBtnActualizar, mostrarDatosCliente, formatCLP, formatUF } from '../js/ui.js';
     import { Store }           from '../js/store.js';
     import { cargarTablas }    from '../js/mortalidad.js';
-    import { calcularPensionRP, calcularPensionRV, proyectarSaldo, calcularPGUInformativa, procesarInvalidez } from '../js/calculos.js';
+    import { calcularPensionRP, calcularPensionRV, proyectarSaldo, calcularPGUInformativa, procesarInvalidez, calcularBeneficioTributarioAPV } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
     import { cargarAFP, getComision, getComisionPensionado } from '../js/comisiones.js?v=4';
 
@@ -525,6 +536,23 @@
         document.getElementById('badgeUF').textContent  = `UF: ${formatCLP(d.uf)}`;
       if (d.utm)
         document.getElementById('badgeUTM').textContent = `UTM: ${formatCLP(d.utm)}`;
+
+      // Panel APV — beneficio tributario
+      const apvMensual  = d.apvMensual || 0;
+      const regimenAPV  = d.regimenAPV || 'A';
+      const panelAPV    = document.getElementById('panelAPV');
+      if (apvMensual > 0) {
+        const utm     = d.utm || 69889;
+        const benefAPV = calcularBeneficioTributarioAPV(apvMensual, regimenAPV, d.rentaImponible || 0, utm, uf);
+        panelAPV.style.display = '';
+        document.getElementById('apvTitulo').textContent = `APV activo: ${formatCLP(apvMensual)}/mes · Régimen ${regimenAPV}`;
+        document.getElementById('apvDetalle').innerHTML =
+          benefAPV.beneficioMensual > 0
+            ? `Beneficio tributario estimado: <strong>${formatCLP(benefAPV.beneficioMensual)}/mes</strong> · <strong>${formatCLP(benefAPV.beneficioAnual)}/año</strong> — ${benefAPV.descripcion}`
+            : benefAPV.descripcion;
+      } else {
+        panelAPV.style.display = 'none';
+      }
     }
 
     // ── Panel de condiciones de acceso ───────────────

@@ -294,7 +294,7 @@
     import { cargarAFP, getAfps, getComision, getComisionPensionado } from '../js/comisiones.js?v=4';
     import {
       calcularPensionRP, calcularBrecha, calcularAportacionNecesaria, calcularScore, calcularPGUInformativa,
-      calcularBAC, calcularCEV, calcularBonificacionHijo,
+      calcularBAC, calcularCEV, calcularBonificacionHijo, calcularBeneficioTributarioAPV,
     } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
 
@@ -556,12 +556,16 @@
           Disponible en tu AFP, banco o administradora.`,
         });
       } else if (apvMensual > 0) {
+        const benefAPV = calcularBeneficioTributarioAPV(apvMensual, regimenAPV, rentaImponible, d.utm || 69889, d.uf || 39717);
+        const benefTexto = benefAPV.beneficioMensual > 0
+          ? ` Beneficio fiscal estimado: <strong>${formatCLP(benefAPV.beneficioMensual)}/mes</strong> (${formatCLP(benefAPV.beneficioAnual)}/año).`
+          : '';
         items.push({
           tipo: 'success',
           titulo: `Tienes APV activo: ${formatCLP(apvMensual)}/mes (Régimen ${regimenAPV})`,
           texto: regimenAPV === 'A'
-            ? `Régimen A: el Estado bonifica hasta el 15% de tu aporte. Asegúrate de mantener el aporte hasta el retiro para conservar el beneficio.`
-            : `Régimen B: estás reduciendo tu base imponible de impuestos. Excelente para rentas altas que buscan eficiencia tributaria.`,
+            ? `Régimen A: el Estado bonifica el 15% de tu aporte (tope 6 UTM/año).${benefTexto} Mantén el aporte hasta el retiro para conservar el beneficio.`
+            : `Régimen B: deduces el aporte de tu base imponible, reduciendo el impuesto que pagas hoy.${benefTexto} Recomendado para rentas altas.`,
         });
       }
 
