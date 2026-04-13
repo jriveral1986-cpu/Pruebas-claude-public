@@ -1,5 +1,5 @@
 {
-  "_fecha": "2026-04-10",
+  "_fecha": "2026-04-13",
   "_fuente": "SP Chile — fetch automático",
   "A": {
     "capital": {
@@ -19,8 +19,8 @@
       "fecha": "2026-04-01"
     },
     "planvital": {
-      "valor": 83278.21,
-      "fecha": "2026-04-01"
+      "valor": 84850.56,
+      "fecha": "2026-04-12"
     },
     "provida": {
       "valor": 88383.28,
@@ -49,8 +49,8 @@
       "fecha": "2026-04-01"
     },
     "planvital": {
-      "valor": 73566.69,
-      "fecha": "2026-04-01"
+      "valor": 74743.73,
+      "fecha": "2026-04-12"
     },
     "provida": {
       "valor": 72175.63,
@@ -79,8 +79,8 @@
       "fecha": "2026-04-01"
     },
     "planvital": {
-      "valor": 140334.39,
-      "fecha": "2026-04-01"
+      "valor": 142370.71,
+      "fecha": "2026-04-12"
     },
     "provida": {
       "valor": 67055.18,
@@ -109,8 +109,8 @@
       "fecha": "2026-04-01"
     },
     "planvital": {
-      "valor": 53765.22,
-      "fecha": "2026-04-01"
+      "valor": 54393.54,
+      "fecha": "2026-04-12"
     },
     "provida": {
       "valor": 53354.45,
@@ -139,8 +139,8 @@
       "fecha": "2026-04-07"
     },
     "planvital": {
-      "valor": 107970.31,
-      "fecha": "2026-04-07"
+      "valor": 108771.2,
+      "fecha": "2026-04-12"
     },
     "provida": {
       "valor": 62897.94,
