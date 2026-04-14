@@ -388,7 +388,7 @@
       const edadJub       = d.edadJubilacion || d.edad;
       const anioJub       = anioActual + Math.max(0, Math.round(edadJub - d.edad));
       const bonoHijo      = calcularBonificacionHijo(d.numHijosNacidosVivos, uf, d.sexo);
-      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0) + bonoHijo.monto;
+      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.saldoDC || 0) + (d.bonoReconocimiento || 0) + bonoHijo.monto;
 
       const rp = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, familia, anioJub);
       const rv = calcularPensionRV(saldoEfectivo, d.edad, d.sexo, uf, familia, anioJub);
@@ -674,7 +674,7 @@
       const pctRV  = Math.min(0.9, Math.max(0.1, (parseFloat(document.getElementById('pctMixta').value) || 50) / 100));
       const uf     = d.uf || 39717;
       const bonoHijo = calcularBonificacionHijo(d.numHijosNacidosVivos, uf, d.sexo);
-      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0) + bonoHijo.monto;
+      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.saldoDC || 0) + (d.bonoReconocimiento || 0) + bonoHijo.monto;
 
       const saldoRV   = saldoEfectivo * pctRV;
       const saldoTemp = saldoEfectivo * (1 - pctRV);

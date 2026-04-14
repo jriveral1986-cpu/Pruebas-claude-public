@@ -336,7 +336,7 @@
       const edadJub       = d.edadJubilacion || d.edad;
       const anioJub       = anioActual + Math.max(0, Math.round(edadJub - d.edad));
       const bonoHijo0     = calcularBonificacionHijo(d.numHijosNacidosVivos, uf, d.sexo);
-      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0) + bonoHijo0.monto;
+      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.saldoDC || 0) + (d.bonoReconocimiento || 0) + bonoHijo0.monto;
       const rp            = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, getFamilia(), anioJub);
       rpResult          = rp;
       pensionEstimada   = rp.pensionTotal; // líquida + PGU

@@ -639,15 +639,24 @@ export function calcularPensionRV(saldo, edad, sexo, uf, familia = null, anioJub
  * @param {number} anos
  * @returns {Array<{ano, saldo}>}
  */
-export function proyectarSaldo(saldo, aporteMensual, tasaAnual, anos) {
-  const tasaMensual = Math.pow(1 + tasaAnual, 1/12) - 1;
-  const resultado   = [];
+/**
+ * @param {number} anosHastaJubilacion - años desde hoy hasta jubilación (0 = ya jubilado).
+ *   A partir del año anosHastaJubilacion+1 se usa tasaDesacumulacion y aportes = 0.
+ * @param {number} [tasaDesacumulacion] - tasa post-jubilación (default = tasaAnual)
+ */
+export function proyectarSaldo(saldo, aporteMensual, tasaAnual, anos, anosHastaJubilacion = anos, tasaDesacumulacion = null) {
+  const tasaDesac = tasaDesacumulacion ?? tasaAnual;
+  const resultado = [];
   let s = saldo;
   for (let a = 1; a <= anos; a++) {
+    const enAcumulacion = a <= anosHastaJubilacion;
+    const tasa     = enAcumulacion ? tasaAnual : tasaDesac;
+    const tm       = Math.pow(1 + tasa, 1/12) - 1;
+    const aporte   = enAcumulacion ? aporteMensual : 0;
     for (let m = 0; m < 12; m++) {
-      s = s * (1 + tasaMensual) + aporteMensual;
+      s = s * (1 + tm) + aporte;
     }
-    resultado.push({ ano: a, saldo: Math.round(s) });
+    resultado.push({ ano: a, saldo: Math.round(s), fase: enAcumulacion ? 'acumulacion' : 'desacumulacion' });
   }
   return resultado;
 }

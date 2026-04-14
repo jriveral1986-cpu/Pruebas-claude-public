@@ -213,9 +213,10 @@
 
         <!-- Indicadores económicos usados -->
         <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;">
-          <span id="badgeVC"  class="badge badge--info"></span>
-          <span id="badgeUF"  class="badge badge--info"></span>
-          <span id="badgeUTM" class="badge badge--info"></span>
+          <span id="badgeVC"      class="badge badge--info"></span>
+          <span id="badgeUF"      class="badge badge--info"></span>
+          <span id="badgeUTM"     class="badge badge--info"></span>
+          <span id="badgeSaldoUF" class="badge badge--primary" style="display:none;"></span>
         </div>
       </div>
     </div>
@@ -251,12 +252,20 @@
             <input type="number" id="aporteMensual" placeholder="0" min="0" step="1000" value="0">
           </div>
           <div class="form-group">
-            <label for="tasaAnual">Tasa de rentabilidad anual</label>
-            <select id="tasaAnual">
+            <label for="tasaAcumulacion">Rentabilidad acumulación</label>
+            <select id="tasaAcumulacion">
               <option value="0.03">3%</option>
               <option value="0.04" selected>4%</option>
               <option value="0.05">5%</option>
               <option value="0.06">6%</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tasaDesacumulacion">Rentabilidad post-jubilación</label>
+            <select id="tasaDesacumulacion">
+              <option value="0.02">2%</option>
+              <option value="0.03" selected>3%</option>
+              <option value="0.04">4%</option>
             </select>
           </div>
         </div>
@@ -384,9 +393,10 @@
       document.getElementById('panelResultados').style.display  = '';
       document.getElementById('seccionProyeccion').style.display = '';
       document.getElementById('seccionAcciones').style.display   = '';
-      // Pre-fill aporte mensual con APV guardado en Store
-      if (d.apvMensual > 0) {
-        document.getElementById('aporteMensual').value = d.apvMensual;
+      // Pre-fill aporte mensual con APV + DC guardados en Store
+      const _aporteInicial = (d.apvMensual || 0) + (d.aporteDC || 0);
+      if (_aporteInicial > 0) {
+        document.getElementById('aporteMensual').value = _aporteInicial;
       }
       calcular();
     }
@@ -411,7 +421,7 @@
       const edadJub    = d.edadJubilacion || d.edad;
       const anioJub    = anioActual + Math.max(0, Math.round(edadJub - d.edad));
 
-      const saldoEfectivo = d.saldoTotal + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0);
+      const saldoEfectivo = d.saldoTotal + (d.saldoAPV || 0) + (d.saldoDC || 0) + (d.bonoReconocimiento || 0);
       const rp = calcularPensionRP(saldoEfectivo, d.edad, d.sexo, uf, comisionDec, familia, anioJub);
       const rv = calcularPensionRV(saldoEfectivo, d.edad, d.sexo, uf, familia, anioJub);
 
@@ -541,6 +551,11 @@
         document.getElementById('badgeUF').textContent  = `UF: ${formatCLP(d.uf)}`;
       if (d.utm)
         document.getElementById('badgeUTM').textContent = `UTM: ${formatCLP(d.utm)}`;
+      if (uf && saldoEfectivo > 0) {
+        const badgeSUF = document.getElementById('badgeSaldoUF');
+        badgeSUF.textContent = `Saldo total: ${(saldoEfectivo / uf).toFixed(1)} UF`;
+        badgeSUF.style.display = '';
+      }
 
       // Panel APV — beneficio tributario
       const apvMensual  = d.apvMensual || 0;
@@ -662,11 +677,13 @@
     // ── Proyección ────────────────────────────────────
     async function proyectar() {
       await cargarTablas();
-      const anos        = parseInt(document.getElementById('anosProyeccion').value);
-      const aporte      = parseFloat(document.getElementById('aporteMensual').value) || 0;
-      const tasa        = parseFloat(document.getElementById('tasaAnual').value);
-      const uf          = d.uf || 39717;
-      const rows        = proyectarSaldo(saldoEfectivo, aporte, tasa, anos);
+      const anos             = parseInt(document.getElementById('anosProyeccion').value);
+      const aporte           = parseFloat(document.getElementById('aporteMensual').value) || 0;
+      const tasaAcum         = parseFloat(document.getElementById('tasaAcumulacion').value);
+      const tasaDesac        = parseFloat(document.getElementById('tasaDesacumulacion').value);
+      const anosHastaJub     = Math.max(0, Math.round((d.edadJubilacion || 65) - d.edad));
+      const uf               = d.uf || 39717;
+      const rows             = proyectarSaldo(saldoEfectivo, aporte, tasaAcum, anos, anosHastaJub, tasaDesac);
       const tbody       = document.getElementById('cuerpoProyeccion');
       tbody.innerHTML   = '';
       rows.forEach(r => {
@@ -679,8 +696,9 @@
         const impRP = rp.desglose.descImpuesto > 0
           ? `-${formatCLP(rp.desglose.descImpuesto)}`
           : '$0';
+        if (r.fase === 'desacumulacion') tr.style.background = '#fff7ed';
         tr.innerHTML = `
-          <td>Año ${r.ano} · ${edadProyectada} años</td>
+          <td>Año ${r.ano} · ${edadProyectada} años${r.fase === 'desacumulacion' ? ' <span style="font-size:0.7em;color:#ea580c;font-weight:600;">POST-JUB</span>' : ''}</td>
           <td class="col-num">${formatCLP(r.saldo)}</td>
           <td class="col-num">${cnu}</td>
           <td class="col-num">${formatCLP(rp.pension)}</td>

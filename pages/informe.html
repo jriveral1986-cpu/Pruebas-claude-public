@@ -892,8 +892,9 @@
     const comisionDec = d.comisionPensionadoDec ?? (getComisionPensionado(d.afp || '') / 100);
     const comisionPct = comisionDec * 100;
     const saldoAPVNum   = d.saldoAPV || 0;
+    const saldoDCNum    = d.saldoDC  || 0;
     const br            = d.bonoReconocimiento || 0;
-    const saldoEfectivo = d.saldoTotal + saldoAPVNum + br;
+    const saldoEfectivo = d.saldoTotal + saldoAPVNum + saldoDCNum + br;
     const familia = {
       tienePareja:         d.tienePareja         || false,
       edadConyuge:         d.edadConyuge         || 40,
@@ -964,6 +965,7 @@
     const subSaldo = [
       `AFP ${d.afp || '—'} · Fondo ${d.fondo || '—'}`,
       saldoAPVNum > 0 ? `+ APV ${fmt(saldoAPVNum)}` : '',
+      saldoDCNum  > 0 ? `+ DC ${fmt(saldoDCNum)}`   : '',
       br > 0          ? `+ BR ${fmt(br)}`            : '',
     ].filter(Boolean).join(' · ');
     document.getElementById('k-saldo-sub').textContent = subSaldo;
@@ -993,6 +995,7 @@
     // Savings table
     const sTbody    = document.getElementById('tbody-saldos');
     const apvUF     = (saldoAPVNum / uf).toFixed(2);
+    const dcUF      = (saldoDCNum  / uf).toFixed(2);
     const brUF      = (br / uf).toFixed(2);
     const totalUF   = (saldoEfectivo / uf).toFixed(2);
     const obligUF   = (d.saldoTotal / uf).toFixed(2);
@@ -1009,6 +1012,12 @@
         <td>${saldoAPVNum > 0 ? fmt(saldoAPVNum) : '$0'}</td>
         <td>${saldoAPVNum > 0 ? apvUF + ' UF' : '0 UF'}</td>
       </tr>
+      ${saldoDCNum > 0 ? `<tr>
+        <td class="left">Depósitos Convenidos (DC)</td>
+        <td style="text-align:center">—</td>
+        <td>${fmt(saldoDCNum)}</td>
+        <td>${dcUF} UF</td>
+      </tr>` : ''}
       <tr>
         <td class="left">Bono de Reconocimiento (BR)</td>
         <td style="text-align:center">IPS</td>

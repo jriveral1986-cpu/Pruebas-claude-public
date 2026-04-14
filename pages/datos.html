@@ -382,6 +382,15 @@
             <input type="number" id="saldoAPV" value="0" min="0" step="100000" placeholder="0">
           </div>
           <div class="form-group">
+            <label for="saldoDC">Saldo Depósitos Convenidos — DC (CLP)</label>
+            <input type="number" id="saldoDC" value="0" min="0" step="100000" placeholder="0">
+            <span class="form-hint">Depósitos de libre disposición acordados con el empleador (art. 20 DL 3.500).</span>
+          </div>
+          <div class="form-group">
+            <label for="aporteDC">Aporte DC mensual (CLP)</label>
+            <input type="number" id="aporteDC" value="0" min="0" step="10000" placeholder="0">
+          </div>
+          <div class="form-group">
             <label for="bonoReconocimiento">Bono de Reconocimiento — valor actual (CLP)</label>
             <input type="number" id="bonoReconocimiento" value="0" min="0" step="100000" placeholder="0 si no aplica">
             <span class="form-hint">Solo si cotizaste en el sistema antiguo (INP/IPS) antes de mayo 1981. Solicita el valor actualizado al IPS / ChileAtiende.</span>
@@ -575,6 +584,8 @@
     if (d.apvMensual != null) document.getElementById('apvMensual').value     = d.apvMensual;
     if (d.regimenAPV)       document.getElementById('regimenAPV').value       = d.regimenAPV;
     if (d.saldoAPV != null)           document.getElementById('saldoAPV').value           = d.saldoAPV;
+    if (d.saldoDC != null)            document.getElementById('saldoDC').value            = d.saldoDC;
+    if (d.aporteDC != null)           document.getElementById('aporteDC').value           = d.aporteDC;
     if (d.bonoReconocimiento != null) document.getElementById('bonoReconocimiento').value = d.bonoReconocimiento;
     if (d.pensionObjetivo != null)    document.getElementById('pensionObjetivo').value    = d.pensionObjetivo;
     if (d.estadoCivil)      document.getElementById('estadoCivil').value      = d.estadoCivil;
@@ -998,6 +1009,8 @@
         apvMensual:       parseFloat(document.getElementById('apvMensual').value) || 0,
         regimenAPV:       document.getElementById('regimenAPV').value,
         saldoAPV:             parseFloat(document.getElementById('saldoAPV').value) || 0,
+        saldoDC:              parseFloat(document.getElementById('saldoDC').value) || 0,
+        aporteDC:             parseFloat(document.getElementById('aporteDC').value) || 0,
         bonoReconocimiento:   parseFloat(document.getElementById('bonoReconocimiento').value) || 0,
         pensionObjetivo:      parseFloat(document.getElementById('pensionObjetivo').value) || 0,
         estadoCivil,
