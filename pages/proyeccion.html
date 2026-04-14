@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a2e4a">
   <title>Proyección — Calculadora Previsional Chile</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/print.css" media="print">
@@ -57,7 +58,7 @@
       <div id="sinDatos" class="aviso aviso--warning" style="display:none;">
         Aún no hay datos. <a href="datos.html">Ingresa tus datos primero →</a>
       </div>
-      <div id="panelResultados" style="display:none;">
+      <div id="panelResultados" style="display:none;" aria-live="polite" aria-atomic="false">
         <!-- Condiciones de acceso -->
         <div id="panelAcceso" class="card" style="margin-bottom:20px;"></div>
 
@@ -262,7 +263,7 @@
         <button type="button" id="btnProyectar" class="btn btn--secondary">Proyectar</button>
       </div>
 
-      <div class="tabla-wrap">
+      <div class="tabla-wrap" aria-live="polite" aria-label="Tabla de proyección de saldo">
         <table class="tabla-comparativa" id="tablaProyeccion">
           <thead>
             <tr>
@@ -383,6 +384,10 @@
       document.getElementById('panelResultados').style.display  = '';
       document.getElementById('seccionProyeccion').style.display = '';
       document.getElementById('seccionAcciones').style.display   = '';
+      // Pre-fill aporte mensual con APV guardado en Store
+      if (d.apvMensual > 0) {
+        document.getElementById('aporteMensual').value = d.apvMensual;
+      }
       calcular();
     }
 

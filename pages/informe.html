@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a2e4a">
   <title id="pageTitle">Informe Previsional — Previsión Chile</title>
   <link rel="stylesheet" href="../css/main.css">
   <style>
@@ -782,7 +783,7 @@
   import {
     calcularPensionRP, calcularPensionRV,
     calcularPGU, calcularPGUInformativa, calcularScore,
-    calcularAportacionNecesaria, PGU, UTM
+    calcularAportacionNecesaria, calcularBAC, calcularCEV, PGU, UTM
   }                                                               from '../js/calculos.js';
   import { cargarTablas, getCRU }                                 from '../js/mortalidad.js';
   import { cargarAFP, getComision, getComisionPensionado }        from '../js/comisiones.js?v=4';
@@ -1071,6 +1072,11 @@
     const totalRP  = rp.pensionLiquida + pguRP65;
     const totalRV  = rv.pensionLiquida + pguRV65;
     const pguNote  = d.edad < 65 ? ` (desde los 65 años)` : '';
+    const bac = calcularBAC(d.mesesCotizados || 0, uf, d.sexo);
+    const cev = calcularCEV(d.sexo, d.edad, rp.pension, uf, d.tipoJubilacion === 'anticipada');
+    const bacLabel = bac.elegible ? `+${fmt(bac.monto)} (${bac.montoUF.toFixed(2)} UF)` : `No elegible — ${bac.razonNoElegible}`;
+    const cevLabel = cev.elegible ? `+${fmt(cev.monto)} (${cev.porcentaje}% PAFE)` : `No elegible — ${cev.razonNoElegible}`;
+
     const compRows = [
       ['Pensión bruta inicial',    fmt(rp.pension),        fmt(rv.pension)],
       ['(-) Comisión AFP',         `-${fmt(rp.desglose.descComision)} (${comisionPct.toFixed(2)}%)`, '$0 (no aplica)'],
@@ -1079,6 +1085,8 @@
                                    rv.desglose.descImpuesto > 0 ? `-${fmt(rv.desglose.descImpuesto)}` : '$0 (exento)'],
       ['Pensión líquida mensual',  fmt(rp.pensionLiquida), fmt(rv.pensionLiquida)],
       [`(+) PGU del Estado${pguNote}`, `+${fmt(pguRP65)}`, `+${fmt(pguRV65)}`],
+      ['(+) BAC (Bono Apoyo Cuidador)', bacLabel, bacLabel],
+      ['(+) CEV (Comp. Expectativa Vida)', cevLabel, cevLabel],
       ['Duración garantizada',     rp.anosEstimados ? `~${rp.anosEstimados} años estimados` : '30+ años', 'De por vida (vitalicia)'],
       ['Herencia del saldo',       'Sí — saldo restante heredable', 'No (salvo período garantizado)'],
       ['¿Puedo cambiar de modalidad?', 'Sí → puede migrar a RV', 'No — decisión irreversible'],
@@ -1087,8 +1095,8 @@
     ];
     const compTbody = document.getElementById('tbody-comp');
     compTbody.innerHTML = compRows.map((r, i) => {
-      const isTotal  = i === 4 || i === 6;
-      const isHighlight = i === 5;
+      const isTotal  = i === 4;
+      const isHighlight = i === 5 || i === 6 || i === 7;
       return `<tr class="${isHighlight ? 'highlight' : ''}">
         <td class="left">${r[0]}</td>
         <td style="color:${isTotal?'var(--green)':'var(--navy)'};font-weight:${isTotal?'bold':'normal'}">${r[1]}</td>

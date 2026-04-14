@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a2e4a">
   <title>Modalidades — Calculadora Previsional Chile</title>
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/print.css" media="print">
@@ -181,6 +182,33 @@
       </div>
     </div>
 
+    <!-- ── Modalidad Mixta: Renta Temporal + RV Diferida ── -->
+    <div class="section" id="seccionMixta" style="display:none;">
+      <h2 class="section__title">Modalidad Mixta: Renta Temporal + Renta Vitalicia Diferida</h2>
+      <div class="aviso aviso--info" style="margin-bottom:16px;">
+        Combina un Retiro Programado limitado (fase temporal) con una Renta Vitalicia que inicia al cabo de <em>N</em> años.
+        El afiliado obtiene mayor liquidez en los primeros años y seguridad vitalicia desde la edad pactada.
+        <br><strong>Base legal:</strong> art. 61 DL 3.500 — «Renta Temporal con Renta Vitalicia Diferida».
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="form-row" style="gap:16px;flex-wrap:wrap;">
+          <div class="form-group" style="flex:1;min-width:160px;">
+            <label for="aniosMixta">Años fase temporal (RP)</label>
+            <input type="number" id="aniosMixta" min="1" max="20" value="5" step="1">
+          </div>
+          <div class="form-group" style="flex:1;min-width:160px;">
+            <label for="pctMixta">% saldo para RV diferida</label>
+            <input type="number" id="pctMixta" min="10" max="90" value="50" step="5">
+            <small style="color:var(--color-text-muted)">El resto financia la fase temporal.</small>
+          </div>
+          <div style="display:flex;align-items:flex-end;padding-bottom:4px;">
+            <button type="button" id="btnCalcularMixta" class="btn btn--primary">Calcular</button>
+          </div>
+        </div>
+      </div>
+      <div id="resultadoMixta" aria-live="polite" aria-atomic="true"></div>
+    </div>
+
     <!-- ── Pensión de Sobrevivencia ── -->
     <div class="section" id="seccionSobrevivencia" style="display:none;">
       <h2 class="section__title">Pensión de Sobrevivencia para tu Familia</h2>
@@ -318,8 +346,8 @@
   <script type="module">
     import { initBtnActualizar, mostrarDatosCliente, formatCLP, formatUF } from '../js/ui.js';
     import { Store }        from '../js/store.js';
-    import { cargarTablas } from '../js/mortalidad.js';
-    import { calcularPensionRP, calcularPensionRV, calcularPensionSobrevivencia, recomendarModalidadFamiliar, TASA_RP, calcularPGUInformativa, calcularBAC, calcularCEV, calcularBonificacionHijo } from '../js/calculos.js';
+    import { cargarTablas, getCRURentaVitalicia } from '../js/mortalidad.js';
+    import { calcularPensionRP, calcularPensionRV, calcularPensionSobrevivencia, recomendarModalidadFamiliar, TASA_RP, TASA_RV, calcularPGUInformativa, calcularBAC, calcularCEV, calcularBonificacionHijo } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
     import { cargarAFP, getComision, getComisionPensionado } from '../js/comisiones.js?v=4';
 
@@ -334,6 +362,7 @@
       document.getElementById('seccionPensiones').style.display    = '';
       document.getElementById('seccionLongevidad').style.display   = '';
       document.getElementById('seccionRPDetalle').style.display    = '';
+      document.getElementById('seccionMixta').style.display        = '';
       document.getElementById('seccionSobrevivencia').style.display = '';
       document.getElementById('seccionCNU').style.display          = '';
       init();
@@ -632,6 +661,59 @@
         if (agotado) break;
       }
     }
+
+    // ── Modalidad Mixta: Renta Temporal + RV Diferida ──
+    function anualidadLimitada(meses, tasaMensual) {
+      if (tasaMensual === 0 || meses <= 0) return meses;
+      return (1 - Math.pow(1 + tasaMensual, -meses)) / tasaMensual;
+    }
+
+    async function calcularMixta() {
+      await cargarTablas();
+      const N      = Math.max(1, parseInt(document.getElementById('aniosMixta').value) || 5);
+      const pctRV  = Math.min(0.9, Math.max(0.1, (parseFloat(document.getElementById('pctMixta').value) || 50) / 100));
+      const uf     = d.uf || 39717;
+      const bonoHijo = calcularBonificacionHijo(d.numHijosNacidosVivos, uf, d.sexo);
+      const saldoEfectivo = (d.saldoTotal || 0) + (d.saldoAPV || 0) + (d.bonoReconocimiento || 0) + bonoHijo.monto;
+
+      const saldoRV   = saldoEfectivo * pctRV;
+      const saldoTemp = saldoEfectivo * (1 - pctRV);
+
+      // Fase 1: Renta Temporal (RP limitado N años)
+      const tasaMensualRP = Math.pow(1 + TASA_RP * 12, 1/12) - 1;
+      const cruTemp       = anualidadLimitada(N * 12, tasaMensualRP);
+      const pensionTempBruta = cruTemp > 0 ? saldoTemp / cruTemp : 0;
+
+      // Fase 2: Renta Vitalicia Diferida (desde edad + N)
+      const edadRV    = Math.min(d.edad + N, 99);
+      const cruRVDif  = getCRURentaVitalicia(d.sexo, edadRV, TASA_RV);
+      const pensionRVBruta = cruRVDif > 0 ? saldoRV / cruRVDif : 0;
+
+      const fmt = v => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Math.round(v));
+
+      document.getElementById('resultadoMixta').innerHTML = `
+        <div class="grid-2" style="gap:16px;margin-bottom:16px;">
+          <div class="card" style="background:var(--green-lt,#f0fdf4);border-left:4px solid var(--green,#16a34a);">
+            <div style="font-size:var(--text-xs,0.75rem);text-transform:uppercase;letter-spacing:.05em;color:var(--green,#16a34a);margin-bottom:6px;">Fase 1 — Renta Temporal (${N} años)</div>
+            <div style="font-size:1.5rem;font-weight:700;color:var(--navy,#1a2e4a);">${fmt(pensionTempBruta)}</div>
+            <div style="font-size:var(--text-sm,0.875rem);color:var(--color-text-muted,#6b7280);margin-top:4px;">mensual bruta estimada · saldo ${fmt(saldoTemp)}</div>
+          </div>
+          <div class="card" style="background:#f5f3ff;border-left:4px solid #7c3aed;">
+            <div style="font-size:var(--text-xs,0.75rem);text-transform:uppercase;letter-spacing:.05em;color:#7c3aed;margin-bottom:6px;">Fase 2 — Renta Vitalicia Diferida (desde ${edadRV} años)</div>
+            <div style="font-size:1.5rem;font-weight:700;color:var(--navy,#1a2e4a);">${fmt(pensionRVBruta)}</div>
+            <div style="font-size:var(--text-sm,0.875rem);color:var(--color-text-muted,#6b7280);margin-top:4px;">mensual bruta estimada · saldo ${fmt(saldoRV)}</div>
+          </div>
+        </div>
+        <div class="aviso aviso--info" style="font-size:var(--text-sm,0.875rem);">
+          Distribución: <strong>${Math.round((1 - pctRV) * 100)}%</strong> al Retiro Programado temporal ·
+          <strong>${Math.round(pctRV * 100)}%</strong> a la Renta Vitalicia Diferida.
+          Tasa técnica RP: ${(TASA_RP * 12 * 100).toFixed(2)}% anual.
+          Tasa mercado RV: ${(TASA_RV * 12 * 100).toFixed(2)}% anual.
+          <br><em>Estimación referencial — los montos definitivos los fija la compañía aseguradora al cotizar.</em>
+        </div>`;
+    }
+
+    document.getElementById('btnCalcularMixta').addEventListener('click', calcularMixta);
 
     // ── Export ────────────────────────────────────────
     document.getElementById('btnPDF').addEventListener('click', () => exportarPDF());
