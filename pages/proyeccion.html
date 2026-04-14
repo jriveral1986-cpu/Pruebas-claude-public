@@ -232,6 +232,17 @@
       </div>
     </div>
 
+    <!-- ELD — Excedente de Libre Disposición (visible solo si aplica) -->
+    <div id="panelELD" class="card" style="display:none; border-left: 4px solid #7c3aed; background: #faf5ff;">
+      <div style="display:flex; align-items:flex-start; gap:12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <strong style="color:#7c3aed;">Excedente de Libre Disposición (ELD)</strong>
+          <div id="eldDetalle" style="font-size:var(--text-sm, 0.875rem); margin-top:4px; color: var(--color-text-muted, #6b7280);"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Proyección de saldo ── -->
     <div class="section" id="seccionProyeccion" style="display:none;">
       <h2 class="section__title">Proyección de Saldo</h2>
@@ -271,6 +282,8 @@
         </div>
         <button type="button" id="btnProyectar" class="btn btn--secondary">Proyectar</button>
       </div>
+
+      <div id="resumenProyeccion" style="display:none; margin-bottom:16px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;"></div>
 
       <div class="tabla-wrap" aria-live="polite" aria-label="Tabla de proyección de saldo">
         <table class="tabla-comparativa" id="tablaProyeccion">
@@ -377,7 +390,7 @@
     import { initBtnActualizar, mostrarDatosCliente, formatCLP, formatUF } from '../js/ui.js';
     import { Store }           from '../js/store.js';
     import { cargarTablas }    from '../js/mortalidad.js';
-    import { calcularPensionRP, calcularPensionRV, proyectarSaldo, calcularPGUInformativa, procesarInvalidez, calcularBeneficioTributarioAPV } from '../js/calculos.js';
+    import { calcularPensionRP, calcularPensionRV, proyectarSaldo, calcularPGUInformativa, procesarInvalidez, calcularBeneficioTributarioAPV, calcularELD } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
     import { cargarAFP, getComision, getComisionPensionado } from '../js/comisiones.js?v=4';
 
@@ -573,6 +586,20 @@
       } else {
         panelAPV.style.display = 'none';
       }
+
+      // Panel ELD — Excedente de Libre Disposición
+      const eld = calcularELD(rp.pension, saldoEfectivo, uf);
+      const panelELD = document.getElementById('panelELD');
+      if (eld.aplica) {
+        panelELD.style.display = '';
+        document.getElementById('eldDetalle').innerHTML =
+          `Tu pensión RP (${formatCLP(rp.pension)}/mes) supera el PMAS de 12 UF (${formatCLP(eld.pmasCLP)}/mes). ` +
+          `Podrías retirar hasta <strong>${formatCLP(eld.excedenteCLP)}</strong> ` +
+          `(<strong>${(eld.excedenteCLP / uf).toFixed(1)} UF</strong>) como Excedente de Libre Disposición (ELD). ` +
+          `<span style="font-size:0.8em;color:#9333ea;">Sujeto a liquidación del contrato de RP con la AFP.</span>`;
+      } else {
+        panelELD.style.display = 'none';
+      }
     }
 
     // ── Panel de condiciones de acceso ───────────────
@@ -683,7 +710,10 @@
       const tasaDesac        = parseFloat(document.getElementById('tasaDesacumulacion').value);
       const anosHastaJub     = Math.max(0, Math.round((d.edadJubilacion || 65) - d.edad));
       const uf               = d.uf || 39717;
-      const rows             = proyectarSaldo(saldoEfectivo, aporte, tasaAcum, anos, anosHastaJub, tasaDesac);
+      const anosCese         = (d.edadCeseRentas && d.edadCeseRentas > d.edad)
+        ? Math.round(d.edadCeseRentas - d.edad)
+        : null;
+      const rows             = proyectarSaldo(saldoEfectivo, aporte, tasaAcum, anos, anosHastaJub, tasaDesac, anosCese);
       const tbody       = document.getElementById('cuerpoProyeccion');
       tbody.innerHTML   = '';
       rows.forEach(r => {
@@ -697,8 +727,14 @@
           ? `-${formatCLP(rp.desglose.descImpuesto)}`
           : '$0';
         if (r.fase === 'desacumulacion') tr.style.background = '#fff7ed';
+        else if (r.fase === 'laguna')    tr.style.background = '#fffbeb';
+        const faseLabel = r.fase === 'desacumulacion'
+          ? ' <span style="font-size:0.7em;color:#ea580c;font-weight:600;">POST-JUB</span>'
+          : r.fase === 'laguna'
+            ? ' <span style="font-size:0.7em;color:#d97706;font-weight:600;">LAGUNA</span>'
+            : '';
         tr.innerHTML = `
-          <td>Año ${r.ano} · ${edadProyectada} años${r.fase === 'desacumulacion' ? ' <span style="font-size:0.7em;color:#ea580c;font-weight:600;">POST-JUB</span>' : ''}</td>
+          <td>Año ${r.ano} · ${edadProyectada} años${faseLabel}</td>
           <td class="col-num">${formatCLP(r.saldo)}</td>
           <td class="col-num">${cnu}</td>
           <td class="col-num">${formatCLP(rp.pension)}</td>
@@ -709,6 +745,19 @@
         `;
         tbody.appendChild(tr);
       });
+
+      // ── Resumen de proyección (tasa global + saldo final) ──
+      const saldoFinal = rows[rows.length - 1]?.saldo || 0;
+      const resumenDiv = document.getElementById('resumenProyeccion');
+      resumenDiv.style.display = '';
+      const tasaGlobal = saldoEfectivo > 0 && anos > 0
+        ? (Math.pow(saldoFinal / saldoEfectivo, 1 / anos) - 1) * 100
+        : 0;
+      resumenDiv.innerHTML = `
+        <span class="badge badge--primary">Saldo final: ${formatCLP(saldoFinal)} · ${(saldoFinal / (d.uf || 39717)).toFixed(1)} UF</span>
+        <span class="badge badge--info">Tasa proyectada global: ${tasaGlobal.toFixed(2)}% anual</span>
+        ${anosCese ? `<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #d97706;">Laguna desde edad ${d.edadCeseRentas} (año ${anosCese})</span>` : ''}
+      `;
     }
 
     document.getElementById('btnProyectar').addEventListener('click', proyectar);

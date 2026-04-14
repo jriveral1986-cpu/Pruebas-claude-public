@@ -391,6 +391,11 @@
             <input type="number" id="aporteDC" value="0" min="0" step="10000" placeholder="0">
           </div>
           <div class="form-group">
+            <label for="edadCeseRentas">Edad de cese de cotizaciones (laguna)</label>
+            <input type="number" id="edadCeseRentas" value="" min="18" max="80" step="1" placeholder="Dejar vacío si no aplica">
+            <span class="form-hint">Si planeas dejar de cotizar antes de jubilarte (ej. independiente), indica la edad en que cesarás los aportes. El saldo seguirá rentando.</span>
+          </div>
+          <div class="form-group">
             <label for="bonoReconocimiento">Bono de Reconocimiento — valor actual (CLP)</label>
             <input type="number" id="bonoReconocimiento" value="0" min="0" step="100000" placeholder="0 si no aplica">
             <span class="form-hint">Solo si cotizaste en el sistema antiguo (INP/IPS) antes de mayo 1981. Solicita el valor actualizado al IPS / ChileAtiende.</span>
@@ -586,6 +591,7 @@
     if (d.saldoAPV != null)           document.getElementById('saldoAPV').value           = d.saldoAPV;
     if (d.saldoDC != null)            document.getElementById('saldoDC').value            = d.saldoDC;
     if (d.aporteDC != null)           document.getElementById('aporteDC').value           = d.aporteDC;
+    if (d.edadCeseRentas != null)     document.getElementById('edadCeseRentas').value     = d.edadCeseRentas;
     if (d.bonoReconocimiento != null) document.getElementById('bonoReconocimiento').value = d.bonoReconocimiento;
     if (d.pensionObjetivo != null)    document.getElementById('pensionObjetivo').value    = d.pensionObjetivo;
     if (d.estadoCivil)      document.getElementById('estadoCivil').value      = d.estadoCivil;
@@ -1011,6 +1017,7 @@
         saldoAPV:             parseFloat(document.getElementById('saldoAPV').value) || 0,
         saldoDC:              parseFloat(document.getElementById('saldoDC').value) || 0,
         aporteDC:             parseFloat(document.getElementById('aporteDC').value) || 0,
+        edadCeseRentas:       parseFloat(document.getElementById('edadCeseRentas').value) || null,
         bonoReconocimiento:   parseFloat(document.getElementById('bonoReconocimiento').value) || 0,
         pensionObjetivo:      parseFloat(document.getElementById('pensionObjetivo').value) || 0,
         estadoCivil,

@@ -643,22 +643,65 @@ export function calcularPensionRV(saldo, edad, sexo, uf, familia = null, anioJub
  * @param {number} anosHastaJubilacion - años desde hoy hasta jubilación (0 = ya jubilado).
  *   A partir del año anosHastaJubilacion+1 se usa tasaDesacumulacion y aportes = 0.
  * @param {number} [tasaDesacumulacion] - tasa post-jubilación (default = tasaAnual)
+ * @param {number} [anosCese] - años desde hoy en que se dejan de hacer aportes (laguna previsional).
+ *   Si es menor que anosHastaJubilacion, los aportes se detienen en ese año aunque no haya jubilación.
  */
-export function proyectarSaldo(saldo, aporteMensual, tasaAnual, anos, anosHastaJubilacion = anos, tasaDesacumulacion = null) {
-  const tasaDesac = tasaDesacumulacion ?? tasaAnual;
+export function proyectarSaldo(saldo, aporteMensual, tasaAnual, anos, anosHastaJubilacion = anos, tasaDesacumulacion = null, anosCese = null) {
+  const tasaDesac  = tasaDesacumulacion ?? tasaAnual;
+  const ceseEfectivo = (anosCese != null && anosCese > 0 && anosCese < anosHastaJubilacion)
+    ? anosCese
+    : anosHastaJubilacion;
   const resultado = [];
   let s = saldo;
   for (let a = 1; a <= anos; a++) {
     const enAcumulacion = a <= anosHastaJubilacion;
     const tasa     = enAcumulacion ? tasaAnual : tasaDesac;
     const tm       = Math.pow(1 + tasa, 1/12) - 1;
-    const aporte   = enAcumulacion ? aporteMensual : 0;
+    const aporte   = (a <= ceseEfectivo) ? aporteMensual : 0;
     for (let m = 0; m < 12; m++) {
       s = s * (1 + tm) + aporte;
     }
-    resultado.push({ ano: a, saldo: Math.round(s), fase: enAcumulacion ? 'acumulacion' : 'desacumulacion' });
+    const fase = enAcumulacion
+      ? (a > ceseEfectivo ? 'laguna' : 'acumulacion')
+      : 'desacumulacion';
+    resultado.push({ ano: a, saldo: Math.round(s), fase });
   }
   return resultado;
+}
+
+// ============================================================
+// EXCEDENTE DE LIBRE DISPOSICIÓN (ELD)
+// ============================================================
+
+/**
+ * Calcula si hay Excedente de Libre Disposición.
+ * El afiliado puede retirar el saldo que supera el capital necesario para financiar
+ * una pensión igual al PMAS (12 UF/mes). Solo aplica en Retiro Programado.
+ *
+ * @param {number} pensionRP   - Pensión RP bruta mensual (CLP)
+ * @param {number} saldo       - Saldo total del afiliado (CLP)
+ * @param {number} uf          - Valor UF (CLP)
+ * @returns {{ aplica: boolean, excedenteCLP: number, excedenteUF: number, pmasCLP: number }}
+ */
+export function calcularELD(pensionRP, saldo, uf) {
+  const PMAS_UF = 12;
+  const pmasCLP = PMAS_UF * uf;
+  if (pensionRP <= pmasCLP) {
+    return { aplica: false, excedenteCLP: 0, excedenteUF: 0, pmasCLP };
+  }
+  // Tasa mensual 3% real
+  const tm = Math.pow(1 + 0.03, 1/12) - 1;
+  // Capital necesario para financiar una pensión = pmasCLP con anualidad perpetua simplificada
+  // Usamos la relación: saldo_necesario = pmasCLP / tm (anualidad perpetua)
+  const saldoNecesario = Math.round(pmasCLP / tm);
+  const excedenteCLP = Math.max(0, saldo - saldoNecesario);
+  return {
+    aplica: excedenteCLP > 0,
+    excedenteCLP,
+    excedenteUF: uf > 0 ? excedenteCLP / uf : 0,
+    pmasCLP,
+    saldoNecesario
+  };
 }
 
 // ============================================================
