@@ -14,7 +14,7 @@
  *   3. /data/vc_cache.json (ships with site, always available)
  */
 
-const PROXY_URL  = 'https://sp-proxy.TU_USUARIO.workers.dev';
+export const PROXY_URL  = 'https://sp-proxy.TU_USUARIO.workers.dev';
 const MINDICADOR = 'https://mindicador.cl/api';
 const _cache     = {};
 
