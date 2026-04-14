@@ -899,10 +899,22 @@
       "habitat": 92571.21
     },
     "2026-04-12": {
-      "planvital": 84850.56
+      "capital": 87290.06,
+      "cuprum": 90868.08,
+      "habitat": 92691.88,
+      "modelo": 88183.93,
+      "planvital": 84850.56,
+      "provida": 90063.8,
+      "uno": 91552.21
     },
     "2026-04-11": {
-      "planvital": 84850.56
+      "capital": 87290.06,
+      "cuprum": 90868.08,
+      "habitat": 92691.88,
+      "modelo": 88183.93,
+      "planvital": 84850.56,
+      "provida": 90063.8,
+      "uno": 91552.21
     }
   },
   "B": {
@@ -1806,10 +1818,22 @@
       "habitat": 79085.23
     },
     "2026-04-12": {
-      "planvital": 74743.73
+      "capital": 75358.99,
+      "cuprum": 77428.33,
+      "habitat": 79172.47,
+      "modelo": 72869.32,
+      "planvital": 74743.73,
+      "provida": 73354.08,
+      "uno": 74576.66
     },
     "2026-04-11": {
-      "planvital": 74743.73
+      "capital": 75358.99,
+      "cuprum": 77428.33,
+      "habitat": 79172.47,
+      "modelo": 72869.32,
+      "planvital": 74743.73,
+      "provida": 73354.08,
+      "uno": 74576.66
     }
   },
   "C": {
@@ -2711,10 +2735,22 @@
       "habitat": 82039.18
     },
     "2026-04-12": {
-      "planvital": 142370.71
+      "capital": 72170.18,
+      "cuprum": 81899.83,
+      "habitat": 82105.78,
+      "modelo": 76668.12,
+      "planvital": 142370.71,
+      "provida": 68035.14,
+      "uno": 77202.18
     },
     "2026-04-11": {
-      "planvital": 142370.71
+      "capital": 72170.18,
+      "cuprum": 81899.83,
+      "habitat": 82105.78,
+      "modelo": 76668.12,
+      "planvital": 142370.71,
+      "provida": 68035.14,
+      "uno": 77202.18
     }
   },
   "D": {
@@ -3619,10 +3655,22 @@
       "habitat": 60380.98
     },
     "2026-04-12": {
-      "planvital": 54393.54
+      "capital": 56464.31,
+      "cuprum": 59292.71,
+      "habitat": 60466.68,
+      "modelo": 55976.5,
+      "planvital": 54393.54,
+      "provida": 53989.47,
+      "uno": 60035.32
     },
     "2026-04-11": {
-      "planvital": 54393.54
+      "capital": 56464.31,
+      "cuprum": 59292.71,
+      "habitat": 60466.68,
+      "modelo": 55976.5,
+      "planvital": 54393.54,
+      "provida": 53989.47,
+      "uno": 60035.32
     }
   },
   "E": {
@@ -4527,12 +4575,24 @@
       "uno": 69518.77
     },
     "2026-04-12": {
-      "planvital": 108771.2
+      "capital": 68106.11,
+      "cuprum": 70671.62,
+      "habitat": 64655.63,
+      "modelo": 68312.67,
+      "planvital": 108771.2,
+      "provida": 63323.66,
+      "uno": 69517.42
     },
     "2026-04-11": {
-      "planvital": 108771.2
+      "capital": 68106.11,
+      "cuprum": 70671.62,
+      "habitat": 64655.63,
+      "modelo": 68312.67,
+      "planvital": 108771.2,
+      "provida": 63323.66,
+      "uno": 69517.42
     }
   },
-  "_generado": "2026-04-13",
+  "_generado": "2026-04-14",
   "_fuente": "SP Chile — scraping automático"
 }
