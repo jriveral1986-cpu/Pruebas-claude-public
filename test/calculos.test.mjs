@@ -1,18 +1,6 @@
 /**
  * test/calculos.test.mjs — Unit tests for js/calculos.js
  * Run: npm test
- *
- * Covers:
- *  - calcularImpuesto
- *  - calcularPensionLiquida
- *  - calcularPGU / calcularPGUInformativa
- *  - calcularBAC
- *  - calcularCEV
- *  - calcularBonificacionHijo
- *  - calcularBrecha
- *  - calcularBeneficioTributarioAPV
- *  - calcularScore
- *  - calcularPensionRP / calcularPensionRV (requiere tablas de mortalidad)
  */
 
 import { test, describe, before } from 'node:test';
@@ -22,18 +10,17 @@ import {
   calcularImpuesto,
   calcularPensionLiquida,
   calcularPGU, calcularPGUInformativa,
-  calcularBAC,
-  calcularCEV,
-  calcularBonificacionHijo,
-  calcularBrecha,
-  calcularBeneficioTributarioAPV,
-  calcularScore,
-  calcularPensionRP,
-  calcularPensionRV,
+  calcularBAC, calcularCEV, calcularBonificacionHijo,
+  calcularBrecha, calcularBeneficioTributarioAPV,
+  calcularScore, calcularPensionRP, calcularPensionRV,
+  calcularTopeImponible, calcularSaldoDesdeNumCuotas,
+  proyectarSaldo, calcularAportacionNecesaria,
+  calcularPensionSobrevivencia, recomendarModalidadFamiliar,
+  procesarVejezNormal, procesarAnticipada, procesarInvalidez,
   PGU,
 } from '../js/calculos.js';
 
-import { cargarTablas } from '../js/mortalidad.js';
+import { cargarTablas, getCRU, esperanzaVida } from '../js/mortalidad.js';
 
 const UF  = 39717;
 const UTM = 69889;
@@ -352,5 +339,190 @@ describe('calcularPensionRP + calcularPensionRV (integración con tablas)', () =
     const rF = calcularPensionRP(SALDO, 65, 'F', UF, 0, FAMILIA, 2026);
     // Mayor CNU → menor pensión mensual
     assert.ok(rF.pension < rH.pension);
+  });
+});
+
+// ── Tope imponible ────────────────────────────────────────────
+
+describe('calcularTopeImponible', () => {
+  test('90 × UF redondeado', () => {
+    assert.equal(calcularTopeImponible(UF), Math.round(90 * UF));
+  });
+  test('siempre > 0', () => assert.ok(calcularTopeImponible(1) > 0));
+});
+
+// ── Saldo desde cuotas ────────────────────────────────────────
+
+describe('calcularSaldoDesdeNumCuotas', () => {
+  test('cuotas × valorCuota', () => {
+    assert.equal(calcularSaldoDesdeNumCuotas(1000, 39717), 39717000);
+  });
+  test('cero cuotas → 0', () => {
+    assert.equal(calcularSaldoDesdeNumCuotas(0, 39717), 0);
+  });
+});
+
+// ── Proyección de saldo ───────────────────────────────────────
+
+describe('proyectarSaldo', () => {
+  test('retorna N filas para N años', () => {
+    const r = proyectarSaldo(1000000, 0, 0.05, 10);
+    assert.equal(r.length, 10);
+  });
+  test('saldo crece con tasa positiva y sin aportes', () => {
+    const r = proyectarSaldo(1000000, 0, 0.05, 5);
+    assert.ok(r[4].saldo > r[0].saldo);
+  });
+  test('aportes aumentan saldo final', () => {
+    const sin = proyectarSaldo(1000000, 0,      0.05, 10);
+    const con = proyectarSaldo(1000000, 100000, 0.05, 10);
+    assert.ok(con[9].saldo > sin[9].saldo);
+  });
+  test('tasa 0 y sin aportes → saldo no cambia', () => {
+    const r = proyectarSaldo(500000, 0, 0, 3);
+    assert.equal(r[2].saldo, 500000);
+  });
+});
+
+// ── calcularAportacionNecesaria ───────────────────────────────
+
+describe('calcularAportacionNecesaria (integración)', () => {
+  before(async () => { await cargarTablas(); });
+
+  test('saldo ya suficiente → aporte 0', () => {
+    // saldo muy alto, pensión objetivo baja
+    assert.equal(calcularAportacionNecesaria(500000000, 100000, 60, 'M', 0.05, 5), 0);
+  });
+  test('retorna número ≥ 0', () => {
+    const a = calcularAportacionNecesaria(1000000, 1000000, 40, 'M', 0.05, 25);
+    assert.ok(a >= 0);
+  });
+  test('mayor objetivo → mayor aporte necesario', () => {
+    const a1 = calcularAportacionNecesaria(10000000, 500000,  40, 'M', 0.05, 20);
+    const a2 = calcularAportacionNecesaria(10000000, 1500000, 40, 'M', 0.05, 20);
+    assert.ok(a2 > a1);
+  });
+});
+
+// ── Pensión de sobrevivencia ──────────────────────────────────
+
+describe('calcularPensionSobrevivencia', () => {
+  test('sin beneficiarios → totalSobrevivencia 0', () => {
+    const r = calcularPensionSobrevivencia(1000000, { tienePareja: false });
+    assert.equal(r.totalSobrevivencia, 0);
+    assert.equal(r.tieneBeneficiarios, false);
+  });
+  test('solo cónyuge sin hijos → 60% pensión', () => {
+    const r = calcularPensionSobrevivencia(1000000, { tienePareja: true });
+    assert.equal(r.montoConyuge, 600000);
+    assert.equal(r.pctTotal, 60);
+  });
+  test('cónyuge + 1 hijo menor → cónyuge 50%', () => {
+    const r = calcularPensionSobrevivencia(1000000, { tienePareja: true, numHijosMenores: 1 });
+    assert.equal(r.pctConyuge, 0.50);
+    assert.ok(r.pctTotal <= 100);
+  });
+  test('prorrateo cuando supera 100%', () => {
+    const r = calcularPensionSobrevivencia(1000000, {
+      tienePareja: true, numHijosMenores: 4, numHijosEstudiantes: 1,
+    });
+    assert.equal(r.huboProrrataeo, true);
+    assert.equal(r.pctTotal, 100);
+  });
+  test('pensionRef 0 → totalSobrevivencia 0', () => {
+    const r = calcularPensionSobrevivencia(0, { tienePareja: true });
+    assert.equal(r.totalSobrevivencia, 0);
+  });
+});
+
+// ── recomendarModalidadFamiliar ───────────────────────────────
+
+describe('recomendarModalidadFamiliar', () => {
+  test('sin pareja ni hijos → rp', () => {
+    assert.equal(recomendarModalidadFamiliar({}), 'rp');
+  });
+  test('hijo inválido → rv', () => {
+    assert.equal(recomendarModalidadFamiliar({ numHijosInvalidos: 1 }), 'rv');
+  });
+  test('pareja + hijos menores → rv', () => {
+    assert.equal(recomendarModalidadFamiliar({ tienePareja: true, numHijosMenores: 2 }), 'rv');
+  });
+  test('solo pareja → mixta', () => {
+    assert.equal(recomendarModalidadFamiliar({ tienePareja: true }), 'mixta');
+  });
+});
+
+// ── procesarVejezNormal ───────────────────────────────────────
+
+describe('procesarVejezNormal (integración)', () => {
+  before(async () => { await cargarTablas(); });
+
+  const BASE = { saldo: 50_000_000, uf: UF, comisionDec: 0.0127,
+    familia: { tienePareja: false }, anioJubilacion: 2026 };
+
+  test('hombre 65 cumple acceso', () => {
+    const r = procesarVejezNormal({ ...BASE, edad: 65, sexo: 'M' });
+    assert.equal(r.acceso.cumple, true);
+    assert.ok(r.rp.pension > 0);
+  });
+  test('hombre 60 no cumple acceso', () => {
+    const r = procesarVejezNormal({ ...BASE, edad: 60, sexo: 'M' });
+    assert.equal(r.acceso.cumple, false);
+    assert.equal(r.acceso.faltan, 5);
+  });
+  test('mujer 60 cumple acceso', () => {
+    const r = procesarVejezNormal({ ...BASE, edad: 60, sexo: 'F' });
+    assert.equal(r.acceso.cumple, true);
+  });
+});
+
+// ── procesarInvalidez ─────────────────────────────────────────
+
+describe('procesarInvalidez (integración)', () => {
+  before(async () => { await cargarTablas(); });
+
+  test('total retorna pensionBruta > 0', () => {
+    const r = procesarInvalidez({
+      saldo: 20_000_000, edad: 50, sexo: 'M', uf: UF,
+      comisionDec: 0.0127, anioJubilacion: 2026,
+      tipoInvalidez: 'total', rentaPromedioInvalidez: 1000000,
+    });
+    assert.ok(r.pensionBruta > 0);
+    assert.ok(r.pensionNeta > 0);
+  });
+});
+
+// ── procesarAnticipada ────────────────────────────────────────
+
+describe('procesarAnticipada (integración)', () => {
+  before(async () => { await cargarTablas(); });
+
+  test('cumple si pensión ≥ 70% promedio décenio', () => {
+    // Con saldo muy alto la pensión superará el umbral
+    const r = procesarAnticipada({
+      saldo: 200_000_000, edad: 60, sexo: 'M', uf: UF,
+      comisionDec: 0.0127, familia: { tienePareja: false }, anioJubilacion: 2026,
+      rentaPromedioDecenio: 1000000, rentaImponible: 1000000,
+    });
+    assert.ok(r.acceso !== undefined);
+    assert.ok(r.rp.pension > 0);
+  });
+});
+
+// ── mortalidad: getCRU / esperanzaVida ────────────────────────
+
+describe('getCRU + esperanzaVida (integración)', () => {
+  before(async () => { await cargarTablas(); });
+
+  test('getCRU hombre 65 > 0', () => assert.ok(getCRU('M', 65) > 0));
+  test('getCRU mujer 65 > getCRU hombre 65 (mayor longevidad)', () => {
+    assert.ok(getCRU('F', 65) > getCRU('M', 65));
+  });
+  test('getCRU decrece con la edad (menos meses por vivir)', () => {
+    assert.ok(getCRU('M', 75) < getCRU('M', 65));
+  });
+  test('esperanzaVida b2020_hombre 65 > 0', () => assert.ok(esperanzaVida('b2020_hombre', 65) > 0));
+  test('esperanzaVida mujer > hombre misma edad (b2020)', () => {
+    assert.ok(esperanzaVida('b2020_mujer', 65) > esperanzaVida('b2020_hombre', 65));
   });
 });
