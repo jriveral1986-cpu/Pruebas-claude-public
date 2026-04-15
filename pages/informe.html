@@ -100,14 +100,38 @@
       border-radius: 0 6px 6px 0;
     }
 
-    /* ── Trabajo Pesado ── */
-    .tp-calc { background: var(--blue-lt); border-radius: 8px; padding: 16px 20px; }
-    .tp-edu h2 { font-size: 13px; font-weight: bold; color: var(--navy); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); padding-bottom: 6px; margin-top: 4px; }
-    #tp-resultado { margin-top: 10px; }
-    .tp-result-card { background: var(--navy); color: white; border-radius: 8px; padding: 14px 20px; display: flex; gap: 32px; align-items: center; flex-wrap: wrap; }
-    .tp-result-card .tp-val { font-size: 28px; font-weight: bold; color: var(--gold); }
-    .tp-result-card .tp-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 2px; }
-    .tp-result-card .tp-note { font-size: 12px; color: #9ca3af; margin-top: 6px; }
+    /* ── Export buttons ── */
+    .btn-export {
+      background: transparent;
+      color: #d1d5db;
+      border: 1px solid #4b5563;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: Georgia, serif;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-export:hover { background: #1f2937; color: white; border-color: #6b7280; }
+    /* ── ELD panel ── */
+    .eld-card {
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+    .eld-card--aplica { background: var(--green-lt); border: 1px solid #86efac; color: #166534; }
+    .eld-card--no    { background: #f9fafb; border: 1px solid var(--border); color: var(--muted); }
+    /* ── Scenarios table ── */
+    .escenarios-table th { background: var(--navy); color: white; padding: 9px 12px; text-align: right; font-weight: normal; font-size: 11px; white-space: nowrap; }
+    .escenarios-table th:first-child { text-align: left; }
+    .escenarios-table td { padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee; font-size: 12px; white-space: nowrap; }
+    .escenarios-table td:first-child { text-align: left; font-weight: bold; color: var(--navy); }
+    .escenarios-table tr.esc-hoy { background: var(--blue-lt); }
+    .escenarios-table tr.esc-fut  { background: var(--green-lt); }
 
     /* ── Section subtitle (tabla RP/RV) ── */
     .section-subtitle {
@@ -255,17 +279,6 @@
     }
     .pgu-card h2 { color: #7c3aed; border-color: #7c3aed44; }
 
-    /* ── Steps ── */
-    .steps { display: flex; flex-direction: column; gap: 16px; }
-    .step { display: flex; gap: 14px; }
-    .step-num {
-      min-width: 30px; height: 30px; border-radius: 50%;
-      background: var(--navy); color: white;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: bold; flex-shrink: 0;
-    }
-    .step-title { font-weight: bold; color: var(--navy); margin-bottom: 3px; }
-    .step-body p { color: #4b5563; font-size: 13px; }
     code { background: #f3f4f6; padding: 1px 5px; border-radius: 3px; font-size: 12px; font-family: monospace; }
 
     /* ── APV section ── */
@@ -333,7 +346,7 @@
 
     /* ── Print styles ── */
     @media print {
-      .print-bar, .tab-buttons, .edit-hint, .btn-back, .nav, .skip-link { display: none !important; }
+      .print-bar, .tab-buttons, .edit-hint, .btn-back, .btn-export, .nav, .skip-link { display: none !important; }
       body { background: white; font-size: 12px; }
       header { padding: 20px 28px; print-color-adjust: exact; -webkit-print-color-adjust: exact; display: flex !important; flex-direction: row !important; justify-content: space-between !important; align-items: flex-start !important; }
       .header-meta { text-align: right !important; flex-shrink: 0; min-width: 180px; }
@@ -381,6 +394,14 @@
   <!-- Print bar -->
   <div class="print-bar">
     <a href="proyeccion.html" class="btn-back">← Volver</a>
+    <button class="btn-export" id="btn-csv" onclick="exportarInformeCSV()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar CSV
+    </button>
+    <button class="btn-export" id="btn-json" onclick="exportarInformeJSON()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar JSON
+    </button>
     <button class="btn-print" onclick="window.print()">Imprimir / Guardar PDF</button>
   </div>
 
@@ -396,7 +417,6 @@
         &nbsp;·&nbsp; AFP <span id="hdr-afp"></span>
         &nbsp;·&nbsp; Previsión Chile
       </div>
-      <div class="edit-hint" id="edit-hint-hdr">↑ Haz clic en el nombre o RUT para editarlos antes de imprimir</div>
     </div>
     <div class="header-meta">
       <strong id="hdr-mes"></strong>
@@ -437,6 +457,27 @@
       </div>
     </div>
 
+    <!-- Escenarios de Jubilación -->
+    <div class="section-title section-title--first" style="margin-top:8px">Escenarios de Jubilación</div>
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px">
+      <div class="table-wrap" style="margin-bottom:0;border:none;border-radius:0">
+        <table class="escenarios-table">
+          <thead>
+            <tr>
+              <th style="text-align:left">Escenario</th>
+              <th>Edad</th>
+              <th>Saldo estimado</th>
+              <th>Pensión RP</th>
+              <th>Pensión RV</th>
+              <th style="color:#c084fc">PGU</th>
+              <th>Ingreso total</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-escenarios"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Personal data + Parameters -->
     <div class="grid-2">
       <div class="card">
@@ -449,6 +490,8 @@
         <div class="kv"><span class="lbl">Fondo</span><span class="val" id="d-fondo"></span></div>
         <div class="kv"><span class="lbl">Renta imponible</span><span class="val" id="d-renta"></span></div>
         <div class="kv"><span class="lbl">Score previsional</span><span class="val" id="d-score"></span></div>
+        <div class="kv"><span class="lbl">Grupo familiar</span><span class="val" id="d-familia"></span></div>
+        <div class="kv" id="kv-cnu-familia" style="display:none"><span class="lbl">Impacto en CNU (RP)</span><span class="val" id="d-cnu-familia"></span></div>
       </div>
       <div class="card">
         <h2>II. Parámetros de Cálculo</h2>
@@ -507,6 +550,9 @@
         </table>
       </div>
     </div>
+
+    <!-- ELD panel -->
+    <div id="eld-panel"></div>
 
     <!-- APV recommendation -->
     <div class="apv-card card" id="seccion-apv" style="display:none">
@@ -597,11 +643,8 @@
       </div>
     </div>
 
-    <!-- Trabajo Pesado -->
-    <div class="section-title">Trabajo Pesado — Pensión Anticipada</div>
-    <div class="card" id="seccion-tp">
-
-      <!-- Calculador interactivo -->
+    <!-- seccion-tp placeholder (removed in Sprint 6) -->
+    <div id="seccion-tp" style="display:none"><!-- Calculador interactivo -->
       <div class="tp-calc">
         <h2 style="margin-bottom:14px">Calculador de Rebaja de Edad</h2>
         <div class="grid-3" style="gap:12px;align-items:end;margin-bottom:14px">
@@ -714,61 +757,9 @@
       </div>
     </div>
 
-    <!-- Methodology -->
-    <div class="section-title">Metodología de Cálculo</div>
-    <div class="card">
-      <div class="steps" id="steps-container"></div>
-    </div>
+    <!-- steps-container placeholder (Metodología removed Sprint 6) -->
+    <div id="steps-container" style="display:none"></div>
 
-
-    <!-- modulos nav -->
-    <section class="mod-nav-section" aria-label="Otros modulos">
-      <h2 class="mod-nav-section__title">Otros modulos</h2>
-      <div class="cards-nav" role="list">
-        <a href="datos.html" class="card-nav-item card-nav-item--blue" role="listitem">
-          <div class="card-nav-item__icon-wrap" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-          <div class="card-nav-item__title">Mis Datos</div>
-          <div class="card-nav-item__desc">AFP, fondo, saldo y datos personales.</div>
-          <div class="card-nav-item__arrow" aria-hidden="true">Ingresar datos <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-        </a>
-        <a href="proyeccion.html" class="card-nav-item card-nav-item--green" role="listitem">
-          <div class="card-nav-item__icon-wrap" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
-          <div class="card-nav-item__title">Proyeccion</div>
-          <div class="card-nav-item__desc">Pension estimada RP y RV.</div>
-          <div class="card-nav-item__arrow" aria-hidden="true">Ver proyeccion <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-        </a>
-        <a href="modalidades.html" class="card-nav-item card-nav-item--gold" role="listitem">
-          <div class="card-nav-item__icon-wrap" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></div>
-          <div class="card-nav-item__title">Modalidades</div>
-          <div class="card-nav-item__desc">RP vs. Renta Vitalicia.</div>
-          <div class="card-nav-item__arrow" aria-hidden="true">Comparar <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-        </a>
-        <a href="brechas.html" class="card-nav-item card-nav-item--purple" role="listitem">
-          <div class="card-nav-item__icon-wrap" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-          <div class="card-nav-item__title">Brechas</div>
-          <div class="card-nav-item__desc">Diferencia entre pension estimada y necesaria.</div>
-          <div class="card-nav-item__arrow" aria-hidden="true">Analizar brecha <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-        </a>
-        <a href="normativa.html" class="card-nav-item card-nav-item--red" role="listitem">
-          <div class="card-nav-item__icon-wrap" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-          <div class="card-nav-item__title">Normativa</div>
-          <div class="card-nav-item__desc">NCGs y leyes del sistema previsional.</div>
-          <div class="card-nav-item__arrow" aria-hidden="true">Ver normativa <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-        </a>
-        <a href="informe.html" class="card-nav-item card-nav-item--teal card-nav-item--current" role="listitem" aria-current="page">
-          <div class="card-nav-item__icon-wrap" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="11" y1="9" x2="8" y2="9"/></svg></div>
-          <div class="card-nav-item__title">Informe</div>
-          <div class="card-nav-item__desc">Estudio de pension listo para PDF.</div>
-          <div class="card-nav-item__arrow" aria-hidden="true">Ver informe <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-        </a>
-        <a href="parametros.html" class="card-nav-item card-nav-item--navy" role="listitem">
-          <div class="card-nav-item__icon-wrap" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></div>
-          <div class="card-nav-item__title">Parametros</div>
-          <div class="card-nav-item__desc">UF, UTM, tasas, comisiones y constantes.</div>
-          <div class="card-nav-item__arrow" aria-hidden="true">Ver parametros <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-        </a>
-      </div>
-    </section>
 
   </div><!-- /.container -->
 
@@ -783,10 +774,13 @@
   import {
     calcularPensionRP, calcularPensionRV,
     calcularPGU, calcularPGUInformativa, calcularScore,
-    calcularAportacionNecesaria, calcularBAC, calcularCEV, PGU, UTM
+    calcularAportacionNecesaria, calcularBAC, calcularCEV,
+    calcularELD, calcularBonificacionHijo, proyectarSaldo,
+    PGU, UTM
   }                                                               from '../js/calculos.js';
   import { cargarTablas, getCRU }                                 from '../js/mortalidad.js';
   import { cargarAFP, getComision, getComisionPensionado }        from '../js/comisiones.js?v=4';
+  import { exportarCSV, exportarJSON }                            from '../js/exportar.js';
 
   // ─── Formatters ──────────────────────────────────────────────
   const fmt     = n => '$' + Math.round(n).toLocaleString('es-CL');
@@ -880,6 +874,11 @@
     return rows;
   }
 
+  // ─── Module-level state for export functions ─────────────────
+  let _exportProyRP = [];
+  let _exportProyRV = [];
+  let _exportData   = {};
+
   // ─── Main ─────────────────────────────────────────────────────
   async function main() {
     const d = getStore();
@@ -919,6 +918,11 @@
 
     render(d, uf, utm, comisionPct, comisionDec, rp, rv, score, proyRP, proyRV, saldoEfectivo, saldoAPVNum, br);
 
+    // Store data for CSV/JSON export
+    _exportProyRP = proyRP;
+    _exportProyRV = proyRV;
+    _exportData   = { rp, rv, saldoEfectivo, uf, utm };
+
     document.getElementById('loading').style.display  = 'none';
     document.getElementById('informe').style.display  = '';
   }
@@ -926,7 +930,6 @@
   // ─── Render ───────────────────────────────────────────────────
   function render(d, uf, utm, comisionPct, comisionDec, rp, rv, score, proyRP, proyRV, saldoEfectivo, saldoAPVNum, br) {
     const saldoDCNum = d.saldoDC || 0;
-    window._tpSexo = d.sexo;  // para el calculador de trabajo pesado
     const sexoLabel  = d.sexo === 'M' ? 'Masculino' : 'Femenino';
     const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const now   = new Date();
@@ -977,6 +980,49 @@
     document.getElementById('k-rv').textContent        = fmt(rv.pension);
     document.getElementById('k-rv-sub').textContent    = `Tasa mercado 2,76%`;
 
+    // Escenarios de Jubilación
+    const familiaEsc = {
+      tienePareja:         d.tienePareja         || false,
+      edadConyuge:         d.edadConyuge         || 40,
+      sexoConyuge:         d.sexoConyuge         || 'F',
+      numHijosMenores:     d.numHijosMenores     || 0,
+      numHijosEstudiantes: d.numHijosEstudiantes || 0,
+      numHijosInvalidos:   d.numHijosInvalidos   || 0,
+    };
+    const TASA_PROY = 0.02;
+    const anioBase  = new Date().getFullYear();
+    const edadHoy   = Math.floor(d.edad);
+    const edadLegal = d.sexo === 'M' ? 65 : 60;
+
+    const buildEscenario = (label, edadEsc, saldoEsc, rowClass) => {
+      const rpEsc  = calcularPensionRP(saldoEsc, edadEsc, d.sexo, uf, comisionDec, familiaEsc, anioBase);
+      const rvEsc  = calcularPensionRV(saldoEsc, edadEsc, d.sexo, uf, familiaEsc, anioBase);
+      const pguEsc = calcularPGU(rpEsc.pensionLiquida, edadEsc);
+      const totEsc = rpEsc.pensionLiquida + pguEsc;
+      return `<tr class="${rowClass}">
+        <td>${label}</td>
+        <td>${edadEsc}</td>
+        <td>${fmt(saldoEsc)}</td>
+        <td>${fmt(rpEsc.pension)}</td>
+        <td>${fmt(rvEsc.pension)}</td>
+        <td class="td-pgu">${pguEsc > 0 ? `+${fmt(pguEsc)}` : edadEsc < 65 ? '<span style="color:var(--muted)">—</span>' : '$0'}</td>
+        <td style="font-weight:bold">${fmt(totEsc)}</td>
+      </tr>`;
+    };
+
+    let escHtml = buildEscenario(`Hoy (${edadHoy} años)`, edadHoy, saldoEfectivo, 'esc-hoy');
+    const edad5  = edadHoy + 5;
+    const saldo5 = Math.round(saldoEfectivo * Math.pow(1 + TASA_PROY, 5));
+    escHtml += buildEscenario(`En 5 años (${edad5} años)`, edad5, saldo5, 'esc-fut');
+
+    // Show anticipada scenario only if legal age hasn't been reached yet
+    if (edadHoy < edadLegal) {
+      const aniosA = Math.max(0, edadLegal - edadHoy);
+      const saldoA = Math.round(saldoEfectivo * Math.pow(1 + TASA_PROY, aniosA));
+      escHtml += buildEscenario(`A los ${edadLegal} años`, edadLegal, saldoA, '');
+    }
+    document.getElementById('tbody-escenarios').innerHTML = escHtml;
+
     // Personal data
     document.getElementById('d-edad').textContent    = `${d.edad} años`;
     document.getElementById('d-sexo').textContent    = sexoLabel;
@@ -985,6 +1031,31 @@
     document.getElementById('d-renta').textContent   = d.rentaImponible ? fmt(d.rentaImponible) : 'No informada';
     const scoreLabel = score >= 75 ? 'Buen camino' : score >= 50 ? 'En progreso' : 'Alerta';
     document.getElementById('d-score').innerHTML     = `<strong>${score}/100</strong> <span class="badge ${score>=75?'badge-green':score>=50?'badge-gold':'badge-red'}">${scoreLabel}</span>`;
+
+    // Grupo familiar
+    const familia = {
+      tienePareja:         d.tienePareja         || false,
+      numHijosMenores:     d.numHijosMenores     || 0,
+      numHijosEstudiantes: d.numHijosEstudiantes || 0,
+      numHijosInvalidos:   d.numHijosInvalidos   || 0,
+    };
+    const totalBenef = (familia.tienePareja ? 1 : 0) + familia.numHijosMenores + familia.numHijosEstudiantes + familia.numHijosInvalidos;
+    let familiaLabel = 'Sin beneficiarios';
+    if (totalBenef > 0) {
+      const partes = [];
+      if (familia.tienePareja) partes.push('Cónyuge');
+      if (familia.numHijosMenores > 0) partes.push(`${familia.numHijosMenores} hijo${familia.numHijosMenores > 1 ? 's' : ''} menor${familia.numHijosMenores > 1 ? 'es' : ''}`);
+      if (familia.numHijosEstudiantes > 0) partes.push(`${familia.numHijosEstudiantes} estudiante${familia.numHijosEstudiantes > 1 ? 's' : ''}`);
+      if (familia.numHijosInvalidos > 0) partes.push(`${familia.numHijosInvalidos} inválido${familia.numHijosInvalidos > 1 ? 's' : ''}`);
+      familiaLabel = partes.join(' + ');
+    }
+    document.getElementById('d-familia').textContent = familiaLabel;
+    if (totalBenef > 0 && rp.cnuDetalle) {
+      const cnuSin = getCRU(d.sexo, d.edad);
+      const cnuCon = rp.cnuDetalle.cnuTotal;
+      document.getElementById('d-cnu-familia').textContent = `CNU familiar ${cnuCon.toFixed(2)} (sin familia: ${cnuSin.toFixed(2)})`;
+      document.getElementById('kv-cnu-familia').style.display = '';
+    }
 
     // Parameters
     document.getElementById('p-uf').textContent      = fmt(uf);
@@ -1087,6 +1158,11 @@
     const bacLabel = bac.elegible ? `+${fmt(bac.monto)} (${bac.montoUF.toFixed(2)} UF)` : `No elegible — ${bac.razonNoElegible}`;
     const cevLabel = cev.elegible ? `+${fmt(cev.monto)} (${cev.porcentaje}% PAFE)` : `No elegible — ${cev.razonNoElegible}`;
 
+    // Bonificación por hijo (solo mujeres con hijos nacidos vivos)
+    const numHijosNV = d.numHijosNacidosVivos || 0;
+    const bonificar  = d.sexo === 'F' && numHijosNV > 0;
+    const bonif      = bonificar ? calcularBonificacionHijo(numHijosNV, uf, d.sexo) : null;
+
     const compRows = [
       ['Pensión bruta inicial',    fmt(rp.pension),        fmt(rv.pension)],
       ['(-) Comisión AFP',         `-${fmt(rp.desglose.descComision)} (${comisionPct.toFixed(2)}%)`, '$0 (no aplica)'],
@@ -1097,6 +1173,7 @@
       [`(+) PGU del Estado${pguNote}`, `+${fmt(pguRP65)}`, `+${fmt(pguRV65)}`],
       ['(+) BAC (Bono Apoyo Cuidador)', bacLabel, bacLabel],
       ['(+) CEV (Comp. Expectativa Vida)', cevLabel, cevLabel],
+      ...(bonif ? [['(+) Bonificación hijo nacido vivo', `No aplica en RP`, `+${fmt(bonif.monto)} (${bonif.montoUF.toFixed(2)} UF) al traspaso`]] : []),
       ['Duración garantizada',     rp.anosEstimados ? `~${rp.anosEstimados} años estimados` : '30+ años', 'De por vida (vitalicia)'],
       ['Herencia del saldo',       'Sí — saldo restante heredable', 'No (salvo período garantizado)'],
       ['¿Puedo cambiar de modalidad?', 'Sí → puede migrar a RV', 'No — decisión irreversible'],
@@ -1105,8 +1182,8 @@
     ];
     const compTbody = document.getElementById('tbody-comp');
     compTbody.innerHTML = compRows.map((r, i) => {
-      const isTotal  = i === 4;
-      const isHighlight = i === 5 || i === 6 || i === 7;
+      const isTotal     = i === 4;
+      const isHighlight = i >= 5 && i <= (bonif ? 8 : 7);
       return `<tr class="${isHighlight ? 'highlight' : ''}">
         <td class="left">${r[0]}</td>
         <td style="color:${isTotal?'var(--green)':'var(--navy)'};font-weight:${isTotal?'bold':'normal'}">${r[1]}</td>
@@ -1118,6 +1195,21 @@
         <td>${fmt(totalRP)}</td>
         <td>${fmt(totalRV)}</td>
       </tr>`;
+
+    // ELD panel
+    const eld = calcularELD(rp.pension, saldoEfectivo, uf);
+    const eldPanel = document.getElementById('eld-panel');
+    if (eld.aplica) {
+      eldPanel.innerHTML = `<div class="eld-card eld-card--aplica">
+        <strong>Tienes derecho a retirar ${fmt(eld.excedenteCLP)} como Excedente de Libre Disposición (ELD)</strong>
+        <span style="margin-left:8px;font-size:11px">(${eld.excedenteUF.toFixed(2)} UF)</span>
+        <div style="margin-top:6px;font-size:12px">Tu pensión RP supera el PMAS (${fmt(eld.pmasCLP)} = 12 UF). El excedente puede retirarse en cuotas o como suma única. Aplica al momento de jubilarse en RP. Art. 68 bis DL 3.500.</div>
+      </div>`;
+    } else {
+      eldPanel.innerHTML = `<div class="eld-card eld-card--no">
+        ELD no aplica — pensión RP (${fmt(rp.pension)}) es inferior al PMAS (${fmt(eld.pmasCLP)} = 12 UF)
+      </div>`;
+    }
 
     // APV recommendation
     const pensionObj = d.pensionObjetivo || 0;
@@ -1271,47 +1363,30 @@
        Este documento es una estimación y no constituye una oferta formal de pensión. Tasa técnica RP 3,31% (Circular SP N°2407, ene 2026). Tablas B-2020 / RV-2020 (SP Chile).`;
   }
 
-  // ─── Calculador Trabajo Pesado ────────────────────────────────
-  window.calcularTP = function() {
-    const N     = parseInt(document.getElementById('tp-meses').value) || 0;
-    const tipo  = parseInt(document.getElementById('tp-tipo').value);  // 1 o 2
-    const factor = tipo === 2 ? 0.4 : 0.2;
-    const tope   = tipo === 2 ? 120 : 60;  // meses máximos de rebaja
+  // ─── Export functions ────────────────────────────────────────
+  window.exportarInformeCSV = function() {
+    if (!_exportProyRP.length) return;
+    const cabRP = ['Modalidad','Edad','Año','Saldo UF','CNU','Pensión Bruta','Comisión','Salud 7%','Renta Afecta','Impuesto','Pensión Líquida','PGU','Total'];
+    const filasRP = _exportProyRP.map(r => ['RP', r.edad, r.anio, r.saldoUF.toFixed(2), r.cnu.toFixed(2), r.bruta, r.comision, r.salud, r.afecta, r.imp, r.liquida, r.pgu, r.total]);
+    const cabRV = ['Modalidad','Edad','Año','Pensión Bruta','Salud 7%','Renta Afecta','Impuesto','Pensión Líquida','PGU','Total'];
+    const filasRV = _exportProyRV.map(r => ['RV', r.edad, r.anio, r.bruta, r.salud, r.afecta, r.imp, r.liquida, r.pgu, r.total]);
+    exportarCSV([
+      cabRP, ...filasRP,
+      [],
+      cabRV, ...filasRV,
+    ], 'informe-previsional');
+  };
 
-    const rebajaRaw   = factor * N;
-    const rebajaMeses = Math.min(Math.round(rebajaRaw), tope);
-    const rebajaAnios = Math.floor(rebajaMeses / 12);
-    const rebajaM     = rebajaMeses % 12;
-
-    // Edad legal del afiliado actual (viene del store vía _lastData)
-    const edadLegal   = (window._tpSexo === 'M') ? 65 : 60;
-    const edadRebajada = edadLegal - rebajaAnios - (rebajaM / 12);
-    const edadFinal    = Math.max(55, edadRebajada);
-    const edadAnios    = Math.floor(edadFinal);
-    const edadMesesR   = Math.round((edadFinal - edadAnios) * 12);
-
-    const enTope = rebajaMeses >= tope;
-
-    let html = `<div class="tp-result-card">
-      <div>
-        <div class="tp-lbl">Rebaja de edad</div>
-        <div class="tp-val">${rebajaAnios > 0 ? rebajaAnios + ' año' + (rebajaAnios > 1 ? 's' : '') : ''}${rebajaM > 0 ? ' ' + rebajaM + ' mes' + (rebajaM > 1 ? 'es' : '') : ''}${rebajaMeses === 0 ? '0 meses' : ''}</div>
-        ${enTope ? '<div class="tp-note">⚠ Tope máximo alcanzado (' + tope/12 + ' años)</div>' : ''}
-      </div>
-      <div>
-        <div class="tp-lbl">Edad legal base</div>
-        <div class="tp-val">${edadLegal} años</div>
-      </div>
-      <div>
-        <div class="tp-lbl">Edad con rebaja</div>
-        <div class="tp-val" style="color:#86efac">${edadFinal === 55 ? '55 (mínimo legal)' : edadAnios + (edadMesesR > 0 ? ' años ' + edadMesesR + ' meses' : ' años')}</div>
-      </div>
-      <div style="font-size:12px;color:#9ca3af;max-width:220px">
-        Fórmula: ${factor} × ${N} = ${rebajaRaw.toFixed(1)} → ${rebajaMeses} meses de rebaja<br>
-        Sexo detectado: ${window._tpSexo === 'M' ? 'Masculino (base 65)' : 'Femenino (base 60)'}
-      </div>
-    </div>`;
-    document.getElementById('tp-resultado').innerHTML = html;
+  window.exportarInformeJSON = function() {
+    exportarJSON({
+      pensionRP:       _exportData.rp?.pension,
+      pensionRV:       _exportData.rv?.pension,
+      saldoEfectivo:   _exportData.saldoEfectivo,
+      uf:              _exportData.uf,
+      utm:             _exportData.utm,
+      proyeccionRP:    _exportProyRP,
+      proyeccionRV:    _exportProyRV,
+    }, 'datos-previsionales');
   };
 
   // ─── Tab switch ──────────────────────────────────────────────
