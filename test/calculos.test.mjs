@@ -17,8 +17,36 @@ import {
   proyectarSaldo, calcularAportacionNecesaria,
   calcularPensionSobrevivencia, recomendarModalidadFamiliar,
   procesarVejezNormal, procesarAnticipada, procesarInvalidez,
+  calcularELD,
   PGU,
 } from '../js/calculos.js';
+
+// ── Fixture SCOMP real (Certificado de Ofertas 154624401, 20/03/2026) ──────────
+// Fuente: SCOMP emitido por AFP Habitat para cotizante real.
+// Usar para smoke tests o validaciones de lógica de negocio contra datos reales.
+const SCOMP_FIXTURE = {
+  nombreCliente:    'Elba Rosa del Carmen González Vivar',
+  rutCliente:       '8.998.734-2',
+  afp:              'Habitat',
+  fondo:            'C',                // fondo conservador, cercano a jubilación
+  sexo:             'F',
+  edad:             60,                  // nacida 14/02/1966, cert. 20/03/2026
+  uf:               39819,              // UF al 05/03/2026 (cert. saldo)
+  saldoTotal:       61610760,           // UF 1.547,27 × $39.819,01
+  saldoUF:          1547.27,
+  // Ofertas reales SCOMP (primer año):
+  pensionRP_UF:     6.73,               // AFP Habitat primer año
+  pensionRP_CLP:    267982,
+  pensionRV_UF:     6.53,               // RV simple mejor oferta (4 Life Seguros)
+  pensionRV_CLP:    260018,
+  // Contexto adicional
+  estadoCivil:      'SOLTERO',
+  tieneBeneficiarios: false,
+  edadJubilacion:   60,                 // mujer: edad legal
+  // ELD: el SCOMP indica "no puede retirar ELD porque no cumple los requisitos"
+  // → pensionRP (267.982) < PMAS (12 UF × 39.819 = 477.828) → aplica = false
+  eldEsperado:      false,
+};
 
 import { cargarTablas, getCRU, esperanzaVida } from '../js/mortalidad.js';
 
@@ -524,5 +552,156 @@ describe('getCRU + esperanzaVida (integración)', () => {
   test('esperanzaVida b2020_hombre 65 > 0', () => assert.ok(esperanzaVida('b2020_hombre', 65) > 0));
   test('esperanzaVida mujer > hombre misma edad (b2020)', () => {
     assert.ok(esperanzaVida('b2020_mujer', 65) > esperanzaVida('b2020_hombre', 65));
+  });
+});
+
+// ── calcularELD ───────────────────────────────────────────────
+
+describe('calcularELD', () => {
+  // PMAS = 12 UF × UF = 12 × 39717 = 476.604
+  const pmasCLP = 12 * UF;
+
+  test('no aplica cuando pensión RP <= PMAS', () => {
+    // pensión 300.000 < PMAS ~476.604 → sin ELD
+    const r = calcularELD(300_000, 50_000_000, UF);
+    assert.equal(r.aplica, false);
+    assert.equal(r.excedenteCLP, 0);
+  });
+
+  test('aplica cuando pensión RP > PMAS y saldo suficiente', () => {
+    // pensión 600.000 > PMAS, saldo muy alto → hay ELD
+    const r = calcularELD(600_000, 200_000_000, UF);
+    assert.equal(r.aplica, true);
+    assert.ok(r.excedenteCLP > 0);
+    assert.ok(r.excedenteUF > 0);
+  });
+
+  test('retorna pmasCLP en todos los casos', () => {
+    const r = calcularELD(100_000, 10_000_000, UF);
+    assert.ok(r.pmasCLP > 0);
+    assert.equal(r.pmasCLP, pmasCLP);
+  });
+
+  test('excedenteCLP 0 cuando pensión > PMAS pero saldo insuficiente', () => {
+    // pensión 600.000 > PMAS, pero saldo menor que saldoNecesario
+    const r = calcularELD(600_000, 1_000, UF);
+    assert.equal(r.aplica, false);
+    assert.equal(r.excedenteCLP, 0);
+  });
+
+  test('excedenteUF = excedenteCLP / uf (coherencia)', () => {
+    const r = calcularELD(700_000, 500_000_000, UF);
+    if (r.aplica) {
+      assert.ok(Math.abs(r.excedenteUF - r.excedenteCLP / UF) < 0.01);
+    }
+  });
+
+  // Validación contra fixture SCOMP real (Certificado 154624401)
+  test('SCOMP fixture: mujer 60 años Habitat — ELD no aplica (pensión < PMAS)', () => {
+    const r = calcularELD(SCOMP_FIXTURE.pensionRP_CLP, SCOMP_FIXTURE.saldoTotal, SCOMP_FIXTURE.uf);
+    assert.equal(r.aplica, SCOMP_FIXTURE.eldEsperado);
+    // Confirmado: el certificado SCOMP indica "no puede retirar ELD"
+  });
+});
+
+// ── proyectarSaldo — laguna previsional ───────────────────────
+
+describe('proyectarSaldo con laguna previsional (anosCese)', () => {
+  test('fase laguna aparece en filas después del cese', () => {
+    // cese a 5 años, jubilación a 10 → filas 6-10 deben tener fase laguna
+    const rows = proyectarSaldo(1_000_000, 100_000, 0.05, 10, 10, null, 5);
+    const laguna = rows.filter(r => r.fase === 'laguna');
+    assert.ok(laguna.length > 0, 'debe haber filas de laguna');
+    assert.equal(laguna.length, 5); // años 6-10
+  });
+
+  test('saldo en laguna crece más lento que con aportes (solo rentabilidad)', () => {
+    // cese a 5 años: filas 6-10 solo rentan sin aportes
+    const conCese  = proyectarSaldo(1_000_000, 100_000, 0.05, 10, 10, null, 5);
+    const sinCese  = proyectarSaldo(1_000_000, 100_000, 0.05, 10, 10, null, null);
+    const laguna   = conCese.filter(r => r.fase === 'laguna');
+    // En laguna el saldo sigue creciendo (tasa positiva)
+    if (laguna.length >= 2) {
+      assert.ok(laguna[1].saldo > laguna[0].saldo, 'saldo sigue rentando en laguna');
+    }
+    // Pero crece menos que sin laguna porque no hay aportes
+    assert.ok(conCese[9].saldo < sinCese[9].saldo, 'laguna reduce saldo final');
+  });
+
+  test('sin anosCese el comportamiento es igual al original', () => {
+    const sin  = proyectarSaldo(1_000_000, 50_000, 0.05, 8);
+    const con  = proyectarSaldo(1_000_000, 50_000, 0.05, 8, 8, null, null);
+    assert.equal(sin.length, con.length);
+    assert.equal(sin[7].saldo, con[7].saldo);
+  });
+
+  test('anosCese >= anos no genera laguna', () => {
+    // cese igual al horizonte total → sin laguna
+    const rows = proyectarSaldo(1_000_000, 100_000, 0.05, 10, 10, null, 10);
+    const laguna = rows.filter(r => r.fase === 'laguna');
+    assert.equal(laguna.length, 0);
+  });
+
+  test('saldo con laguna <= saldo sin laguna (se pierden aportes)', () => {
+    const sinLaguna = proyectarSaldo(1_000_000, 100_000, 0.05, 15);
+    const conLaguna = proyectarSaldo(1_000_000, 100_000, 0.05, 15, 15, null, 5);
+    // Con laguna el fondo crece menos porque pierde 10 años de aportes
+    assert.ok(conLaguna[14].saldo < sinLaguna[14].saldo);
+  });
+});
+
+// ── Smoke test con datos SCOMP fixture (integración) ─────────
+
+describe('SCOMP fixture smoke test — AFP Habitat, mujer 60, UF 1.547,27', () => {
+  before(async () => { await cargarTablas(); });
+
+  const FAMILIA_SCOMP = { tienePareja: false, numHijosMenores: 0, numHijosEstudiantes: 0, numHijosInvalidos: 0 };
+
+  test('calcularPensionRP produce valor razonable vs oferta SCOMP', () => {
+    // La comisión de Habitat en retiro programado es 0,95%/mes
+    const comisionHabitat = 0.0095;
+    const r = calcularPensionRP(
+      SCOMP_FIXTURE.saldoTotal,
+      SCOMP_FIXTURE.edad,
+      SCOMP_FIXTURE.sexo,
+      SCOMP_FIXTURE.uf,
+      comisionHabitat,
+      FAMILIA_SCOMP,
+      2026,
+    );
+    // La pensión calculada debe estar en rango razonable ±30% del valor SCOMP
+    // (SCOMP usa tablas oficiales con fecha exacta; nuestra app usa mismas tablas)
+    assert.ok(r.pension > 0, 'pensión > 0');
+    const margen = SCOMP_FIXTURE.pensionRP_CLP * 0.30;
+    assert.ok(
+      Math.abs(r.pension - SCOMP_FIXTURE.pensionRP_CLP) < margen,
+      `pensión calculada ${r.pension} fuera del ±30% del SCOMP (${SCOMP_FIXTURE.pensionRP_CLP})`,
+    );
+  });
+
+  test('calcularPensionRV produce valor razonable vs oferta SCOMP (mejor RV)', () => {
+    const r = calcularPensionRV(
+      SCOMP_FIXTURE.saldoTotal,
+      SCOMP_FIXTURE.edad,
+      SCOMP_FIXTURE.sexo,
+      SCOMP_FIXTURE.uf,
+      FAMILIA_SCOMP,
+      2026,
+    );
+    assert.ok(r.pension > 0, 'pensión RV > 0');
+    const margen = SCOMP_FIXTURE.pensionRV_CLP * 0.30;
+    assert.ok(
+      Math.abs(r.pension - SCOMP_FIXTURE.pensionRV_CLP) < margen,
+      `pensión RV calculada ${r.pension} fuera del ±30% del SCOMP (${SCOMP_FIXTURE.pensionRV_CLP})`,
+    );
+  });
+
+  test('PGU: mujer 60 años no recibe PGU (edad < 65)', () => {
+    // Edad legal 60 (mujer), pero PGU requiere 65 años
+    const r = calcularPensionRP(
+      SCOMP_FIXTURE.saldoTotal, SCOMP_FIXTURE.edad, SCOMP_FIXTURE.sexo,
+      SCOMP_FIXTURE.uf, 0.0095, FAMILIA_SCOMP, 2026,
+    );
+    assert.equal(r.pgu, 0, 'PGU debe ser 0 a los 60 años');
   });
 });

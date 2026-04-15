@@ -925,6 +925,7 @@
 
   // ─── Render ───────────────────────────────────────────────────
   function render(d, uf, utm, comisionPct, comisionDec, rp, rv, score, proyRP, proyRV, saldoEfectivo, saldoAPVNum, br) {
+    const saldoDCNum = d.saldoDC || 0;
     window._tpSexo = d.sexo;  // para el calculador de trabajo pesado
     const sexoLabel  = d.sexo === 'M' ? 'Masculino' : 'Femenino';
     const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
