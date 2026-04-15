@@ -704,6 +704,8 @@
     // ── Proyección ────────────────────────────────────
     async function proyectar() {
       await cargarTablas();
+      const saldoEfectivo    = d.saldoTotal + (d.saldoAPV || 0) + (d.saldoDC || 0) + (d.bonoReconocimiento || 0);
+      const anioActual       = new Date().getFullYear();
       const anos             = parseInt(document.getElementById('anosProyeccion').value);
       const aporte           = parseFloat(document.getElementById('aporteMensual').value) || 0;
       const tasaAcum         = parseFloat(document.getElementById('tasaAcumulacion').value);
