@@ -174,14 +174,15 @@
     <div class="card">
       <h2>Acceso de Administrador</h2>
       <p style="font-size:13px;color:#374151;line-height:1.7">
-        El acceso de administrador usa <strong>solo email/contraseña</strong> — sin opción de Google OAuth.<br>
-        URL de acceso: <code style="background:#f3f4f6;padding:2px 6px;border-radius:3px">/pages/login.html?admin=1</code><br><br>
-        Para crear un administrador:
+        El acceso de administrador usa <strong>usuario y contraseña fijos</strong> — sin opción de Google OAuth.<br>
+        URL de acceso: <code style="background:#f3f4f6;padding:2px 6px;border-radius:3px">/pages/login.html?admin=1</code><br>
+        Credenciales: <code style="background:#f3f4f6;padding:2px 6px;border-radius:3px">administrador</code> / <code style="background:#f3f4f6;padding:2px 6px;border-radius:3px">admin</code><br><br>
+        <strong>Setup inicial (una sola vez en Firebase Console):</strong>
       </p>
       <ol style="font-size:13px;color:#374151;line-height:2;margin:10px 0 0 18px">
-        <li>Crea la cuenta en <a href="login.html?admin=1" style="color:var(--blue)">login.html?admin=1</a> con email y contraseña.</li>
-        <li>Copia el UID del nuevo usuario desde Firebase Console → Authentication.</li>
-        <li>Pégalo arriba y haz clic en <strong>Otorgar permisos admin</strong>.</li>
+        <li>En Firebase Console → Authentication → Agregar usuario manualmente.</li>
+        <li>Email: <code style="background:#f3f4f6;padding:2px 6px;border-radius:3px">admin@previsionchile.local</code> · Contraseña: <code style="background:#f3f4f6;padding:2px 6px;border-radius:3px">admin</code></li>
+        <li>Copia el UID generado y pégalo arriba → <strong>Otorgar permisos admin</strong>.</li>
       </ol>
     </div>
 

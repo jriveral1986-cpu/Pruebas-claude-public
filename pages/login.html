@@ -240,7 +240,7 @@
     <!-- Admin badge (visible solo en modo admin) -->
     <div class="admin-badge" id="admin-badge" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      Acceso Administrador — solo email y contraseña
+      Acceso Administrador — solo usuario y contraseña
     </div>
 
     <!-- ── TAB: Iniciar sesión ── -->
@@ -249,7 +249,7 @@
       <div class="msg msg--success" id="ok-login"></div>
 
       <div class="form-group">
-        <label for="login-email">Correo electrónico</label>
+        <label for="login-email" id="label-login-email">Correo electrónico</label>
         <input type="email" id="login-email" autocomplete="email" placeholder="tu@correo.com">
       </div>
       <div class="form-group">
@@ -317,11 +317,20 @@
   const nextUrl   = params.get('next') || '../index.html';
   const modoAdmin = params.has('admin');
 
+  // Email interno de Firebase para la cuenta de administrador del sistema
+  const ADMIN_INTERNAL_EMAIL = 'admin@previsionchile.local';
+
   if (modoAdmin) {
     document.getElementById('admin-badge').style.display = 'flex';
     document.getElementById('google-section').style.display = 'none';
-    // Ocultar tab de registro en modo admin
     document.getElementById('tab-registro-btn').style.display = 'none';
+    // Cambiar campo email a campo usuario genérico
+    const loginEmailInput = document.getElementById('login-email');
+    const loginEmailLabel = document.getElementById('label-login-email');
+    loginEmailInput.type        = 'text';
+    loginEmailInput.placeholder = 'administrador';
+    loginEmailInput.autocomplete = 'username';
+    loginEmailLabel.textContent = 'Usuario';
   }
 
   // ── Tab switch ─────────────────────────────────────────────────────────────
@@ -370,10 +379,23 @@
   // ── Login email/contraseña ─────────────────────────────────────────────────
   document.getElementById('btn-login').addEventListener('click', async () => {
     clearMsg('err-login');
-    const email = document.getElementById('login-email').value.trim();
-    const pass  = document.getElementById('login-pass').value;
+    const inputVal = document.getElementById('login-email').value.trim();
+    const pass     = document.getElementById('login-pass').value;
 
-    if (!email || !pass) { showError('err-login', 'Ingresa correo y contraseña.'); return; }
+    if (!inputVal || !pass) {
+      showError('err-login', modoAdmin ? 'Ingresa usuario y contraseña.' : 'Ingresa correo y contraseña.');
+      return;
+    }
+
+    // En modo admin: mapear usuario "administrador" al email interno de Firebase
+    let email = inputVal;
+    if (modoAdmin) {
+      if (inputVal !== 'administrador') {
+        showError('err-login', 'Usuario no reconocido.');
+        return;
+      }
+      email = ADMIN_INTERNAL_EMAIL;
+    }
 
     setLoading('btn-login', true);
     try {
