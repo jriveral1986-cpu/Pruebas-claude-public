@@ -644,7 +644,10 @@
   </main>
 
   <script type="module">
-    import { initBtnActualizar } from './js/ui.js';
+    import { initBtnActualizar }    from './js/ui.js';
+    import { requireAuth, initNavAuth } from './js/auth.js';
+    await requireAuth();
+    initNavAuth();
     // No "Actualizar" button on home page — but import ensures nav is marked active
   </script>
 

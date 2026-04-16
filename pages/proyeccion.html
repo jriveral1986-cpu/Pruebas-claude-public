@@ -393,7 +393,10 @@
     import { calcularPensionRP, calcularPensionRV, proyectarSaldo, calcularPGUInformativa, procesarInvalidez, calcularBeneficioTributarioAPV, calcularELD } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
     import { cargarAFP, getComision, getComisionPensionado } from '../js/comisiones.js?v=4';
+    import { requireAuth, initNavAuth }                     from '../js/auth.js';
 
+    await requireAuth();
+    initNavAuth();
     initBtnActualizar();
 
     const d = Store.leer();

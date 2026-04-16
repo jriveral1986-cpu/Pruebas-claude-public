@@ -781,6 +781,10 @@
   import { cargarTablas, getCRU }                                 from '../js/mortalidad.js';
   import { cargarAFP, getComision, getComisionPensionado }        from '../js/comisiones.js?v=4';
   import { exportarCSV, exportarJSON }                            from '../js/exportar.js';
+  import { requireAuth, initNavAuth }                             from '../js/auth.js';
+
+  await requireAuth();
+  initNavAuth();
 
   // ─── Formatters ──────────────────────────────────────────────
   const fmt     = n => '$' + Math.round(n).toLocaleString('es-CL');

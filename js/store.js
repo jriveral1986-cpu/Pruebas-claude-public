@@ -32,5 +32,20 @@ export const Store = {
   tieneResultados() {
     const d = this.leer();
     return !!(d.saldoTotal && d.uf && d.utm && d.afp && d.fondo);
+  },
+
+  /**
+   * Returns the UID of the currently authenticated Firebase user,
+   * or null if auth.js is not loaded / user is not signed in.
+   * Lazy-loaded to avoid circular imports.
+   */
+  uid() {
+    try {
+      // auth module exports getUsuarioActual — access via dynamic import cache
+      const user = window._firebaseUser || null;
+      return user ? user.uid : null;
+    } catch {
+      return null;
+    }
   }
 };

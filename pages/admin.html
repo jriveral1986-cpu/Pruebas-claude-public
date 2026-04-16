@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a2e4a">
+  <title>Panel Administrador — Previsión Chile</title>
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    :root {
+      --navy:   #1a2e4a;
+      --gold:   #c8a84b;
+      --gold-lt:#fdf6e3;
+      --green:  #16a34a;
+      --red:    #dc2626;
+      --red-lt: #fee2e2;
+      --muted:  #6b7280;
+      --border: #d1d5db;
+      --bg:     #f7f6f2;
+      --white:  #ffffff;
+      --blue:   #2563a8;
+      --blue-lt:#e8f0fb;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: #1e1e1e; font-size: 14px; }
+    .container { max-width: 960px; margin: 0 auto; padding: 32px 24px; }
+
+    /* ── Admin header ── */
+    .admin-header {
+      background: var(--navy);
+      color: white;
+      padding: 22px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .admin-header h1 { font-size: 18px; font-weight: 600; }
+    .admin-badge-hdr {
+      background: var(--gold);
+      color: var(--navy);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Form group ── */
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--navy); margin-bottom: 5px; }
+    .form-group input {
+      width: 100%;
+      max-width: 360px;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 14px;
+      min-height: 44px;
+    }
+    .form-group input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,168,.1); }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: var(--navy);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+    }
+    .btn-primary:hover { background: #243d5f; }
+    .btn-danger {
+      background: var(--red);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+    }
+    .btn-danger:hover { background: #b91c1c; }
+
+    /* ── Mensajes ── */
+    .msg { padding: 10px 14px; border-radius: 7px; font-size: 13px; margin-top: 10px; display: none; }
+    .msg.show { display: block; }
+    .msg--ok  { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .msg--err { background: var(--red-lt); color: #991b1b; border: 1px solid #fca5a5; }
+
+    /* ── Stats grid ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; text-align: center; }
+    .stat-card .num { font-size: 28px; font-weight: 700; color: var(--navy); }
+    .stat-card .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+    #loading-admin { text-align: center; padding: 60px; color: var(--muted); font-size: 16px; }
+    @media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="admin-header">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  <h1>Panel Administrador</h1>
+  <span class="admin-badge-hdr">Admin</span>
+</div>
+
+<div id="loading-admin">Verificando permisos…</div>
+
+<div id="panel-admin" style="display:none">
+  <div class="container">
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="num" id="stat-usuarios">—</div>
+        <div class="lbl">Usuarios registrados</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="stat-con-datos">—</div>
+        <div class="lbl">Con datos AFP</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="stat-admin-count">—</div>
+        <div class="lbl">Administradores</div>
+      </div>
+    </div>
+
+    <!-- Promover admin -->
+    <div class="card">
+      <h2>Gestión de Administradores</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+        Ingresa el UID de un usuario (visible en Firebase Console → Authentication) para otorgarle o quitarle permisos de administrador.
+        Los administradores inician sesión <strong>solo con email/contraseña</strong> en
+        <a href="login.html?admin=1" style="color:var(--blue)">login.html?admin=1</a>.
+      </p>
+      <div class="form-group">
+        <label for="uid-input">UID del usuario</label>
+        <input type="text" id="uid-input" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-primary" id="btn-promover">Otorgar permisos admin</button>
+        <button class="btn-danger"  id="btn-revocar">Revocar permisos admin</button>
+      </div>
+      <div class="msg msg--ok"  id="msg-admin-ok"></div>
+      <div class="msg msg--err" id="msg-admin-err"></div>
+    </div>
+
+    <!-- Info -->
+    <div class="card">
+      <h2>Acceso de Administrador</h2>
+      <p style="font-size:13px;color:#374151;line-height:1.7">
+        El acceso de administrador usa <strong>solo email/contraseña</strong> — sin opción de Google OAuth.<br>
+        URL de acceso: <code style="background:#f3f4f6;padding:2px 6px;border-radius:3px">/pages/login.html?admin=1</code><br><br>
+        Para crear un administrador:
+      </p>
+      <ol style="font-size:13px;color:#374151;line-height:2;margin:10px 0 0 18px">
+        <li>Crea la cuenta en <a href="login.html?admin=1" style="color:var(--blue)">login.html?admin=1</a> con email y contraseña.</li>
+        <li>Copia el UID del nuevo usuario desde Firebase Console → Authentication.</li>
+        <li>Pégalo arriba y haz clic en <strong>Otorgar permisos admin</strong>.</li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { requireAdmin, initNavAuth, isAdmin, getUsuarioActual } from '../js/auth.js';
+  import {
+    getFirestore, doc, setDoc, getDoc, collection, getDocs, serverTimestamp
+  } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js';
+  import { initializeApp }  from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js';
+  import { firebaseConfig } from '../js/firebase-config.js';
+
+  // ── Verificar admin ────────────────────────────────────────────────────────
+  try {
+    await requireAdmin();
+  } catch {
+    // requireAdmin ya redirige; no hacer nada más
+  }
+  initNavAuth();
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // ── Mostrar panel ──────────────────────────────────────────────────────────
+  document.getElementById('loading-admin').style.display = 'none';
+  document.getElementById('panel-admin').style.display  = '';
+
+  // ── Cargar estadísticas básicas ────────────────────────────────────────────
+  try {
+    const snapshot = await getDocs(collection(db, 'users'));
+    let conDatos = 0, admins = 0;
+    snapshot.forEach(doc => {
+      // No hay sub-colecciones en getDocs a nivel raíz — solo contamos docs
+      admins += doc.data()?.isAdmin ? 1 : 0;
+    });
+    document.getElementById('stat-usuarios').textContent  = snapshot.size;
+    document.getElementById('stat-con-datos').textContent = '—';
+    document.getElementById('stat-admin-count').textContent = admins || '—';
+  } catch (e) {
+    console.warn('Stats no disponibles:', e.message);
+  }
+
+  // ── Promover / Revocar admin ───────────────────────────────────────────────
+  function showMsg(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = `msg msg--${type} show`;
+  }
+
+  document.getElementById('btn-promover').addEventListener('click', async () => {
+    const uid = document.getElementById('uid-input').value.trim();
+    if (!uid) { showMsg('msg-admin-err', 'Ingresa el UID del usuario.', 'err'); return; }
+    try {
+      await setDoc(doc(db, 'users', uid, 'perfil', 'info'), { isAdmin: true }, { merge: true });
+      showMsg('msg-admin-ok', `Usuario ${uid.slice(0, 12)}… ahora tiene permisos de administrador.`, 'ok');
+    } catch (e) {
+      showMsg('msg-admin-err', 'Error al actualizar: ' + e.message, 'err');
+    }
+  });
+
+  document.getElementById('btn-revocar').addEventListener('click', async () => {
+    const uid = document.getElementById('uid-input').value.trim();
+    if (!uid) { showMsg('msg-admin-err', 'Ingresa el UID del usuario.', 'err'); return; }
+    if (uid === getUsuarioActual()?.uid) {
+      showMsg('msg-admin-err', 'No puedes revocar tus propios permisos.', 'err');
+      return;
+    }
+    try {
+      await setDoc(doc(db, 'users', uid, 'perfil', 'info'), { isAdmin: false }, { merge: true });
+      showMsg('msg-admin-ok', `Permisos de administrador revocados para ${uid.slice(0, 12)}….`, 'ok');
+    } catch (e) {
+      showMsg('msg-admin-err', 'Error al actualizar: ' + e.message, 'err');
+    }
+  });
+</script>
+</body>
+</html>

@@ -298,7 +298,10 @@
       calcularBAC, calcularCEV, calcularBonificacionHijo, calcularBeneficioTributarioAPV,
     } from '../js/calculos.js';
     import { exportarPDF, exportarCSV } from '../js/exportar.js';
+    import { requireAuth, initNavAuth } from '../js/auth.js';
 
+    await requireAuth();
+    initNavAuth();
     initBtnActualizar();
 
     const d = Store.leer();

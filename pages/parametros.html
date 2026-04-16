@@ -688,7 +688,11 @@
 
   <script type="module">
     import { initBtnActualizar, marcarNavActiva } from '../js/ui.js';
-    import { Store } from '../js/store.js';
+    import { Store }                        from '../js/store.js';
+    import { requireAuth, initNavAuth }     from '../js/auth.js';
+
+    await requireAuth();
+    initNavAuth();
 
     const fmt = (n) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
     const fmtUF = (n) => n ? new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '—';

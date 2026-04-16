@@ -557,6 +557,11 @@
     import { Store }                  from '../js/store.js';
     import { calcularSaldoDesdeNumCuotas } from '../js/calculos.js';
     import { getComision, getComisionPensionado, cargarAFP as _cargarAFP } from '../js/comisiones.js?v=4';
+    import { requireAuth, initNavAuth, syncToFirestore }                  from '../js/auth.js';
+
+    // ── Auth guard ────────────────────────────────────
+    await requireAuth();
+    initNavAuth();
 
     // ── Init ─────────────────────────────────────────
     initBtnActualizar();
@@ -1039,6 +1044,9 @@
         tipoInvalidez:           document.querySelector('input[name="tipoInvalidez"]:checked')?.value || 'total',
         rentaPromedioInvalidez:  parseFloat(document.getElementById('rentaPromedioInvalidez').value) || 0,
       });
+
+      // Persistir en Firestore (silencioso — no bloquea la navegación)
+      syncToFirestore().catch(() => {});
 
       window.location.href = `proyeccion.html?_=${Date.now()}`;
     });
