@@ -49,22 +49,21 @@ onAuthStateChanged(auth, (user) => { window._firebaseUser = user || null; });
 // ── requireAuth ───────────────────────────────────────────────────────────────
 /**
  * Espera a que Firebase resuelva el estado de autenticación.
+ * Usa auth.authStateReady() para esperar a que la persistencia se cargue.
  * Si no hay sesión → redirige a login.html preservando la URL actual.
- * Usar con await al inicio de cada módulo de página.
  */
-export function requireAuth() {
-  return new Promise((resolve) => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      unsub();
-      if (user) {
-        resolve(user);
-      } else {
-        const next = encodeURIComponent(location.pathname + location.search);
-        const base = location.pathname.includes('/pages/') ? '../pages/login.html' : 'pages/login.html';
-        location.href = `${base}?next=${next}`;
-      }
-    });
-  });
+export async function requireAuth() {
+  await auth.authStateReady();
+  const user = auth.currentUser;
+  if (user) {
+    window._firebaseUser = user;
+    return user;
+  }
+  const next = encodeURIComponent(location.pathname + location.search);
+  const base = location.pathname.includes('/pages/') ? '../pages/login.html' : 'pages/login.html';
+  location.href = `${base}?next=${next}`;
+  // Mantener la promesa pendiente mientras redirige
+  return new Promise(() => {});
 }
 
 // ── getUsuarioActual ──────────────────────────────────────────────────────────
@@ -107,16 +106,16 @@ export function initNavAuth() {
 // ── iniciarSesionEmail ────────────────────────────────────────────────────────
 export async function iniciarSesionEmail(email, password) {
   const cred = await signInWithEmailAndPassword(auth, email, password);
-  await loadFromFirestore(cred.user);
+  // Firestore puede no estar habilitado aún — no bloquear el login
+  loadFromFirestore(cred.user).catch(() => {});
   return cred.user;
 }
 
 // ── iniciarSesionGoogle ───────────────────────────────────────────────────────
 export async function iniciarSesionGoogle() {
   const cred = await signInWithPopup(auth, provider);
-  // Si es primera vez → crear perfil
-  await _ensurePerfil(cred.user);
-  await loadFromFirestore(cred.user);
+  _ensurePerfil(cred.user).catch(() => {});
+  loadFromFirestore(cred.user).catch(() => {});
   return cred.user;
 }
 
