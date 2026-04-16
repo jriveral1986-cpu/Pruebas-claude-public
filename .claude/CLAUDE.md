@@ -133,8 +133,12 @@ Single stylesheet `css/main.css` shared across all pages with CSS custom propert
 - Diseño mobile-first con breakpoints estándar: 375 / 768 / 1024 / 1440px.
 - Cada regla nueva, agrega la regla de negocio en el MD ReglasNegocio
 - **No usar emojis como íconos de UI** — usar SVG (Heroicons, Lucide o íconos inline).
+- Cada vez que corrijas algo en el codigo ingresar lo que se corrigio y cuando en el archivo "Revisiones.md".
+- Cada vez que realices un cambio Valida que el mismo cambio no se realizo antes en el archivo "Revisiones.md".
+
 ## Validación visual
 - Para cambios de UI, validar con Playwright en viewport **1440×860** (desktop) y **375×812** (mobile) antes de reportar la tarea como completa.
+
 
 
 
