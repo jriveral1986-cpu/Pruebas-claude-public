@@ -14,12 +14,12 @@
  *  al cliente por diseño. La seguridad viene de las Firestore Security Rules
  *  y de los dominios autorizados en Firebase Console.
  */
-
 export const firebaseConfig = {
-  apiKey:            'TU_API_KEY',
-  authDomain:        'TU_PROYECTO.firebaseapp.com',
-  projectId:         'TU_PROYECTO',
-  storageBucket:     'TU_PROYECTO.appspot.com',
-  messagingSenderId: 'TU_SENDER_ID',
-  appId:             'TU_APP_ID',
+  apiKey: "AIzaSyBj25zGRFI_bSIjiSmE0QsbPvrWLJwj4r8",
+  authDomain: "previsionchile-577a1.firebaseapp.com",
+  projectId: "previsionchile-577a1",
+  storageBucket: "previsionchile-577a1.firebasestorage.app",
+  messagingSenderId: "261701629963",
+  appId: "1:261701629963:web:69a53fe2378efa0cfbaf0e",
+  measurementId: "G-EKLESWDYHF"
 };

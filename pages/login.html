@@ -317,8 +317,10 @@
   const nextUrl   = params.get('next') || '../index.html';
   const modoAdmin = params.has('admin');
 
-  // Email interno de Firebase para la cuenta de administrador del sistema
+  // Credenciales internas de Firebase para la cuenta de administrador del sistema
+  // (el usuario escribe "administrador"/"admin" — Firebase usa estas credenciales reales)
   const ADMIN_INTERNAL_EMAIL = 'admin@previsionchile.local';
+  const ADMIN_INTERNAL_PASS  = 'Admin.2026!';
 
   if (modoAdmin) {
     document.getElementById('admin-badge').style.display = 'flex';
@@ -387,19 +389,21 @@
       return;
     }
 
-    // En modo admin: mapear usuario "administrador" al email interno de Firebase
+    // En modo admin: mapear "administrador"/"admin" → credenciales internas de Firebase
     let email = inputVal;
+    let passFirebase = pass;
     if (modoAdmin) {
-      if (inputVal !== 'administrador') {
-        showError('err-login', 'Usuario no reconocido.');
+      if (inputVal !== 'administrador' || pass !== 'admin') {
+        showError('err-login', 'Usuario o contraseña incorrectos.');
         return;
       }
-      email = ADMIN_INTERNAL_EMAIL;
+      email        = ADMIN_INTERNAL_EMAIL;
+      passFirebase = ADMIN_INTERNAL_PASS;
     }
 
     setLoading('btn-login', true);
     try {
-      await iniciarSesionEmail(email, pass);
+      await iniciarSesionEmail(email, passFirebase);
       redirigir();
     } catch (e) {
       showError('err-login', mensajeError(e.code));
