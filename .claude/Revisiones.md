@@ -56,6 +56,14 @@
 
 ### Pendiente (acción del usuario)
 - Cambiar Firestore Security Rules a reglas definitivas que restringen cada usuario a su propio documento (`request.auth.uid == userId`)
+`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}`
 
 ## 2026-04-17 — Nav: enlace Admin visible solo para administradores
 - js/auth.js: `initNavAuth()` convertida a `async` — ahora llama `isAdmin()` antes de inyectar el nav
@@ -68,3 +76,11 @@
 - pages/admin.html: agregado `<a class="btn-back">` con ícono SVG chevron-left en el header del panel
 - pages/admin.html: estilo `.btn-back` inline — borde semitransparente sobre fondo navy, hover sutil
 - Validado con Playwright: botón "Volver" visible en header del panel admin
+
+## 2026-04-17 — Login unificado: admin y usuario en un solo formulario
+- pages/login.html: eliminado modo ?admin=1 — ya no hay distinción de URL ni admin badge
+- pages/login.html: campo cambiado a type="text" con placeholder "tu@correo.com" y label "Correo electrónico o usuario"
+- pages/login.html: si inputVal === "administrador" → mapea a credenciales internas Firebase automáticamente
+- pages/login.html: usuarios normales siguen usando email directamente; Google funciona para todos
+- pages/login.html: eliminadas imports de cerrarSesion e isAdmin (ya no se necesitan en login)
+- Validado con Playwright: administrador/admin redirige correctamente a index.html desde login unificado
