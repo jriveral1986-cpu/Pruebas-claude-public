@@ -287,6 +287,8 @@
   import {
     iniciarSesionEmail,
     iniciarSesionGoogle,
+    cerrarSesion,
+    isAdmin,
     recuperarPassword,
     mensajeError,
   } from '../js/auth.js';
@@ -303,7 +305,6 @@
 
   if (modoAdmin) {
     document.getElementById('admin-badge').style.display = 'flex';
-    document.getElementById('google-section').style.display = 'none';
     // Cambiar campo email a campo usuario genérico
     const loginEmailInput = document.getElementById('login-email');
     const loginEmailLabel = document.getElementById('label-login-email');
@@ -391,6 +392,15 @@
     clearMsg('err-login');
     try {
       await iniciarSesionGoogle();
+      // En modo admin: verificar que la cuenta tenga flag isAdmin
+      if (modoAdmin) {
+        const admin = await isAdmin().catch(() => false);
+        if (!admin) {
+          await cerrarSesion();
+          showError('err-login', 'Esta cuenta Google no tiene permisos de administrador.');
+          return;
+        }
+      }
       redirigir();
     } catch (e) {
       if (e.code !== 'auth/popup-closed-by-user') {

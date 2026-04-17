@@ -26,6 +26,11 @@
 - pages/login.html: valida usuario Y contraseña antes de llamar Firebase; muestra "Usuario o contraseña incorrectos"
 - js/auth.js: `loadFromFirestore` en `iniciarSesionEmail` e `iniciarSesionGoogle` cambiado a fire-and-forget (.catch(() => {})) para no bloquear login si Firestore no está habilitado aún
 
+## 2026-04-17 — Admin login: Google también permitido en modo admin
+- pages/login.html: modo ?admin=1 ahora muestra botón "Continuar con Google"
+- pages/login.html: tras login Google en modo admin, verifica isAdmin() — si no tiene flag, hace cerrarSesion() y muestra "Esta cuenta Google no tiene permisos de administrador"
+- pages/login.html: importados cerrarSesion e isAdmin desde auth.js
+
 ## 2026-04-17 — Registro de usuarios solo para administrador
 - pages/login.html: eliminado tab "Crear cuenta" y todo su HTML/JS — registro público deshabilitado
 - pages/admin.html: agregada card "Crear Usuario" con formulario nombre/email/contraseña
