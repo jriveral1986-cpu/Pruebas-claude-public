@@ -647,7 +647,7 @@
     import { initBtnActualizar }    from './js/ui.js';
     import { requireAuth, initNavAuth } from './js/auth.js';
     await requireAuth();
-    initNavAuth();
+    await initNavAuth();
     // No "Actualizar" button on home page — but import ensures nav is marked active
   </script>
 

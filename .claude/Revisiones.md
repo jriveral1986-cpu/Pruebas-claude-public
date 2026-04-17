@@ -41,3 +41,30 @@
 - js/auth.js: `requireAuth()` refactorizado para usar `auth.authStateReady()` (Firebase SDK 10.x)
 - Elimina condición de carrera donde `onAuthStateChanged` disparaba con null antes de restaurar la sesión desde IndexedDB, causando redirección en bucle a login.html
 - Login administrador/admin validado con Playwright: redirige correctamente a index.html
+
+## 2026-04-17 — Setup Firestore: habilitación + permisos admin + UID de usuario
+
+### Problema raíz
+- Firestore Database no estaba habilitado en proyecto `previsionchile-577a1` → todas las operaciones Firestore fallaban con `permission-denied`
+- Documento `users/{adminUID}/perfil/info` no existía → `requireAdmin()` redirigía a index.html aunque el admin estuviera autenticado
+
+### Solución
+- Usuario habilitó Firestore Database en Firebase Console (modo producción, región us-central1)
+- Usuario actualizó Firestore Security Rules a modo permisivo temporal (`allow read, write: if request.auth != null`)
+- Documento `users/RPl9dbv4peQ7QIMrbncxETgtvPY2/perfil/info` creado vía JS desde el navegador con campos `isAdmin: true`, `email: admin@previsionchile.local`
+- UID `57FNeXp323R4DwUyjthokTFEI6K2` otorgado con `isAdmin: true` desde panel admin (validado con Playwright)
+
+### Pendiente (acción del usuario)
+- Cambiar Firestore Security Rules a reglas definitivas que restringen cada usuario a su propio documento (`request.auth.uid == userId`)
+
+## 2026-04-17 — Nav: enlace Admin visible solo para administradores
+- js/auth.js: `initNavAuth()` convertida a `async` — ahora llama `isAdmin()` antes de inyectar el nav
+- js/auth.js: si `isAdmin()` retorna true, inyecta `<a class="nav__link nav__link--admin">` con ícono de escudo SVG apuntando a admin.html
+- css/main.css: agregado estilo `.nav__link--admin` con color dorado, borde sutil y hover
+- index.html + 8 pages: `initNavAuth()` cambiado a `await initNavAuth()` en todos los módulos
+- Validado con Playwright: enlace "Admin" aparece en navbar solo para usuarios con isAdmin:true
+
+## 2026-04-17 — admin.html: botón Volver al inicio
+- pages/admin.html: agregado `<a class="btn-back">` con ícono SVG chevron-left en el header del panel
+- pages/admin.html: estilo `.btn-back` inline — borde semitransparente sobre fondo navy, hover sutil
+- Validado con Playwright: botón "Volver" visible en header del panel admin

@@ -230,6 +230,25 @@ small { font-size: var(--text-sm); color: var(--color-text-muted); }
 }
 .nav__logout:hover { background: #1f2937; color: white; }
 
+/* ── Nav admin link ─────────────────────────────────── */
+.nav__link--admin {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-gold, #c8a84b);
+  font-weight: 600;
+  border: 1px solid rgba(200,168,75,.35);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: var(--text-sm);
+  transition: background 150ms ease-in-out, color 150ms ease-in-out;
+}
+.nav__link--admin:hover {
+  background: rgba(200,168,75,.12);
+  color: #a07830;
+  text-decoration: none;
+}
+
 @media (max-width: 768px) {
   .nav__username { display: none; }
   .nav__user { gap: 6px; margin-left: 6px; }

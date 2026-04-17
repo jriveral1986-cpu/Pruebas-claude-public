@@ -45,6 +45,22 @@
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: rgba(255,255,255,.75);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      padding: 6px 12px;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 6px;
+      transition: background 150ms ease-in-out, color 150ms ease-in-out;
+      min-height: 44px;
+      margin-right: 6px;
+    }
+    .btn-back:hover { background: rgba(255,255,255,.1); color: white; text-decoration: none; }
 
     /* ── Cards ── */
     .card {
@@ -124,6 +140,10 @@
 <body>
 
 <div class="admin-header">
+  <a href="../index.html" class="btn-back" aria-label="Volver al inicio">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+    Volver
+  </a>
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
   <h1>Panel Administrador</h1>
   <span class="admin-badge-hdr">Admin</span>
@@ -226,7 +246,7 @@
   } catch {
     // requireAdmin ya redirige; no hacer nada más
   }
-  initNavAuth();
+  await initNavAuth();
 
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);

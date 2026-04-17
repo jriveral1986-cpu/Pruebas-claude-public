@@ -78,9 +78,10 @@ export function getUsuarioActual() {
 // ── initNavAuth ───────────────────────────────────────────────────────────────
 /**
  * Inyecta el bloque de usuario (avatar + nombre + botón Salir) en el .nav.
+ * Si el usuario es admin, también inyecta un enlace al panel de administración.
  * Llama después de requireAuth().
  */
-export function initNavAuth() {
+export async function initNavAuth() {
   const nav  = document.querySelector('.nav');
   if (!nav) return;
   const user = auth.currentUser;
@@ -94,7 +95,22 @@ export function initNavAuth() {
     : nombre.slice(0, 2).toUpperCase();
   const nombreCorto = partes[0] || user.email.split('@')[0];
 
-  // Inyectar al final del nav
+  // Enlace admin (solo si tiene permiso)
+  const admin = await isAdmin().catch(() => false);
+  if (admin) {
+    const base = location.pathname.includes('/pages/') ? '' : 'pages/';
+    const a = document.createElement('a');
+    a.href      = `${base}admin.html`;
+    a.className = 'nav__link nav__link--admin';
+    a.setAttribute('aria-label', 'Panel de administración');
+    a.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Admin
+    `;
+    nav.appendChild(a);
+  }
+
+  // Inyectar bloque de usuario al final del nav
   const span = document.createElement('span');
   span.className = 'nav__user';
   span.innerHTML = `

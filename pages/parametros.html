@@ -692,7 +692,7 @@
     import { requireAuth, initNavAuth }     from '../js/auth.js';
 
     await requireAuth();
-    initNavAuth();
+    await initNavAuth();
 
     const fmt = (n) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
     const fmtUF = (n) => n ? new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '—';

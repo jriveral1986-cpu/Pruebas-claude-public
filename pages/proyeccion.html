@@ -396,7 +396,7 @@
     import { requireAuth, initNavAuth }                     from '../js/auth.js';
 
     await requireAuth();
-    initNavAuth();
+    await initNavAuth();
     initBtnActualizar();
 
     const d = Store.leer();
