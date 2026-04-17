@@ -150,6 +150,29 @@
       </div>
     </div>
 
+    <!-- Crear usuario -->
+    <div class="card">
+      <h2>Crear Usuario</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+        Solo el administrador puede crear nuevas cuentas. El registro público está deshabilitado.
+      </p>
+      <div class="form-group">
+        <label for="nuevo-nombre">Nombre completo</label>
+        <input type="text" id="nuevo-nombre" placeholder="Nombre Apellido" maxlength="80">
+      </div>
+      <div class="form-group">
+        <label for="nuevo-email">Correo electrónico</label>
+        <input type="email" id="nuevo-email" placeholder="usuario@correo.com">
+      </div>
+      <div class="form-group">
+        <label for="nuevo-pass">Contraseña inicial</label>
+        <input type="password" id="nuevo-pass" placeholder="Mínimo 6 caracteres">
+      </div>
+      <button class="btn-primary" id="btn-crear-usuario">Crear usuario</button>
+      <div class="msg msg--ok"  id="msg-crear-ok"></div>
+      <div class="msg msg--err" id="msg-crear-err"></div>
+    </div>
+
     <!-- Promover admin -->
     <div class="card">
       <h2>Gestión de Administradores</h2>
@@ -190,7 +213,7 @@
 </div>
 
 <script type="module">
-  import { requireAdmin, initNavAuth, isAdmin, getUsuarioActual } from '../js/auth.js';
+  import { requireAdmin, initNavAuth, isAdmin, getUsuarioActual, crearUsuario, mensajeError } from '../js/auth.js';
   import {
     getFirestore, doc, setDoc, getDoc, collection, getDocs, serverTimestamp
   } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js';
@@ -226,6 +249,31 @@
   } catch (e) {
     console.warn('Stats no disponibles:', e.message);
   }
+
+  // ── Crear usuario ──────────────────────────────────────────────────────────
+  document.getElementById('btn-crear-usuario').addEventListener('click', async () => {
+    const nombre = document.getElementById('nuevo-nombre').value.trim();
+    const email  = document.getElementById('nuevo-email').value.trim();
+    const pass   = document.getElementById('nuevo-pass').value;
+
+    if (!nombre) { showMsg('msg-crear-err', 'Ingresa el nombre completo.', 'err'); return; }
+    if (!email)  { showMsg('msg-crear-err', 'Ingresa el correo electrónico.', 'err'); return; }
+    if (!pass)   { showMsg('msg-crear-err', 'Ingresa una contraseña (mínimo 6 caracteres).', 'err'); return; }
+
+    const btn = document.getElementById('btn-crear-usuario');
+    btn.disabled = true; btn.textContent = 'Creando…';
+    try {
+      const uid = await crearUsuario(nombre, email, pass);
+      showMsg('msg-crear-ok', `Usuario creado: ${email} (UID: ${uid.slice(0,12)}…)`, 'ok');
+      document.getElementById('nuevo-nombre').value = '';
+      document.getElementById('nuevo-email').value  = '';
+      document.getElementById('nuevo-pass').value   = '';
+    } catch (e) {
+      showMsg('msg-crear-err', mensajeError(e.code), 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Crear usuario';
+    }
+  });
 
   // ── Promover / Revocar admin ───────────────────────────────────────────────
   function showMsg(id, msg, type) {

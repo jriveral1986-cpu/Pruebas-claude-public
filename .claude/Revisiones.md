@@ -26,6 +26,12 @@
 - pages/login.html: valida usuario Y contraseña antes de llamar Firebase; muestra "Usuario o contraseña incorrectos"
 - js/auth.js: `loadFromFirestore` en `iniciarSesionEmail` e `iniciarSesionGoogle` cambiado a fire-and-forget (.catch(() => {})) para no bloquear login si Firestore no está habilitado aún
 
+## 2026-04-17 — Registro de usuarios solo para administrador
+- pages/login.html: eliminado tab "Crear cuenta" y todo su HTML/JS — registro público deshabilitado
+- pages/admin.html: agregada card "Crear Usuario" con formulario nombre/email/contraseña
+- js/auth.js: agregada función exportada `crearUsuario(nombre, email, pass)` — crea usuario y re-autentica al admin automáticamente (createUserWithEmailAndPassword hace sign-in como el nuevo usuario)
+- js/auth.js: constantes ADMIN_INTERNAL_EMAIL y ADMIN_INTERNAL_PASS movidas a nivel de módulo para ser reutilizadas por crearUsuario
+
 ## 2026-04-16 — Fix: requireAuth usa auth.authStateReady() — elimina loop de redirección
 - js/auth.js: `requireAuth()` refactorizado para usar `auth.authStateReady()` (Firebase SDK 10.x)
 - Elimina condición de carrera donde `onAuthStateChanged` disparaba con null antes de restaurar la sesión desde IndexedDB, causando redirección en bucle a login.html

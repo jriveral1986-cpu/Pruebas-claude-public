@@ -37,6 +37,10 @@ import {
   serverTimestamp,
 }                                from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js';
 
+// ── Credenciales internas admin ───────────────────────────────────────────────
+const ADMIN_INTERNAL_EMAIL = 'admin@previsionchile.local';
+const ADMIN_INTERNAL_PASS  = 'Admin.2026!';
+
 // ── Inicialización ────────────────────────────────────────────────────────────
 const app      = initializeApp(firebaseConfig);
 const auth     = getAuth(app);
@@ -119,14 +123,20 @@ export async function iniciarSesionGoogle() {
   return cred.user;
 }
 
-// ── registrarse ───────────────────────────────────────────────────────────────
-export async function registrarse(email, password, nombre) {
+// ── crearUsuario (solo desde admin) ──────────────────────────────────────────
+/**
+ * Crea un nuevo usuario y re-autentica al admin automáticamente.
+ * createUserWithEmailAndPassword hace sign-in como el nuevo usuario,
+ * por eso al terminar volvemos a iniciar sesión con las credenciales admin.
+ */
+export async function crearUsuario(nombre, email, password) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
-  if (nombre) {
-    await updateProfile(cred.user, { displayName: nombre });
-  }
+  if (nombre) await updateProfile(cred.user, { displayName: nombre });
   await _ensurePerfil(cred.user, nombre);
-  return cred.user;
+  const nuevoUid = cred.user.uid;
+  // Re-autenticar como admin
+  await signInWithEmailAndPassword(auth, ADMIN_INTERNAL_EMAIL, ADMIN_INTERNAL_PASS);
+  return nuevoUid;
 }
 
 // ── cerrarSesion ──────────────────────────────────────────────────────────────

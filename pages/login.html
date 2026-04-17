@@ -231,8 +231,7 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" id="tab-login-btn" onclick="switchTab('login')">Iniciar sesión</button>
-    <button class="tab-btn" id="tab-registro-btn" onclick="switchTab('registro')">Crear cuenta</button>
+    <button class="tab-btn active" id="tab-login-btn">Iniciar sesión</button>
   </div>
 
   <div class="card-body">
@@ -275,25 +274,6 @@
       </div>
     </div>
 
-    <!-- ── TAB: Crear cuenta ── -->
-    <div class="tab-panel" id="panel-registro">
-      <div class="msg msg--error" id="err-registro"></div>
-
-      <div class="form-group">
-        <label for="reg-nombre">Nombre completo</label>
-        <input type="text" id="reg-nombre" autocomplete="name" placeholder="Nombre Apellido">
-      </div>
-      <div class="form-group">
-        <label for="reg-email">Correo electrónico</label>
-        <input type="email" id="reg-email" autocomplete="email" placeholder="tu@correo.com">
-      </div>
-      <div class="form-group">
-        <label for="reg-pass">Contraseña</label>
-        <input type="password" id="reg-pass" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
-      </div>
-
-      <button class="btn-submit" id="btn-registro">Crear cuenta</button>
-    </div>
 
   </div><!-- /.card-body -->
 </div><!-- /.login-card -->
@@ -307,7 +287,6 @@
   import {
     iniciarSesionEmail,
     iniciarSesionGoogle,
-    registrarse,
     recuperarPassword,
     mensajeError,
   } from '../js/auth.js';
@@ -325,7 +304,6 @@
   if (modoAdmin) {
     document.getElementById('admin-badge').style.display = 'flex';
     document.getElementById('google-section').style.display = 'none';
-    document.getElementById('tab-registro-btn').style.display = 'none';
     // Cambiar campo email a campo usuario genérico
     const loginEmailInput = document.getElementById('login-email');
     const loginEmailLabel = document.getElementById('label-login-email');
@@ -334,14 +312,6 @@
     loginEmailInput.autocomplete = 'username';
     loginEmailLabel.textContent = 'Usuario';
   }
-
-  // ── Tab switch ─────────────────────────────────────────────────────────────
-  window.switchTab = function(tab) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById(`tab-${tab}-btn`).classList.add('active');
-    document.getElementById(`panel-${tab}`).classList.add('active');
-  };
 
   // ── Mostrar / ocultar error ────────────────────────────────────────────────
   function showError(id, msg) {
@@ -367,11 +337,9 @@
     btn.textContent = loading ? 'Cargando…' : btn.dataset.label;
   }
 
-  // Guardar labels originales
-  ['btn-login', 'btn-registro'].forEach(id => {
-    const btn = document.getElementById(id);
-    btn.dataset.label = btn.textContent;
-  });
+  // Guardar label original
+  const btnLogin = document.getElementById('btn-login');
+  btnLogin.dataset.label = btnLogin.textContent;
 
   // ── Redirección post-login ─────────────────────────────────────────────────
   function redirigir() {
@@ -447,30 +415,6 @@
     }
   });
 
-  // ── Registro ───────────────────────────────────────────────────────────────
-  document.getElementById('btn-registro').addEventListener('click', async () => {
-    clearMsg('err-registro');
-    const nombre = document.getElementById('reg-nombre').value.trim();
-    const email  = document.getElementById('reg-email').value.trim();
-    const pass   = document.getElementById('reg-pass').value;
-
-    if (!nombre) { showError('err-registro', 'Ingresa tu nombre completo.'); return; }
-    if (!email)  { showError('err-registro', 'Ingresa tu correo electrónico.'); return; }
-    if (!pass)   { showError('err-registro', 'Ingresa una contraseña.'); return; }
-
-    setLoading('btn-registro', true);
-    try {
-      await registrarse(email, pass, nombre);
-      redirigir();
-    } catch (e) {
-      showError('err-registro', mensajeError(e.code));
-      setLoading('btn-registro', false);
-    }
-  });
-
-  document.getElementById('reg-pass').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('btn-registro').click();
-  });
 </script>
 </body>
 </html>
